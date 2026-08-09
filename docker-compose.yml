@@ -1,0 +1,22 @@
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ebiosrm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ebiosrm
+      POSTGRES_USER: ebiosrm
+      POSTGRES_PASSWORD: ebiosrm_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - ebiosrm_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ebiosrm -d ebiosrm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ebiosrm_postgres_data:

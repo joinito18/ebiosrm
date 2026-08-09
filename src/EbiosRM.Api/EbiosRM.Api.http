@@ -1,0 +1,6 @@
+@EbiosRM.Api_HostAddress = http://localhost:5197
+
+GET {{EbiosRM.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
