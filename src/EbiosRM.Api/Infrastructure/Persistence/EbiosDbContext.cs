@@ -15,6 +15,7 @@ public class EbiosDbContext : DbContext
     public DbSet<BienSupport> BiensSupport => Set<BienSupport>();
     public DbSet<EvenementRedoute> EvenementsRedoutes => Set<EvenementRedoute>();
     public DbSet<SocleSecurite> SoclesSecurite => Set<SocleSecurite>();
+    public DbSet<SnapshotAtelier1> SnapshotsAtelier1 => Set<SnapshotAtelier1>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -88,6 +89,26 @@ public class EbiosDbContext : DbContext
                 referentiel.Property(r => r.Nom).IsRequired().HasMaxLength(300);
                 referentiel.Property(r => r.Etat).IsRequired().HasConversion<string>().HasMaxLength(50);
             });
+        });
+
+        modelBuilder.Entity<SnapshotAtelier1>(entity =>
+        {
+            entity.ToTable("snapshots_atelier1");
+            entity.HasKey(s => s.Id);
+
+            // Id non assigné dans la factory métier (SnapshotAtelier1.Creer) --
+            // même précaution que ReferentielApplicable, EF Core génère la clé
+            // à l'insertion pour éviter un DbUpdateConcurrencyException.
+            entity.Property(s => s.Id).ValueGeneratedOnAdd();
+
+            entity.Property(s => s.EtudeId).IsRequired();
+            entity.Property(s => s.Version).IsRequired();
+            entity.Property(s => s.DateCreationUtc).IsRequired();
+            entity.Property(s => s.ContenuJson).IsRequired().HasColumnType("jsonb");
+
+            // Une seule version donnée par étude : jamais deux snapshots
+            // avec le même (EtudeId, Version). Garantit l'immuabilité/l'ordre.
+            entity.HasIndex(s => new { s.EtudeId, s.Version }).IsUnique();
         });
 
         base.OnModelCreating(modelBuilder);

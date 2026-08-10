@@ -1,8 +1,12 @@
 using EbiosRM.Api.Infrastructure.Persistence;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Infrastructure;
+using EbiosRM.Api.Modules.Reporting;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using System.Text.Json.Serialization;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +25,11 @@ builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
 builder.Services.AddScoped<IBienSupportRepository, BienSupportRepository>();
 builder.Services.AddScoped<IEvenementRedouteRepository, EvenementRedouteRepository>();
 builder.Services.AddScoped<ISocleSecuriteRepository, SocleSecuriteRepository>();
+builder.Services.AddScoped<ISnapshotAtelier1Repository, SnapshotAtelier1Repository>();
 builder.Services.AddScoped<ServiceValidationCompletudeAtelier1>();
+builder.Services.AddScoped<ServiceCreationSnapshotAtelier1>();
+builder.Services.AddScoped<RapportAtelier1Service>();
+builder.Services.AddScoped<RapportAtelier1PdfGenerator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -96,7 +104,11 @@ app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier1", async (
 });
 
 app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier1", async (
-    Guid id, IEtudeRepository repo, ServiceValidationCompletudeAtelier1 serviceValidation, CancellationToken ct) =>
+    Guid id,
+    IEtudeRepository repo,
+    ServiceValidationCompletudeAtelier1 serviceValidation,
+    ServiceCreationSnapshotAtelier1 serviceSnapshot,
+    CancellationToken ct) =>
 {
     var etude = await repo.ObtenirParIdAsync(id, ct);
     if (etude is null)
@@ -116,7 +128,13 @@ app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier1", async (
     {
         etude.ValiderAtelier1();
         await repo.MettreAJourAsync(etude, ct);
-        return Results.Ok(etude);
+
+        // P13 : chaque validation (initiale ou après correction) fige une
+        // nouvelle version du snapshot. L'historique des versions précédentes
+        // n'est jamais écrasé.
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+
+        return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
     }
     catch (InvalidOperationException ex)
     {
@@ -299,6 +317,22 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/socle-securite", async (
 {
     var socle = await socleRepo.ObtenirParEtudeAsync(etudeId, ct);
     return socle is null ? Results.NotFound() : Results.Ok(socle);
+});
+
+// --- Reporting ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier1", async (
+    Guid etudeId, RapportAtelier1Service rapportService, RapportAtelier1PdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.Conflict(new
+        {
+            error = "Aucun snapshot disponible pour l'atelier 1 de cette étude. L'atelier 1 doit être validé au moins une fois avant de générer un rapport."
+        });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier1-{etudeId}.pdf");
 });
 
 app.Run();
