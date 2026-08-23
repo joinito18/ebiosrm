@@ -15,6 +15,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
     private static readonly string Encre = "#161616";
     private static readonly string GrisTexte = "#3A3A3A";
     private static readonly string GrisLigne = "#DDDDDD";
+    private static readonly string GrisFond = "#F6F6F6";
     private static readonly string RougeAlerte = "#B34000";
     private static readonly string OrangeAlerte = "#BA7517";
     private static readonly string VertConforme = "#18753C";
@@ -82,6 +83,34 @@ public sealed class RapportSyntheseGlobalePdfGenerator
 
                     col.Item().Column(c =>
                     {
+                        SectionTitre(c, "Grille de determination du niveau de risque");
+                        c.Item().PaddingTop(4).Text("Croisement Gravite (evenement redoute vise) x Vraisemblance (scenario operationnel), seuils par defaut du projet ajustables. La cartographie ci-dessous indique, pour chaque scenario, le calcul exact qui a produit son niveau.").FontSize(8).Italic().FontColor(GrisTexte);
+                        c.Item().PaddingTop(6).Table(table =>
+                        {
+                            table.ColumnsDefinition(cd =>
+                            {
+                                cd.ConstantColumn(110);
+                                cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn();
+                            });
+                            table.Cell().Background(GrisFond).Padding(5).Text("Gravite \\ Vraisemblance").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte);
+                            foreach (var v in new[] { "V1", "V2", "V3", "V4" })
+                                EnteteCellule(table.Cell(), v);
+
+                            void LigneRisque(string label, string v1, string v2, string v3, string v4)
+                            {
+                                table.Cell().Background(BleuFranceClair).Padding(4).Text(label).FontFamily(MonoMedium).FontSize(7f).FontColor(BleuFrance);
+                                foreach (var v in new[] { v1, v2, v3, v4 })
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).PaddingVertical(4).AlignCenter().Text(v).FontFamily(MonoMedium).FontSize(7.5f).FontColor(CouleurNiveau(v));
+                            }
+                            LigneRisque("1", "Faible", "Faible", "Moyen", "Moyen");
+                            LigneRisque("2", "Faible", "Faible", "Moyen", "Eleve");
+                            LigneRisque("3", "Faible", "Moyen", "Eleve", "Eleve");
+                            LigneRisque("4", "Faible", "Moyen", "Eleve", "Eleve");
+                        });
+                    });
+
+                    col.Item().Column(c =>
+                    {
                         SectionTitre(c, "Cartographie des risques -- avant / apres traitement");
                         if (data.ScenariosDeRisque.Count == 0)
                         {
@@ -93,18 +122,37 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             {
                                 table.ColumnsDefinition(cd =>
                                 {
-                                    cd.RelativeColumn(3); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.8f);
+                                    cd.RelativeColumn(2.4f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f);
                                 });
                                 EnteteCellule(table.Cell(), "Scenario");
-                                EnteteCellule(table.Cell(), "Niveau initial");
-                                EnteteCellule(table.Cell(), "Niveau residuel");
+                                EnteteCellule(table.Cell(), "Initial (G x V)");
+                                EnteteCellule(table.Cell(), "Residuel (G x V)");
                                 EnteteCellule(table.Cell(), "Classe d'acceptation");
 
                                 foreach (var s in data.ScenariosDeRisque.OrderByDescending(s => s.NiveauRisqueResiduel))
                                 {
                                     table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(s.LibelleCouple + " -- " + s.LibelleChemin).FontSize(7.8f);
-                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(s.NiveauRisqueInitial ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
-                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
+                                    {
+                                        cc.Item().AlignCenter().Text("G" + s.Gravite + " x " + (s.VraisemblanceInitiale ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                                        cc.Item().AlignCenter().Text(s.NiveauRisqueInitial ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
+                                        if (s.NiveauInitialEstJugementExpert)
+                                            cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                    });
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
+                                    {
+                                        if (s.GraviteResiduelle.HasValue)
+                                        {
+                                            cc.Item().AlignCenter().Text("G" + s.GraviteResiduelle + " x " + (s.VraisemblanceResiduelle ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                                            cc.Item().AlignCenter().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
+                                            if (s.NiveauResiduelEstJugementExpert)
+                                                cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                        }
+                                        else
+                                        {
+                                            cc.Item().AlignCenter().Text("non evalue").FontSize(7.5f).Italic().FontColor(GrisTexte);
+                                        }
+                                    });
                                     table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(LibelleClasse(s.ClasseAcceptationResiduelle)).FontSize(7.5f).FontColor(GrisTexte);
                                 }
                             });

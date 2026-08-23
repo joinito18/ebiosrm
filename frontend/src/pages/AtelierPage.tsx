@@ -2597,7 +2597,11 @@ export function AcceptationFormelleSection(props: { etudeId: string; scenario: S
 }
 
 var AXES_MESURE = ['Gouvernance', 'Protection', 'Defense', 'Resilience']
-var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+', PlusPlus: '++', PlusPlusPlus: '+++' }
+// Symbole officiel "+/++/+++" (seule forme trouvee dans la doc officielle,
+// aucune legende associee) -- le mot entre parentheses est un choix
+// d'interpretation du projet pour rester comprehensible hors contexte,
+// pas une terminologie ANSSI.
+var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+ (Faible)', PlusPlus: '++ (Modere)', PlusPlusPlus: '+++ (Eleve)' }
 var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' }
 
 export function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitementRisque | null; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {

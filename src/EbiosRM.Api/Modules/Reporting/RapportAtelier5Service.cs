@@ -42,7 +42,7 @@ public sealed class RapportAtelier5Service
         var mesures = contenu.Mesures.Select(m => new MesureTraitementRisqueData(
             m.Description, m.Axe.ToString(),
             m.ScenariosDeRisqueIds.Select(id => libellesParScenario.GetValueOrDefault(id, "(scénario supprimé)")).ToList(),
-            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.Libelle(), m.Echeance, m.Statut.ToString())).ToList();
+            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(), m.Echeance, m.Statut.ToString())).ToList();
 
         return new RapportAtelier5Data(contenu.NomEtude, scenarios, mesures);
     }

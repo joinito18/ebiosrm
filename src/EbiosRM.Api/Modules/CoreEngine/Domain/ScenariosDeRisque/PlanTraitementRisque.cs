@@ -26,11 +26,34 @@ public enum NiveauCoutComplexite
 
 public static class NiveauCoutComplexiteExtensions
 {
+    /// <summary>
+    /// Symbole officiel ("+"/"++"/"+++", seule forme trouvée dans la doc
+    /// officielle -- aucune des occurrences de l'exemple "société de
+    /// biotechnologie" n'est accompagnée d'une légende ou d'un seuil
+    /// chiffré). Utiliser <see cref="LibelleAvecMot"/> pour un affichage
+    /// autoportant (rapport, IHM).
+    /// </summary>
     public static string Libelle(this NiveauCoutComplexite niveau) => niveau switch
     {
         NiveauCoutComplexite.Plus => "+",
         NiveauCoutComplexite.PlusPlus => "++",
         NiveauCoutComplexite.PlusPlusPlus => "+++",
+        _ => throw new ArgumentOutOfRangeException(nameof(niveau), niveau, "Niveau de coût/complexité inconnu.")
+    };
+
+    /// <summary>
+    /// Symbole + mot descriptif (Faible/Modéré/Élevé) -- la doc officielle ne
+    /// définit ce mot nulle part (seuls les symboles bruts apparaissent),
+    /// donc ce libellé est un choix d'interprétation du projet, au même
+    /// titre que les seuils par défaut de ServiceCalculNiveauRisque, pas une
+    /// terminologie ANSSI. Sert à rendre le symbole seul compréhensible hors
+    /// contexte (rapport PDF, IHM), sans jamais remplacer le symbole exact.
+    /// </summary>
+    public static string LibelleAvecMot(this NiveauCoutComplexite niveau) => niveau switch
+    {
+        NiveauCoutComplexite.Plus => "+ (Faible)",
+        NiveauCoutComplexite.PlusPlus => "++ (Modéré)",
+        NiveauCoutComplexite.PlusPlusPlus => "+++ (Élevé)",
         _ => throw new ArgumentOutOfRangeException(nameof(niveau), niveau, "Niveau de coût/complexité inconnu.")
     };
 }

@@ -62,7 +62,7 @@ public sealed class RapportSyntheseGlobaleService
         var mesures = contenu5.Mesures.Select(m => new MesureTraitementRisqueData(
             m.Description, m.Axe.ToString(),
             m.ScenariosDeRisqueIds.Select(id => libellesParScenario.GetValueOrDefault(id, "(scénario supprimé)")).ToList(),
-            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.Libelle(), m.Echeance, m.Statut.ToString())).ToList();
+            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(), m.Echeance, m.Statut.ToString())).ToList();
 
         var avancement = contenu5.Mesures
             .GroupBy(m => m.Statut.ToString())

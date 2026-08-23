@@ -77,15 +77,16 @@ public sealed class RapportAtelier5PdfGenerator
                         }
                         else
                         {
+                            c.Item().PaddingTop(4).Text("Chaque colonne \"initial\"/\"residuel\" indique le calcul exact (Gravite x Vraisemblance) qui produit le niveau affiche en dessous -- a comparer avec la grille ci-dessus.").FontSize(7.5f).Italic().FontColor(GrisTexte);
                             c.Item().PaddingTop(6).Table(table =>
                             {
                                 table.ColumnsDefinition(cd =>
                                 {
-                                    cd.RelativeColumn(3); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.8f);
+                                    cd.RelativeColumn(2.4f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f);
                                 });
                                 EnteteCellule(table.Cell(), "Scenario");
-                                EnteteCellule(table.Cell(), "Niveau initial");
-                                EnteteCellule(table.Cell(), "Niveau residuel");
+                                EnteteCellule(table.Cell(), "Initial (G x V)");
+                                EnteteCellule(table.Cell(), "Residuel (G x V)");
                                 EnteteCellule(table.Cell(), "Classe d'acceptation");
 
                                 foreach (var s in data.ScenariosDeRisque.OrderByDescending(s => s.NiveauRisqueResiduel))
@@ -95,8 +96,27 @@ public sealed class RapportAtelier5PdfGenerator
                                         cc.Item().Text(s.LibelleCouple).FontFamily(SansSemiBold).FontSize(8);
                                         cc.Item().Text(s.LibelleChemin).FontSize(7.5f).FontColor(GrisTexte);
                                     });
-                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(s.NiveauRisqueInitial ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
-                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
+                                    {
+                                        cc.Item().AlignCenter().Text("G" + s.Gravite + " x " + (s.VraisemblanceInitiale ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                                        cc.Item().AlignCenter().Text(s.NiveauRisqueInitial ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
+                                        if (s.NiveauInitialEstJugementExpert)
+                                            cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                    });
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
+                                    {
+                                        if (s.GraviteResiduelle.HasValue)
+                                        {
+                                            cc.Item().AlignCenter().Text("G" + s.GraviteResiduelle + " x " + (s.VraisemblanceResiduelle ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                                            cc.Item().AlignCenter().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
+                                            if (s.NiveauResiduelEstJugementExpert)
+                                                cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                        }
+                                        else
+                                        {
+                                            cc.Item().AlignCenter().Text("non evalue").FontSize(7.5f).Italic().FontColor(GrisTexte);
+                                        }
+                                    });
                                     table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(LibelleClasse(s.ClasseAcceptationResiduelle)).FontSize(7.5f).FontColor(GrisTexte);
                                 }
                             });
