@@ -1,0 +1,42 @@
+@startuml
+!include skin.iuml
+
+component "Frontend SPA\nReact + TypeScript + Vite" as FE
+
+package "EbiosRM.Api" {
+  component "Présentation" as PRES {
+    component "Endpoints" as EP
+    component "Authentification" as AUTHM
+  }
+  component "Application" as APP {
+    component "Handlers de\ncas d'usage" as HDL
+  }
+  component "Core Engine — Domain" as CORE {
+    component "Etude\nagrégat racine" as AGG
+    component "Services de\ndomaine" as DS
+  }
+  component "Infrastructure" as INFRA {
+    component "Repositories\nEF Core" as REPO
+  }
+  component "Reporting" as REP {
+    component "Génération de\nrapports" as RSVC
+  }
+  component "Assistance IA" as IA {
+    component "Suggestions" as IASVC
+  }
+}
+
+database "PostgreSQL" as DB
+
+FE --> EP : HTTPS / JSON
+EP --> AUTHM
+EP --> HDL
+HDL --> AGG
+AGG --> DS
+HDL --> REPO
+REPO --> DB
+EP --> RSVC
+RSVC --> DB
+HDL ..> IASVC : commande explicite
+IASVC ..> HDL : suggestion
+@enduml

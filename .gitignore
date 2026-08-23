@@ -36,3 +36,6 @@ Thumbs.db
 # Test results
 TestResults/
 coverage/
+
+# Cache téléchargée par docs/architecture/uml-source/regenerate-pdfs.sh
+docs/architecture/uml-source/mermaid.min.js

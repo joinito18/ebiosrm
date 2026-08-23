@@ -1,0 +1,569 @@
+<title>Diagrammes UML EBIOS RM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#EEF1F4; --surface:#FFFFFF; --surface-raised:#F7F9FA;
+    --ink:#171B22; --ink-soft:#4A5568; --ink-faint:#7C8794;
+    --accent:#2C5875; --accent-strong:#1B3B4F; --accent-soft:#DCE6EC;
+    --rule:#D7DCE2; --good:#2F6F4E; --good-soft:#DCEAE1;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#12161C; --surface:#1A2027; --surface-raised:#20272F;
+      --ink:#E8EBEF; --ink-soft:#A8B3BE; --ink-faint:#727E8A;
+      --accent:#7FB1CE; --accent-strong:#A6CBE2; --accent-soft:#233542;
+      --rule:#2B333C; --good:#7FBE9C; --good-soft:#1E3227;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#12161C; --surface:#1A2027; --surface-raised:#20272F;
+    --ink:#E8EBEF; --ink-soft:#A8B3BE; --ink-faint:#727E8A;
+    --accent:#7FB1CE; --accent-strong:#A6CBE2; --accent-soft:#233542;
+    --rule:#2B333C; --good:#7FBE9C; --good-soft:#1E3227;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Serif", Georgia, serif;
+    font-size:17px; line-height:1.65; margin:0; padding:0 24px 96px;
+  }
+  .page{ max-width:980px; margin:0 auto; }
+  h1,h2,h3{ font-family:"IBM Plex Sans", system-ui, sans-serif; text-wrap:balance; color:var(--ink); line-height:1.2; }
+  .eyebrow{ font-family:"IBM Plex Mono", monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  header.cover{ padding:72px 0 32px; border-bottom:1px solid var(--rule); }
+  header.cover h1{ font-size:40px; font-weight:700; margin:14px 0 6px; }
+  header.cover .subtitle{ font-family:"IBM Plex Serif", serif; font-style:italic; font-size:18px; color:var(--ink-soft); max-width:66ch; margin:0; }
+
+  nav.toc{ margin:32px 0; padding:22px 26px; background:var(--surface); border:1px solid var(--rule); border-radius:3px; }
+  nav.toc ol{ columns:2; column-gap:28px; margin:10px 0 0; padding:0; list-style:none; font-family:"IBM Plex Sans", sans-serif; font-size:14.5px; }
+  nav.toc li{ break-inside:avoid; margin-bottom:8px; }
+  nav.toc a{ color:var(--ink); text-decoration:none; }
+  nav.toc a:hover{ color:var(--accent); text-decoration:underline; }
+  nav.toc .n{ color:var(--accent); font-family:"IBM Plex Mono", monospace; font-size:12.5px; margin-right:8px; }
+
+  section{ padding:52px 0; border-bottom:1px solid var(--rule); }
+  section:last-of-type{ border-bottom:none; }
+  h2{ font-size:24px; font-weight:700; margin:0 0 4px; display:flex; align-items:baseline; gap:12px; }
+  h2 .num{ font-family:"IBM Plex Mono", monospace; font-size:14px; color:var(--accent); font-weight:500; }
+  p{ max-width:70ch; margin:0 0 14px; }
+
+  .specs{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:14px 24px; margin:18px 0 24px; padding:18px 22px;
+    background:var(--surface-raised); border:1px solid var(--rule); border-radius:4px;
+  }
+  .specs .item dt{ font-family:"IBM Plex Mono", monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; }
+  .specs .item dd{ margin:0; font-family:"IBM Plex Sans", sans-serif; font-size:13.5px; color:var(--ink); }
+
+  .diagram-wrap{ background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:22px; overflow-x:auto; margin:22px 0 10px; }
+  .note{
+    font-family:"IBM Plex Sans", sans-serif; font-size:14px; color:var(--ink-soft);
+    max-width:70ch; background:var(--surface); border-left:3px solid var(--accent);
+    padding:12px 18px; border-radius:0 3px 3px 0; margin:14px 0 0;
+  }
+  code, .mono{ font-family:"IBM Plex Mono", monospace; font-size:.88em; background:var(--surface-raised); padding:.1em .35em; border-radius:3px; }
+  footer{ padding:44px 0 0; font-family:"IBM Plex Sans", sans-serif; font-size:14px; color:var(--ink-faint); }
+</style>
+
+<div class="page">
+
+<header class="cover">
+  <span class="eyebrow">Spécification d'architecture — application complète</span>
+  <h1>Diagrammes UML — EBIOS RM</h1>
+  <p class="subtitle">Les six diagrammes de référence de la plateforme d'analyse de risque EBIOS RM : les acteurs, le modèle de domaine complet sur les 5 ateliers, l'architecture logicielle, le flux applicatif critique, les cycles de vie et le déploiement.</p>
+</header>
+
+<nav class="toc">
+  <span class="eyebrow">Sommaire</span>
+  <ol>
+    <li><span class="n">01</span><a href="#uc">Cas d'utilisation</a></li>
+    <li><span class="n">02</span><a href="#classes">Classes — modèle de domaine</a></li>
+    <li><span class="n">03</span><a href="#composants">Composants — architecture logicielle</a></li>
+    <li><span class="n">04</span><a href="#sequence">Séquence — validation d'un atelier</a></li>
+    <li><span class="n">05</span><a href="#etats">États — cycles de vie</a></li>
+    <li><span class="n">06</span><a href="#deploiement">Déploiement</a></li>
+  </ol>
+</nav>
+
+<section id="uc">
+  <h2><span class="num">01</span>Diagramme de cas d'utilisation</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Montrer qui fait quoi sur la plateforme, pour l'ensemble des 5 ateliers.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Métier — aucune notion technique.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Les 3 acteurs justifiés par le métier et le RBAC ; les cas d'usage transverses aux 5 ateliers.</dd></div>
+    <div class="item"><dt>Exclu volontairement</dt><dd>Le détail atelier par atelier — chacun partage la même mécanique (saisir, démarrer, valider) ; les cas d'usage purement techniques (supervision, santé du service).</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+flowchart LR
+    A1(["👤 Analyste risque"])
+    A2(["👤 Responsable / Validateur"])
+    A3(["👤 Administrateur"])
+
+    subgraph SYS["Plateforme EBIOS RM"]
+        direction TB
+        UC1(("Créer une étude"))
+        UC2(("Saisir les données d'un atelier"))
+        UC3(("Démarrer un atelier"))
+        UC4(("Valider un atelier"))
+        UC5(("Rouvrir un atelier validé"))
+        UC6(("Générer un rapport"))
+        UC7(("Consulter l'historique des versions"))
+        UC8(("Gérer le référentiel"))
+        UC9(("Gérer comptes et rôles"))
+        UC10(("Demander une suggestion IA"))
+        UC11(("Accepter / rejeter une suggestion"))
+    end
+
+    A1 --- UC1
+    A1 --- UC2
+    A1 --- UC3
+    A1 --- UC7
+    A1 --- UC10
+    A2 --- UC4
+    A2 --- UC5
+    A2 --- UC6
+    A2 --- UC7
+    A2 --- UC11
+    A3 --- UC8
+    A3 --- UC9
+
+    UC10 -.->|"«include»"| UC11
+</pre>
+  </div>
+  <p class="note">Le validateur signe la validation d'un atelier, ce qui fige automatiquement un snapshot — mais ne génère pas le rapport PDF lui-même : « Générer un rapport » reste une action séparée, à la demande, qui relit le dernier snapshot disponible (cf. diagramme de séquence). C'est volontairement <em>sans</em> lien «include» sur ce schéma. Aucun acteur « invité » ou « visiteur » : le métier EBIOS RM ne définit que ces trois rôles, correspondant à trois responsabilités distinctes — produire l'analyse, l'engager formellement, administrer la plateforme.</p>
+  <p class="note">Ces 3 acteurs sont des rôles applicatifs (RBAC), pas les participants réels d'un atelier EBIOS RM en présentiel — la méthode réunit Direction, Métiers, RSSI, DSI et parfois un spécialiste cybersécurité selon l'atelier (documentation officielle), des rôles de réunion sans équivalent logiciel formel. La simplification à 3 rôles applicatifs est délibérée et assumée pour la plateforme.</p>
+  <p class="note">Ces 3 acteurs sont des rôles applicatifs (RBAC), pas les participants réels d'un atelier EBIOS RM en présentiel — la documentation officielle réunit Direction, Métiers, RSSI, DSI et parfois un spécialiste cybersécurité selon l'atelier, des rôles de réunion sans équivalent logiciel formel. La simplification à 3 rôles applicatifs est délibérée et assumée pour la plateforme.</p>
+</section>
+
+<section id="classes">
+  <h2><span class="num">02a</span>Vue d'ensemble — le fil des 5 ateliers</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Fixer l'ordre de lecture avant le détail : quel atelier alimente lequel.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Repère — 5 boîtes, pas de classes.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le flux réel : les ateliers 1 et 2 alimentent tous deux l'atelier 3, qui se décline ensuite en 4 puis 5.</dd></div>
+  </div>
+  <div class="diagram-wrap">
+<pre class="mermaid">
+flowchart TB
+    A1["Atelier 1<br/>Cadrage et socle de sécurité"]
+    A2["Atelier 2<br/>Sources de risque"]
+    A3["Atelier 3<br/>Scénarios stratégiques"]
+    A4["Atelier 4<br/>Scénarios opérationnels"]
+    A5["Atelier 5<br/>Traitement du risque"]
+
+    A1 -->|événements redoutés| A3
+    A2 -->|couples SR/OV| A3
+    A3 -->|décline en| A4
+    A4 -->|produit| A5
+    A5 -.->|cycle stratégique complet| A1
+    A5 -.->|cycle opérationnel partiel| A2
+</pre>
+  </div>
+  <p class="note">La méthode EBIOS RM est explicitement itérative, pas un pipeline à sens unique : l'atelier 5 rouvre soit un cycle stratégique complet (retour à l'atelier 1), soit un cycle opérationnel partiel (retour à l'atelier 2) — flèches pointillées.</p>
+
+  <h2 style="margin-top:40px;"><span class="num">02b</span>Diagramme de classes — modèle de domaine, en détail</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Le modèle métier complet de la méthode EBIOS RM (ANSSI) — pas les tables PostgreSQL.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Domaine (Core Engine). Vocabulaire entièrement en français.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>L'agrégat <span class="mono">Etude</span> et ses entités enfants pour les 5 ateliers, groupés par namespace, avec cardinalités et services de domaine.</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+classDiagram
+    namespace Atelier1_Cadrage {
+        class Etude {
+            -Guid Id
+            -string Nom
+            -string Perimetre
+            -string Mission
+            -StatutEtude Statut
+            +Creer(nom, perimetre, mission)$ Etude
+            +DemarrerAtelier(numero)
+            +ValiderAtelier(numero)
+            +RouvrirAtelier(numero)
+            +AjouterValeurMetier(description, entiteProprietaire) ValeurMetier
+            +AjouterBienSupport(valeurMetierId, description, type) BienSupport
+            +AjouterEvenementRedoute(valeurMetierId, description, gravite) EvenementRedoute
+        }
+        class ValeurMetier {
+            -Guid Id
+            -string Description
+            -string EntiteProprietaire
+            +Modifier(description, entiteProprietaire)
+        }
+        class BienSupport {
+            -Guid Id
+            -TypeBienSupport Type
+            -string Description
+        }
+        class EvenementRedoute {
+            -Guid Id
+            -string Description
+            -int Gravite
+            +RecoterGravite(nouvelleGravite)
+        }
+        class SocleSecurite {
+            -Guid Id
+            +AjouterReferentiel(nom, etat)
+        }
+        class ReferentielApplicable {
+            -Guid Id
+            -string Nom
+            -EtatConformite Etat
+        }
+    }
+
+    namespace Atelier2_SourcesDeRisque {
+        class CoupleSourceRisqueObjectifVise {
+            -Guid Id
+            -CategorieSourceRisque SourceRisque
+            -CategorieObjectifVise ObjectifVise
+            -int Motivation
+            -int Ressources
+            -NiveauPertinence PertinenceCalculee
+            -NiveauPertinence PertinenceRetenue
+            -string JustificationPertinence
+            +DefinirPertinenceRetenue(pertinenceRetenue, justification)
+        }
+        class PartiePrenante {
+            -Guid Id
+            -string Nom
+            -string RolesEtAttentes
+            -int Dependance
+            -int Penetration
+            -int MaturiteCyber
+            -int Confiance
+            -double NiveauDangerositeCalcule
+            -double NiveauDangerositeRetenu
+            -string JustificationDangerosite
+            +DefinirDangerositeRetenue(niveauRetenu, justification)
+        }
+        class ServiceCalculPertinence {
+            <<domain service, pur>>
+            +Calculer(motivation, ressources)$ NiveauPertinence
+        }
+        class ServiceCalculNiveauDangerosite {
+            <<domain service, pur>>
+            +Calculer(dependance, penetration, maturiteCyber, confiance)$ double
+        }
+    }
+
+    namespace Atelier3_ScenariosStrategiques {
+        class ScenarioStrategique {
+            -Guid Id
+            -string Description
+            -int GraviteEstimee
+        }
+        class CheminAttaque {
+            -Guid Id
+            -string Description
+        }
+        class EvenementIntermediaire {
+            -Guid Id
+            -string Description
+            -int Ordre
+        }
+        class MesureSecuriteEcosysteme {
+            -Guid Id
+            -string Description
+        }
+    }
+
+    namespace Atelier4_ScenariosOperationnels {
+        class ScenarioOperationnel {
+            -Guid Id
+            -Vraisemblance VraisemblanceGlobale
+        }
+        class ModeOperatoire {
+            -Guid Id
+            -string Description
+            -int ProbabiliteSucces
+            -int DifficulteTechnique
+            -Vraisemblance VraisemblanceCalculee
+            -Vraisemblance VraisemblanceRetenue
+            -string JustificationVraisemblance
+            +DefinirVraisemblanceRetenue(vraisemblanceRetenue, justification)
+        }
+        class ActionElementaire {
+            -Guid Id
+            -string Description
+            -PhaseActionElementaire Phase
+        }
+        class ServiceCalculVraisemblance {
+            <<domain service, pur>>
+            +Calculer(probabiliteSucces, difficulteTechnique)$ Vraisemblance
+        }
+    }
+
+    namespace Atelier5_TraitementDuRisque {
+        class ScenarioDeRisque {
+            -Guid Id
+            -NiveauRisque NiveauRisqueInitial
+            -NiveauRisque NiveauRisqueResiduel
+            -NiveauAcceptabilite Acceptabilite
+        }
+        class PlanTraitementRisque {
+            -Guid Id
+            +AjouterMesureComplementaire(description, axe)
+        }
+        class MesureSecuriteComplementaire {
+            -Guid Id
+            -string Description
+            -AxePacs Axe
+            -EtatMiseEnOeuvre Etat
+        }
+        class ServiceCalculNiveauRisque {
+            <<domain service, pur>>
+            +Calculer(gravite, vraisemblance)$ NiveauRisque
+        }
+    }
+
+    class SnapshotAtelier {
+        -Guid Id
+        -int NumeroAtelier
+        -int Version
+        -string ContenuJson
+        -DateTime DateCreationUtc
+    }
+    class ServiceCreationSnapshot {
+        <<domain service>>
+        +Creer(etude, numeroAtelier)$ SnapshotAtelier
+    }
+    class ServiceGenerationRapport {
+        <<domain service>>
+        +Generer(snapshot)$ DocumentPdf
+    }
+
+    Etude ..> ServiceCreationSnapshot : dérive le snapshot via (à chaque validation)
+    ServiceCreationSnapshot ..> SnapshotAtelier : crée (figé, historisé)
+    SnapshotAtelier ..> ServiceGenerationRapport : dérive le PDF via (à la demande, séparément)
+
+    Etude "1" *-- "0..*" ValeurMetier : contient
+    ValeurMetier "1..*" -- "0..*" BienSupport : repose sur
+    ValeurMetier "1" *-- "0..*" EvenementRedoute : redoute
+    Etude "1" *-- "0..1" SocleSecurite : applique
+    SocleSecurite "1" *-- "0..*" ReferentielApplicable : évalue
+    Etude "1" *-- "0..*" CoupleSourceRisqueObjectifVise : identifie
+    Etude "1" *-- "0..*" PartiePrenante : implique
+    PartiePrenante ..> ServiceCalculNiveauDangerosite : dérive NiveauDangerositeCalcule via
+    CoupleSourceRisqueObjectifVise ..> ServiceCalculPertinence : dérive Pertinence via
+    Etude "1" *-- "0..*" ScenarioStrategique : projette
+    CoupleSourceRisqueObjectifVise "1" --> "1" ScenarioStrategique : donne naissance à
+    EvenementRedoute "0..1" --> "0..*" ScenarioStrategique : est ciblé par
+    ScenarioStrategique "1" *-- "1..*" CheminAttaque : se décline en
+    CheminAttaque "0..*" o-- "0..*" PartiePrenante : traverse (0 = attaque directe)
+    CheminAttaque "1" *-- "0..*" EvenementIntermediaire : génère
+    EvenementIntermediaire "1" --> "1" PartiePrenante : concerne
+    ScenarioStrategique "1" *-- "0..*" MesureSecuriteEcosysteme : couvre
+    ScenarioOperationnel "1" *-- "1..*" ModeOperatoire : compose
+    ModeOperatoire "1" *-- "1..*" ActionElementaire : décompose en
+    ActionElementaire "0..*" --> "1" BienSupport : cible
+    ScenarioOperationnel ..> ServiceCalculVraisemblance : dérive VraisemblanceCalculee via
+    ScenarioDeRisque "1" *-- "1" CheminAttaque : repose sur
+    ScenarioDeRisque "1" *-- "0..1" ScenarioOperationnel : repose sur
+    ScenarioDeRisque ..> ServiceCalculNiveauRisque : dérive NiveauRisque via
+    Etude "1" *-- "0..*" PlanTraitementRisque : décide
+    PlanTraitementRisque "1" *-- "0..*" MesureSecuriteComplementaire : planifie
+    PlanTraitementRisque "0..1" --> "0..*" ScenarioDeRisque : traite
+</pre>
+  </div>
+  <p class="note">Le fil rouge méthodologique, vérifié contre la documentation officielle : un <span class="mono">CoupleSourceRisqueObjectifVise</span> (atelier 2) donne naissance à exactement un <span class="mono">ScenarioStrategique</span> (atelier 3, cardinalité bijective confirmée), qui se décline en un ou plusieurs <span class="mono">CheminAttaque</span> — chacun traversant zéro, une, ou plusieurs <span class="mono">PartiePrenante</span> de l'écosystème (zéro = attaque directe) et générant un <span class="mono">EvenementIntermediaire</span> à chaque tiers traversé. Un <span class="mono">CheminAttaque</span> et son <span class="mono">ScenarioOperationnel</span> associé (atelier 4) forment ensemble un seul <span class="mono">ScenarioDeRisque</span> (atelier 5) — pas deux classes reliées en cascade : le même scénario, observé avant (<span class="mono">NiveauRisqueInitial</span>) et après (<span class="mono">NiveauRisqueResiduel</span>) l'application du <span class="mono">PlanTraitementRisque</span> (terme officiel depuis EBIOS RM 1.5, remplace "PACS", structuré en 4 axes officiels : Gouvernance, Protection, Défense, Résilience). Chaque valeur dérivée (Pertinence, NiveauDangerosite, Vraisemblance, NiveauRisque) est calculée par un service de domaine dédié -- jamais saisie directement, mais l'analyste peut retenir une valeur différente avec justification obligatoire (jugement d'expert), sans jamais écraser la valeur calculée. Un <span class="mono">SnapshotAtelier</span> fige chaque validation d'atelier et sert de source unique au <span class="mono">ServiceGenerationRapport</span> — c'est ce que montre en détail le diagramme de séquence.</p></section>
+
+<section id="composants">
+  <h2><span class="num">03</span>Diagramme de composants</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Comment le logiciel est découpé en morceaux, et qui a le droit de parler à qui.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Architecture logicielle — indépendant du déploiement physique (diagramme 06).</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Frontend, Présentation, Application, Core Engine, Infrastructure, Reporting, Assistance IA.</dd></div>
+    <div class="item"><dt>Exclu volontairement</dt><dd>Reverse proxy, cache, observabilité — hors du périmètre logiciel, traités dans le diagramme de déploiement.</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+flowchart TB
+    FE["«component» Frontend SPA<br/>React + TypeScript + Vite"]
+
+    subgraph API_HOST["EbiosRM.Api"]
+        direction TB
+        subgraph PRES["«component» Présentation"]
+            EP["Endpoints — route groups<br/>DTO ⇄ commande uniquement"]
+            AUTHM["Authentification"]
+        end
+        subgraph APP["«component» Application"]
+            HDL["Handlers de cas d'usage"]
+        end
+        subgraph CORE["«component» Core Engine — Domain"]
+            AGG["Etude — agrégat racine"]
+            DS["Services de domaine"]
+        end
+        subgraph INFRA["«component» Infrastructure"]
+            REPO["Repositories EF Core<br/>1 par agrégat"]
+        end
+        subgraph REP["«component» Reporting"]
+            RSVC["Génération de rapports<br/>lit uniquement les snapshots"]
+        end
+        subgraph IA["«component» Assistance IA"]
+            IASVC["Suggestions uniquement<br/>aucune écriture directe"]
+        end
+    end
+
+    DB[("PostgreSQL")]
+
+    FE -->|HTTPS / JSON| EP
+    EP --> AUTHM
+    EP --> HDL --> AGG --> DS
+    HDL --> REPO --> DB
+    EP --> RSVC --> DB
+    HDL -.->|"commande explicite<br/>jamais d'écriture directe"| IASVC
+    IASVC -.->|"suggestion"| HDL
+</pre>
+  </div>
+  <p class="note">Le composant Assistance IA ne parle qu'à l'Application, via les mêmes commandes qu'un utilisateur humain — jamais directement au Domain ni à la base. C'est une frontière architecturale, pas une option de configuration : aucun chemin d'écriture ne contourne l'Application.</p>
+</section>
+
+<section id="sequence">
+  <h2><span class="num">04</span>Diagramme de séquence — validation d'un atelier</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Montrer, étape par étape, le flux le plus critique du produit : valider un atelier et figer son livrable.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Applicatif — un cas d'usage précis, de bout en bout.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>La validation et la création du snapshot dans une seule transaction.</dd></div>
+    <div class="item"><dt>Exclu volontairement</dt><dd>Les autres séquences (création d'étude, saisie, rapport, suggestion IA) — un diagramme par flux critique pour rester lisible ; celui-ci illustre le schéma applicatif commun aux 5 ateliers.</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+sequenceDiagram
+    actor R as Responsable / Validateur
+    participant FE as Frontend
+    participant EP as Endpoint
+    participant H as ValiderAtelierHandler
+    participant AG as Etude (agrégat)
+    participant SS as ServiceCreationSnapshot
+    participant REPO as IEtudeRepository
+    participant DB as PostgreSQL
+
+    R->>FE: Clique « Valider l'atelier »
+    FE->>EP: POST /etudes/{id}/ateliers/{numero}/valider
+    EP->>H: Handle(ValiderAtelierCommand)
+    H->>REPO: ObtenirParIdAsync(id)
+    REPO->>DB: SELECT étude + enfants
+    DB-->>REPO: lignes
+    REPO-->>H: Etude (agrégat complet)
+    H->>AG: ValiderAtelier(numero)
+    AG-->>H: statut EnCours → Validé (invariant vérifié)
+    H->>SS: CreerSnapshot(agrégat, numero)
+    SS-->>H: Snapshot (version n+1, contenu figé)
+    Note over H,DB: Transaction unique — étude et snapshot réussissent ou échouent ensemble
+    H->>REPO: MettreAJourAsync(etude, snapshot)
+    REPO->>DB: BEGIN · UPDATE étude · INSERT snapshot · COMMIT
+    DB-->>REPO: OK
+    REPO-->>H: succès
+    H-->>EP: étude + version du snapshot
+    EP-->>FE: 200 OK
+    FE-->>R: « Atelier validé — version figée »
+</pre>
+  </div>
+  <p class="note">La transaction unique garantit qu'il ne peut jamais exister d'atelier au statut « Validé » sans son snapshot associé — l'invariant est structurel, pas laissé à la discipline de l'appelant.</p>
+</section>
+
+<section id="etats">
+  <h2><span class="num">05</span>Diagrammes d'états — cycles de vie</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Les transitions autorisées, à trois échelles : un atelier, l'étude entière, et une mesure du PACS.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Domaine — trois machines à états complémentaires.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le cycle générique d'un atelier ; le statut global de l'étude, itératif ; le suivi individuel d'une mesure PACS (statuts officiels).</dd></div>
+    <div class="item"><dt>Exclu volontairement</dt><dd>Les 5 machines à états d'atelier déroulées séparément — toutes des instances du même cycle générique.</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> NonDemarre : Etude créée
+    NonDemarre --> EnCours : DemarrerAtelier(numero)
+    EnCours --> Valide : ValiderAtelier(numero)\n(crée une nouvelle version de snapshot)
+    Valide --> EnCours : RouvrirAtelier(numero)
+
+    note right of Valide
+        Chaque passage par « Validé » fige
+        une nouvelle version de snapshot pour
+        cet atelier. L'historique n'est jamais
+        écrasé.
+    end note
+</pre>
+  </div>
+  <p class="note">Cycle applicable identiquement aux 5 ateliers — chacun progresse indépendamment des autres.</p>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> Brouillon : Creer(nom, perimetre, mission)
+    Brouillon --> EnCours : premier atelier démarré
+    EnCours --> Finalisee : les 5 ateliers sont Validés
+    Finalisee --> EnCours : cycle stratégique (reprise atelier 1)\nou cycle opérationnel (reprise atelier 2)
+
+    note right of Finalisee
+        Statut global de l'étude, dérivé
+        de l'état de ses 5 ateliers.
+        La méthode est itérative : ce
+        retour n'est pas une correction
+        d'erreur, c'est un nouveau cycle.
+    end note
+</pre>
+  </div>
+  <p class="note">Le statut de l'étude n'est jamais modifié directement : il se recalcule à partir du statut de ses 5 ateliers.</p>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> ALancer : AjouterMesureComplementaire(...)
+    ALancer --> EnCours2 : mise en œuvre démarrée
+    EnCours2 --> Termine : mise en œuvre achevée
+
+    note right of Termine
+        Statuts officiels du suivi PACS
+        (Plan d'Amélioration Continue de
+        la Sécurité), suivis individuellement
+        par mesure, pas globalement par plan.
+    end note
+</pre>
+  </div>
+  <p class="note">« À lancer / En cours / Terminé » — les trois statuts réels utilisés dans le tableau de suivi PACS de la documentation officielle.</p>
+</section>
+
+<section id="deploiement">
+  <h2><span class="num">06</span>Diagramme de déploiement</h2>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>L'infrastructure physique/logique qui exécute la plateforme.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Infrastructure — nœuds et protocoles entre eux.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Navigateur, instance API, PostgreSQL.</dd></div>
+    <div class="item"><dt>Exclu volontairement</dt><dd>Reverse proxy, cache, broker de messages — la charge d'une seule organisation par déploiement ne les justifie pas ; le Domain et le schéma PostgreSQL restent inchangés si on les ajoute.</dd></div>
+  </div>
+
+  <div class="diagram-wrap">
+<pre class="mermaid">
+flowchart TB
+    NAV["🖥️ Navigateur<br/>exécute le bundle React"]
+
+    subgraph SRV["Serveur applicatif"]
+        API["EbiosRM.Api (Kestrel)<br/>.NET 8"]
+    end
+
+    subgraph DBH["Serveur de données"]
+        PG[("PostgreSQL 16")]
+    end
+
+    NAV -->|HTTPS| API
+    API -->|Npgsql, TLS| PG
+</pre>
+  </div>
+  <p class="note">Le Domain et le schéma PostgreSQL sont indépendants de leur topologie de déploiement : ajouter un reverse proxy devant plusieurs instances API ne demande aucune modification du Core Engine.</p>
+</section>
+
+<footer>
+  Diagrammes de référence de la plateforme EBIOS RM — cas d'utilisation, modèle de domaine complet, architecture logicielle et cycles de vie.
+</footer>
+
+</div>

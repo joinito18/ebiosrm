@@ -1,0 +1,36 @@
+@startuml
+!include skin.iuml
+skinparam maxMessageSize 130
+
+actor "Responsable /\nValidateur" as R
+participant "Frontend" as FE
+participant "Endpoint" as EP
+participant "ValiderAtelier\nHandler" as H
+participant "Etude\n(agrégat)" as AG
+participant "ServiceCreation\nSnapshot" as SS
+participant "IEtude\nRepository" as REPO
+database "PostgreSQL" as DB
+
+R -> FE : Valide l'atelier
+FE -> EP : POST .../ateliers/{numero}/valider
+EP -> H : Handle(Commande)
+H -> REPO : ObtenirParIdAsync(id)
+REPO -> DB : SELECT étude + enfants
+DB --> REPO : lignes
+REPO --> H : Etude (agrégat complet)
+H -> AG : ValiderAtelier(numero)
+AG --> H : EnCours → Validé
+H -> SS : CreerSnapshot(...)
+SS --> H : Snapshot (version n+1)
+note over H, DB #DCE6EC
+  Transaction unique — étude et snapshot
+  réussissent ou échouent ensemble
+end note
+H -> REPO : MettreAJourAsync(...)
+REPO -> DB : BEGIN · UPDATE · INSERT · COMMIT
+DB --> REPO : OK
+REPO --> H : succès
+H --> EP : résultat
+EP --> FE : 200 OK
+FE --> R : Atelier validé
+@enduml

@@ -1,0 +1,224 @@
+@startuml
+!include skin.iuml
+hide empty members
+
+package "Atelier 1 — Cadrage" as PKG1 {
+  class Etude {
+    -Id : Guid
+    -Nom : string
+    -Perimetre : string
+    -Mission : string
+    -Statut : StatutEtude
+    +{static} Creer(nom, perimetre, mission) : Etude
+    +DemarrerAtelier(numero)
+    +ValiderAtelier(numero)
+    +RouvrirAtelier(numero)
+    +AjouterValeurMetier(description, entiteProprietaire) : ValeurMetier
+    +AjouterBienSupport(valeurMetierId, description, type) : BienSupport
+    +AjouterEvenementRedoute(valeurMetierId, description, gravite) : EvenementRedoute
+  }
+  class ValeurMetier {
+    -Id : Guid
+    -Description : string
+    -EntiteProprietaire : string
+    +Modifier(description, entiteProprietaire)
+  }
+  class BienSupport {
+    -Id : Guid
+    -Type : TypeBienSupport
+    -Description : string
+  }
+  class EvenementRedoute {
+    -Id : Guid
+    -Description : string
+    -Gravite : int
+    +RecoterGravite(nouvelleGravite)
+  }
+  class SocleSecurite {
+    -Id : Guid
+    +AjouterReferentiel(nom, etat)
+  }
+  class ReferentielApplicable {
+    -Id : Guid
+    -Nom : string
+    -Etat : EtatConformite
+  }
+}
+
+package "Atelier 2 — Sources de risque" as PKG2 {
+  class CoupleSourceRisqueObjectifVise {
+    -Id : Guid
+    -SourceRisque : CategorieSourceRisque
+    -ObjectifVise : CategorieObjectifVise
+    -Motivation : int
+    -Ressources : int
+    -PertinenceCalculee : NiveauPertinence
+    -PertinenceRetenue : NiveauPertinence
+    -JustificationPertinence : string
+    +DefinirPertinenceRetenue(pertinenceRetenue, justification)
+  }
+  class PartiePrenante {
+    -Id : Guid
+    -Nom : string
+    -RolesEtAttentes : string
+    -Dependance : int
+    -Penetration : int
+    -MaturiteCyber : int
+    -Confiance : int
+    -NiveauDangerositeCalcule : double
+    -NiveauDangerositeRetenu : double
+    -JustificationDangerosite : string
+    +DefinirDangerositeRetenue(niveauRetenu, justification)
+  }
+  class ServiceCalculPertinence <<domain service>> {
+    +{static} Calculer(motivation, ressources) : NiveauPertinence
+  }
+  class ServiceCalculNiveauDangerosite <<domain service>> {
+    +{static} Calculer(dependance, penetration, maturiteCyber, confiance) : double
+  }
+}
+
+package "Atelier 3 — Scénarios stratégiques" as PKG3 {
+  class ScenarioStrategique {
+    -Id : Guid
+    -Description : string
+    -GraviteEstimee : int
+  }
+  class CheminAttaque {
+    -Id : Guid
+    -Description : string
+  }
+  class EvenementIntermediaire {
+    -Id : Guid
+    -Description : string
+    -Ordre : int
+  }
+  class MesureSecuriteEcosysteme {
+    -Id : Guid
+    -Description : string
+  }
+}
+
+package "Atelier 4 — Scénarios opérationnels" as PKG4 {
+  class ScenarioOperationnel {
+    -Id : Guid
+    -VraisemblanceGlobale : Vraisemblance
+  }
+  class ModeOperatoire {
+    -Id : Guid
+    -Description : string
+    -ProbabiliteSucces : int
+    -DifficulteTechnique : int
+    -VraisemblanceCalculee : Vraisemblance
+    -VraisemblanceRetenue : Vraisemblance
+    -JustificationVraisemblance : string
+    +DefinirVraisemblanceRetenue(vraisemblanceRetenue, justification)
+  }
+  class ActionElementaire {
+    -Id : Guid
+    -Description : string
+    -Phase : PhaseActionElementaire
+  }
+  class ServiceCalculVraisemblance <<domain service>> {
+    +{static} Calculer(probabiliteSucces, difficulteTechnique) : Vraisemblance
+  }
+}
+
+package "Atelier 5 — Traitement du risque" as PKG5 {
+  class ScenarioDeRisque {
+    -Id : Guid
+    -NiveauRisqueInitial : NiveauRisque
+    -NiveauRisqueResiduel : NiveauRisque
+    -Acceptabilite : NiveauAcceptabilite
+  }
+  class PlanTraitementRisque {
+    -Id : Guid
+    +AjouterMesureComplementaire(description, axe)
+  }
+  class MesureSecuriteComplementaire {
+    -Id : Guid
+    -Description : string
+    -Axe : AxePacs
+    -Etat : EtatMiseEnOeuvre
+  }
+  class ServiceCalculNiveauRisque <<domain service>> {
+    +{static} Calculer(gravite, vraisemblance) : NiveauRisque
+  }
+}
+
+' -- Snapshot et rapport (transverse aux 5 ateliers) --------------------
+' La validation d'un atelier fige automatiquement un snapshot (via ce
+' service). Le rapport PDF, lui, N'EST PAS généré automatiquement à ce
+' moment-là : c'est une action séparée, à la demande, qui relit le
+' dernier snapshot disponible -- cf. diagramme de séquence 04.
+class SnapshotAtelier {
+  -Id : Guid
+  -NumeroAtelier : int
+  -Version : int
+  -ContenuJson : string
+  -DateCreationUtc : DateTime
+}
+class ServiceCreationSnapshot <<domain service>> {
+  +{static} Creer(etude, numeroAtelier) : SnapshotAtelier
+}
+class ServiceGenerationRapport <<domain service>> {
+  +{static} Generer(snapshot) : DocumentPdf
+}
+
+Etude "1" ..> ServiceCreationSnapshot : <<use>> (à chaque validation)
+ServiceCreationSnapshot ..> "0..*" SnapshotAtelier : crée (figé, historisé)
+SnapshotAtelier "1" ..> ServiceGenerationRapport : <<use>> (à la demande)
+
+Etude "1" *-- "0..*" ValeurMetier : contient
+ValeurMetier "1..*" -- "0..*" BienSupport : repose sur
+ValeurMetier "1" *-- "0..*" EvenementRedoute : redoute
+Etude "1" *-- "0..1" SocleSecurite : applique
+SocleSecurite "1" *-- "0..*" ReferentielApplicable : évalue
+Etude "1" *-- "0..*" CoupleSourceRisqueObjectifVise : identifie
+Etude "1" *-- "0..*" PartiePrenante : implique
+PartiePrenante ..> ServiceCalculNiveauDangerosite : <<use>>
+CoupleSourceRisqueObjectifVise ..> ServiceCalculPertinence : <<use>>
+Etude "1" *-- "0..*" ScenarioStrategique : projette
+
+' "1 couple SR/OV => exactement 1 scénario stratégique" (source officielle,
+' cardinalité bijective) ; un événement redouté, en revanche, peut être
+' visé par plusieurs scénarios différents.
+CoupleSourceRisqueObjectifVise "1" --> "1" ScenarioStrategique : donne naissance à
+EvenementRedoute "0..1" --> "0..*" ScenarioStrategique : est ciblé par
+
+' Le chemin d'attaque, pas le scénario stratégique dans son ensemble, est
+' ce qui traverse (ou non) l'écosystème -- 0 partie prenante = attaque
+' directe, confirmé par la méthode officielle.
+ScenarioStrategique "1" *-- "1..*" CheminAttaque : se décline en
+CheminAttaque "0..*" o-- "0..*" PartiePrenante : traverse
+CheminAttaque "1" *-- "0..*" EvenementIntermediaire : génère
+EvenementIntermediaire "1" --> "1" PartiePrenante : concerne
+ScenarioStrategique "1" *-- "0..*" MesureSecuriteEcosysteme : couvre
+
+ScenarioOperationnel "1" *-- "1..*" ModeOperatoire : compose
+ModeOperatoire "1" *-- "1..*" ActionElementaire : décompose en
+ActionElementaire "0..*" --> "1" BienSupport : cible
+ScenarioOperationnel ..> ServiceCalculVraisemblance : <<use>>
+
+' "1 scénario de risque = 1 chemin d'attaque + son scénario opérationnel
+' associé" (source officielle) -- un seul concept métier, pas deux classes
+' reliées en cascade. Le scénario opérationnel n'existe qu'à partir de
+' l'atelier 4 (0..1 tant qu'il n'a pas encore été élaboré).
+ScenarioDeRisque "1" *-- "1" CheminAttaque : repose sur
+ScenarioDeRisque "1" *-- "0..1" ScenarioOperationnel : repose sur
+ScenarioDeRisque ..> ServiceCalculNiveauRisque : <<use>>
+
+Etude "1" *-- "0..*" PlanTraitementRisque : décide
+PlanTraitementRisque "1" *-- "0..*" MesureSecuriteComplementaire : planifie
+PlanTraitementRisque "0..1" --> "0..*" ScenarioDeRisque : traite
+
+' -- Ordre de lecture forcé (gauche -> droite = atelier 1 -> 5) --------
+' Liens invisibles directement entre les paquetages (pas entre des
+' classes internes) : c'est la seule contrainte assez forte pour que le
+' moteur de mise en page respecte l'ordre 1-2-3-4-5 malgré les relations
+' "vers l'avant" ci-dessus qui, seules, le feraient dériver.
+PKG1 -[hidden]right-> PKG2
+PKG2 -[hidden]right-> PKG3
+PKG3 -[hidden]right-> PKG4
+PKG4 -[hidden]right-> PKG5
+@enduml

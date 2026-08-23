@@ -1,0 +1,22 @@
+@startuml
+!include skin.iuml
+left to right direction
+
+rectangle "**Atelier 1**\nCadrage et\nsocle de sécurité" as A1
+rectangle "**Atelier 2**\nSources de risque" as A2
+rectangle "**Atelier 3**\nScénarios\nstratégiques" as A3
+rectangle "**Atelier 4**\nScénarios\nopérationnels" as A4
+rectangle "**Atelier 5**\nTraitement\ndu risque" as A5
+
+A1 -[#2C5875]right-> A3 : événements redoutés
+A2 -[#2C5875]right-> A3 : couples SR/OV
+A3 -[#2C5875]right-> A4 : décline en
+A4 -[#2C5875]right-> A5 : produit
+
+' Méthode itérative, pas un pipeline à sens unique (confirmé par les
+' sources officielles) : l'atelier 5 boucle vers l'atelier 1 pour un
+' cycle stratégique complet, et vers l'atelier 2 pour un cycle
+' opérationnel partiel.
+A5 .[#B5652E].> A1 : cycle stratégique complet
+A5 .[#B5652E].> A2 : cycle opérationnel partiel
+@enduml

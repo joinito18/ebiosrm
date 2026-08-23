@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Diagrammes UML — EBIOS RM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  @page{ size: A3 landscape; margin: 16mm 18mm 18mm; }
+
+  :root{
+    --bg:#FBFBFA;
+    --surface:#FFFFFF;
+    --surface-raised:#F5F7F7;
+    --ink:#171B22;
+    --ink-soft:#4A5568;
+    --ink-faint:#7C8794;
+    --accent:#2C5875;
+    --accent-strong:#1B3B4F;
+    --accent-soft:#DCE6EC;
+    --rule:#D7DCE2;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Serif", Georgia, serif;
+    font-size:15px; line-height:1.6;
+  }
+  h1,h2,h3{ font-family:"IBM Plex Sans", system-ui, sans-serif; color:var(--ink); line-height:1.15; }
+  .eyebrow{ font-family:"IBM Plex Mono", monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  p{ margin:0 0 10px; max-width:78ch; }
+  code, .mono{ font-family:"IBM Plex Mono", monospace; font-size:.9em; background:var(--surface-raised); padding:.1em .35em; border-radius:3px; }
+
+  /* ---- cover ---- */
+  .cover{ min-height:calc(297mm - 34mm); display:flex; flex-direction:column; justify-content:center; }
+  .cover h1{ font-size:52px; font-weight:700; margin:16px 0 10px; letter-spacing:-.01em; }
+  .cover .subtitle{ font-family:"IBM Plex Serif", serif; font-style:italic; font-size:19px; color:var(--ink-soft); max-width:62ch; margin:0 0 30px; }
+  .cover .meta{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--ink-faint); border-top:1px solid var(--rule); padding-top:16px; max-width:70ch; display:flex; gap:36px; flex-wrap:wrap; }
+  .cover .legend-title{ margin-top:40px; }
+  .legend-strip{ display:flex; gap:28px; flex-wrap:wrap; margin-top:14px; }
+  .legend-strip .li{ display:flex; align-items:center; gap:8px; font-family:"IBM Plex Sans", sans-serif; font-size:12px; color:var(--ink-soft); }
+  .legend-strip svg{ flex:0 0 auto; }
+
+  section.diagram-page{ page-break-before:always; padding-top:2mm; }
+  section.diagram-page:first-of-type{ page-break-before:auto; }
+
+  .dhead{ display:flex; align-items:baseline; gap:14px; margin-bottom:2px; }
+  .dhead .n{ font-family:"IBM Plex Mono", monospace; font-size:17px; color:var(--accent); }
+  .dhead h2{ font-size:26px; font-weight:700; margin:0; }
+  .dtype{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--accent-strong); background:var(--accent-soft); padding:3px 10px; border-radius:99px; text-transform:uppercase; letter-spacing:.04em; }
+
+  .specs{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px 26px; margin:12px 0 14px; padding:13px 20px;
+    background:var(--surface-raised); border:1px solid var(--rule); border-radius:4px;
+  }
+  .specs .item dt{ font-family:"IBM Plex Mono", monospace; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:3px; }
+  .specs .item dd{ margin:0; font-family:"IBM Plex Sans", sans-serif; font-size:13.5px; color:var(--ink); max-width:none; }
+
+  .diagram-card{
+    background:var(--surface); border:1px solid var(--rule); border-radius:6px;
+    padding:18px 22px; text-align:center;
+  }
+  .diagram-card svg{ max-width:100%; height:auto; display:block; margin:0 auto; }
+  .diagram-card.two{ display:flex; gap:24px; align-items:flex-start; }
+  .diagram-card.two > div{ flex:1 1 0; }
+  .diagram-card.two .sub-label{ font-family:"IBM Plex Mono", monospace; font-size:10.5px; color:var(--ink-faint); margin-top:8px; text-transform:uppercase; letter-spacing:.05em; display:block; }
+  .diagram-card.three{ display:flex; gap:20px; align-items:flex-start; }
+  .diagram-card.three > div{ flex:1 1 0; }
+  .diagram-card.three .sub-label{ font-family:"IBM Plex Mono", monospace; font-size:10.5px; color:var(--ink-faint); margin-top:8px; text-transform:uppercase; letter-spacing:.05em; display:block; }
+
+  .note{
+    font-family:"IBM Plex Sans", sans-serif; font-size:13.5px; color:var(--ink-soft);
+    max-width:100ch; background:var(--surface); border-left:3px solid var(--accent);
+    padding:10px 18px; border-radius:0 3px 3px 0; margin:12px 0 0;
+    break-inside:avoid; page-break-inside:avoid;
+  }
+
+  /* svg font remap: PlantUML-generated fonts -> IBM Plex, matching purpose */
+  .diagram-card svg text[font-family="Liberation Sans"]{ font-family:"IBM Plex Sans", sans-serif !important; }
+  .diagram-card svg text[font-family="Liberation Mono"]{ font-family:"IBM Plex Mono", monospace !important; }
+  .diagram-card svg text[font-family="sans-serif"]{ font-family:"IBM Plex Sans", sans-serif !important; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <span class="eyebrow">Spécification d'architecture — application complète</span>
+  <h1>Diagrammes UML — EBIOS RM</h1>
+  <p class="subtitle">Diagrammes UML de référence pour la plateforme d'analyse de risque EBIOS RM, vérifiés contre la documentation méthodologique officielle : acteurs, modèle de domaine complet sur les 5 ateliers, architecture logicielle, flux applicatif, cycles de vie et déploiement.</p>
+  <div class="meta">
+    <span>18 août 2026</span>
+    <span>Notation UML standard — PlantUML</span>
+    <span>Format A3 paysage</span>
+  </div>
+  <div class="legend-strip legend-title">
+    <div class="li"><svg width="26" height="18"><rect x="1" y="1" width="24" height="16" rx="2" fill="none" stroke="#2C5875" stroke-width="1.3"/></svg> Classe / composant</div>
+    <div class="li"><svg width="20" height="20"><circle cx="10" cy="7" r="3.5" fill="none" stroke="#2C5875" stroke-width="1.3"/><line x1="10" y1="10.5" x2="10" y2="16" stroke="#2C5875" stroke-width="1.3"/><line x1="4" y1="13" x2="16" y2="13" stroke="#2C5875" stroke-width="1.3"/><line x1="10" y1="16" x2="5" y2="20" stroke="#2C5875" stroke-width="1.3"/><line x1="10" y1="16" x2="15" y2="20" stroke="#2C5875" stroke-width="1.3"/></svg> Acteur</div>
+    <div class="li"><svg width="26" height="20"><ellipse cx="13" cy="10" rx="12" ry="9" fill="none" stroke="#2C5875" stroke-width="1.3"/></svg> Cas d'utilisation</div>
+    <div class="li"><svg width="26" height="18"><path d="M2,3 Q2,1 14,1 Q26,1 26,9 Q26,17 14,17 Q2,17 2,9 Z" fill="none" stroke="#2C5875" stroke-width="1.3"/></svg> Base de données</div>
+    <div class="li"><svg width="30" height="14"><line x1="1" y1="7" x2="26" y2="7" stroke="#2C5875" stroke-width="1.3"/><polygon points="26,7 20,4 20,10" fill="#2C5875"/></svg> Association / appel</div>
+    <div class="li"><svg width="30" height="14"><line x1="1" y1="7" x2="26" y2="7" stroke="#2C5875" stroke-width="1.3" stroke-dasharray="3,2"/><polygon points="26,7 20,4 20,10" fill="#2C5875"/></svg> Dépendance</div>
+    <div class="li"><svg width="30" height="14"><line x1="1" y1="7" x2="19" y2="7" stroke="#2C5875" stroke-width="1.3"/><polygon points="19,7 26,3.5 33,7 26,10.5" fill="#2C5875" transform="translate(-7,0)"/></svg> Composition</div>
+  </div>
+</div>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">01</span><h2>Cas d'utilisation</h2><span class="dtype">UML — Use Case Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Qui fait quoi sur la plateforme, pour l'ensemble des 5 ateliers.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Métier — aucune notion technique.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>3 acteurs, cas d'usage transverses aux 5 ateliers, relations «include».</dd></div>
+  </div>
+  <div class="diagram-card">{{SVG_01}}</div>
+  <p class="note">Le validateur signe la validation d'un atelier, ce qui fige automatiquement un snapshot — mais ne génère pas le rapport PDF lui-même : « Générer un rapport » reste une action séparée, à la demande, qui relit le dernier snapshot disponible (cf. diagramme de séquence). Aucun acteur « invité » : le métier EBIOS RM ne définit que ces trois rôles. Ce sont des rôles applicatifs (RBAC), pas les participants réels d'un atelier EBIOS RM en présentiel — la méthode réunit Direction, Métiers, RSSI, DSI et parfois un spécialiste cybersécurité selon l'atelier (documentation officielle), des rôles de réunion sans équivalent logiciel formel. La simplification à 3 rôles applicatifs est délibérée et assumée pour la plateforme.</p>
+</section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">02a</span><h2>Vue d'ensemble — le fil des 5 ateliers</h2><span class="dtype">Schéma de repère</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Fixer l'ordre de lecture avant le détail : quel atelier alimente lequel.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Repère — 5 boîtes, pas de classes.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le flux réel : les ateliers 1 et 2 alimentent tous deux l'atelier 3, qui se décline ensuite en 4 puis 5.</dd></div>
+  </div>
+  <div class="diagram-card" style="max-width:260mm;margin:0 auto;">{{SVG_02A}}</div>
+</section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">02b</span><h2>Classes — modèle de domaine, en détail</h2><span class="dtype">UML — Class Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Le modèle métier complet de la méthode EBIOS RM (ANSSI).</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Domaine (Core Engine).</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>L'agrégat <span class="mono">Etude</span> et ses entités pour les 5 ateliers, groupées par paquetage, avec cardinalités et services de domaine. Inclut la chaîne complète chemin d'attaque → événement intermédiaire → scénario de risque, vérifiée contre la documentation méthodologique officielle.</dd></div>
+  </div>
+  <div class="diagram-card">{{SVG_02}}</div>
+  <p class="note">« Scénario de risque » n'est pas une classe ajoutée en cascade après le scénario opérationnel : c'est un seul concept qui <em>regroupe</em> un chemin d'attaque (atelier 3) et son scénario opérationnel associé (atelier 4), observé à deux moments — <span class="mono">NiveauRisqueInitial</span> avant le PACS, <span class="mono">NiveauRisqueResiduel</span> après.</p></section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">03</span><h2>Composants</h2><span class="dtype">UML — Component Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Comment le logiciel est découpé en morceaux, et qui a le droit de parler à qui.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Architecture logicielle — indépendant du déploiement physique.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Frontend, Présentation, Application, Core Engine, Infrastructure, Reporting, Assistance IA.</dd></div>
+  </div>
+  <div class="diagram-card">{{SVG_03}}</div>
+  <p class="note">Le composant Assistance IA ne parle qu'à l'Application, via les mêmes commandes qu'un utilisateur humain — jamais directement au Domain ni à la base. C'est une frontière architecturale, pas une option de configuration.</p>
+</section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">04</span><h2>Séquence — validation d'un atelier</h2><span class="dtype">UML — Sequence Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Le flux le plus critique du produit, étape par étape : valider un atelier et figer son livrable.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Applicatif — un cas d'usage précis, de bout en bout.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>La validation et la création du snapshot dans une seule transaction.</dd></div>
+  </div>
+  <div class="diagram-card">{{SVG_04}}</div>
+  <p class="note">La transaction unique garantit qu'il ne peut jamais exister d'atelier au statut « Validé » sans son snapshot associé — l'invariant est structurel, pas laissé à la discipline de l'appelant.</p>
+</section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">05</span><h2>États — cycles de vie</h2><span class="dtype">UML — State Machine Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>Les transitions autorisées, à trois échelles : un atelier, l'étude entière, et une mesure du PACS.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Domaine — trois machines à états complémentaires.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le cycle générique d'un atelier ; le statut global de l'étude, itératif (la méthode boucle, ce n'est pas un pipeline à sens unique) ; le suivi individuel d'une mesure PACS (statuts officiels).</dd></div>
+  </div>
+  <div class="diagram-card three">
+    <div>{{SVG_05A}}<span class="sub-label">Cycle d'un atelier (1 à 5)</span></div>
+    <div>{{SVG_05B}}<span class="sub-label">Statut global de l'étude</span></div>
+    <div>{{SVG_05C}}<span class="sub-label">Suivi d'une mesure PACS</span></div>
+  </div>
+  <p class="note">Le statut de l'étude n'est jamais modifié directement : il se recalcule à partir du statut de ses 5 ateliers. Le retour de « Finalisée » vers « En cours » n'est pas une correction d'erreur : la méthode EBIOS RM est explicitement itérative — l'atelier 5 rouvre soit un cycle stratégique complet (retour à l'atelier 1), soit un cycle opérationnel partiel (retour à l'atelier 2).</p>
+</section>
+
+<section class="diagram-page">
+  <div class="dhead"><span class="n">06</span><h2>Déploiement</h2><span class="dtype">UML — Deployment Diagram</span></div>
+  <div class="specs">
+    <div class="item"><dt>Objectif</dt><dd>L'infrastructure physique/logique qui exécute la plateforme.</dd></div>
+    <div class="item"><dt>Niveau d'abstraction</dt><dd>Infrastructure — nœuds et protocoles entre eux.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Navigateur, instance API, PostgreSQL.</dd></div>
+  </div>
+  <div class="diagram-card">{{SVG_06}}</div>
+  <p class="note">Le Domain et le schéma PostgreSQL sont indépendants de leur topologie de déploiement : ajouter un reverse proxy devant plusieurs instances API ne demande aucune modification du Core Engine.</p>
+</section>
+
+</body>
+</html>

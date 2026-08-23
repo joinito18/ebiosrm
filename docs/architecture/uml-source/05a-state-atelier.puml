@@ -1,0 +1,14 @@
+@startuml
+!include skin.iuml
+[*] --> NonDemarre : Etude créée
+NonDemarre --> EnCours : DemarrerAtelier(numero)
+EnCours --> Valide : ValiderAtelier(numero)\n(crée une nouvelle version\nde snapshot)
+Valide --> EnCours : RouvrirAtelier(numero)
+
+note right of Valide
+  Chaque passage par « Validé » fige
+  une nouvelle version de snapshot pour
+  cet atelier. L'historique n'est
+  jamais écrasé.
+end note
+@enduml

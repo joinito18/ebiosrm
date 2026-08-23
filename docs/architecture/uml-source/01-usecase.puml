@@ -1,0 +1,38 @@
+@startuml
+!include skin.iuml
+left to right direction
+
+actor "Analyste\nrisque" as Analyste
+actor "Responsable /\nValidateur" as Validateur
+actor "Administrateur" as Admin
+
+rectangle "Plateforme EBIOS RM" {
+  usecase "Créer une étude" as UC1
+  usecase "Saisir les données\nd'un atelier" as UC2
+  usecase "Démarrer un atelier" as UC3
+  usecase "Valider un atelier" as UC4
+  usecase "Rouvrir un atelier\nvalidé" as UC5
+  usecase "Générer un rapport" as UC6
+  usecase "Consulter l'historique\ndes versions" as UC7
+  usecase "Gérer le référentiel" as UC8
+  usecase "Gérer comptes\net rôles" as UC9
+  usecase "Demander une\nsuggestion IA" as UC10
+  usecase "Accepter / rejeter\nune suggestion" as UC11
+}
+
+Analyste --> UC1
+Analyste --> UC2
+Analyste --> UC3
+Analyste --> UC7
+Analyste --> UC10
+Validateur --> UC4
+Validateur --> UC5
+Validateur --> UC6
+Validateur --> UC7
+Validateur --> UC11
+Admin --> UC8
+Admin --> UC9
+
+UC10 ..> UC11 : <<include>>
+note bottom of UC4 : fige un snapshot (automatique)\nne génère pas le rapport lui-même
+@enduml

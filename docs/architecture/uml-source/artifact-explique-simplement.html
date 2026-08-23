@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>EBIOS RM expliqué simplement</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  @page{ size: A4; margin: 20mm 18mm 22mm; }
+
+  :root{
+    --bg:#FBFAF8;
+    --surface:#FFFFFF;
+    --surface-raised:#F1F4F1;
+    --ink:#20241F;
+    --ink-soft:#4E564C;
+    --ink-faint:#828C80;
+    --accent:#2E6B4F;
+    --accent-strong:#1D4A36;
+    --accent-soft:#DFEDE4;
+    --accent2:#B5652E;
+    --accent2-soft:#F5E4D6;
+    --rule:#DCE3DA;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Serif", Georgia, serif;
+    font-size:13.5px;
+    line-height:1.6;
+  }
+  .page{ max-width:760px; margin:0 auto; padding:0 6mm; }
+
+  h1,h2,h3{ font-family:"IBM Plex Sans", system-ui, sans-serif; color:var(--ink); line-height:1.2; }
+  .eyebrow{ font-family:"IBM Plex Mono", monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+
+  /* ---- cover ---- */
+  .cover{ padding:38mm 0 14mm; }
+  .cover h1{ font-size:34px; font-weight:700; margin:16px 0 8px; letter-spacing:-.01em; }
+  .cover .subtitle{ font-family:"IBM Plex Serif", serif; font-style:italic; font-size:16px; color:var(--ink-soft); max-width:52ch; margin:0 0 26px; }
+  .cover .meta{ font-family:"IBM Plex Mono", monospace; font-size:11px; color:var(--ink-faint); border-top:1px solid var(--rule); padding-top:14px; }
+  .cover .promise{
+    margin-top:26px; padding:16px 20px; background:var(--accent-soft);
+    border-radius:4px; font-family:"IBM Plex Sans", sans-serif; font-size:13px; color:var(--accent-strong);
+    max-width:52ch;
+  }
+
+  section{ page-break-inside:avoid-page; break-inside:avoid-page; margin-bottom:8mm; }
+  section.long{ break-inside:auto; }
+  .section-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; page-break-after:avoid; }
+  .section-head .num{ font-family:"IBM Plex Mono", monospace; font-size:12px; color:var(--accent); }
+  h2{ font-size:19px; font-weight:700; margin:0; }
+  h3{ font-size:14px; font-weight:600; margin:16px 0 8px; color:var(--accent-strong); }
+  p{ margin:0 0 10px; }
+  ul{ margin:0 0 10px; padding-left:18px; }
+  li{ margin-bottom:5px; }
+
+  .analogy{
+    background:var(--surface); border:1px solid var(--rule); border-left:3px solid var(--accent2);
+    border-radius:0 4px 4px 0; padding:12px 16px; margin:10px 0;
+    font-family:"IBM Plex Sans", sans-serif; font-size:12.5px; color:var(--ink-soft);
+  }
+  .analogy .lbl{ font-family:"IBM Plex Mono", monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent2); display:block; margin-bottom:4px; }
+
+  .decision{
+    background:var(--accent-soft); border-radius:4px; padding:12px 16px; margin:10px 0;
+    font-family:"IBM Plex Sans", sans-serif; font-size:12.5px; color:var(--accent-strong);
+  }
+  .decision .lbl{ font-family:"IBM Plex Mono", monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; margin-bottom:4px; display:block; }
+
+  /* concept cards (Core Engine, EF, mapping...) */
+  .concept{
+    background:var(--surface); border:1px solid var(--rule); border-radius:5px;
+    padding:14px 18px; margin:12px 0; break-inside:avoid-page; page-break-inside:avoid;
+  }
+  .concept .term{ display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+  .concept .term .word{ font-family:"IBM Plex Mono", monospace; font-size:14px; font-weight:600; color:var(--accent-strong); }
+  .concept .term .analogy-name{ font-family:"IBM Plex Sans", sans-serif; font-style:italic; font-size:11.5px; color:var(--ink-faint); }
+  .concept p{ font-family:"IBM Plex Sans", sans-serif; font-size:12.5px; color:var(--ink-soft); margin:0 0 6px; }
+  .concept .example{
+    font-family:"IBM Plex Mono", monospace; font-size:11px; background:var(--surface-raised);
+    border-radius:3px; padding:7px 10px; color:var(--ink); margin-top:6px;
+  }
+  .concept .example .lbl{ font-family:"IBM Plex Mono", monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); display:block; margin-bottom:3px; }
+
+  /* legend / symbol key */
+  .legend-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px 20px; margin:10px 0; break-inside:avoid-page; page-break-inside:avoid; }
+  .legend-item{ display:flex; align-items:center; gap:10px; font-family:"IBM Plex Sans", sans-serif; font-size:12px; break-inside:avoid-page; page-break-inside:avoid; }
+  .sym{ flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono", monospace; font-size:10px; color:var(--accent-strong); width:36px; }
+  .sym-box{ width:34px; height:22px; border:1.5px solid var(--ink); border-radius:3px; background:var(--surface); }
+  .sym-actor{ width:22px; height:22px; border:1.5px solid var(--ink); border-radius:50%; background:var(--surface); }
+  .sym-db{ width:26px; height:22px; border:1.5px solid var(--ink); border-radius:50%/6px; background:var(--surface); }
+  .sym-arrow{ width:34px; height:0; border-top:1.5px solid var(--ink); position:relative; }
+  .sym-arrow::after{ content:""; position:absolute; right:0; top:-4px; border:4px solid transparent; border-left-color:var(--ink); }
+  .sym-dotted{ width:34px; height:0; border-top:1.5px dashed var(--ink); }
+  .sym-diamond{ width:12px; height:12px; background:var(--ink); transform:rotate(45deg); }
+  .sym-diamond.open{ background:var(--surface); border:1.5px solid var(--ink); }
+  .legend-item .txt strong{ display:block; font-size:12px; }
+  .legend-item .txt span{ color:var(--ink-faint); font-size:11px; }
+
+  /* progressive reading walkthrough */
+  .read-step{ margin:14px 0; break-inside:avoid-page; page-break-inside:avoid; }
+  .read-step .step-tag{
+    display:inline-block; font-family:"IBM Plex Mono", monospace; font-size:10px; letter-spacing:.06em;
+    text-transform:uppercase; color:#fff; background:var(--accent); padding:2px 9px; border-radius:99px; margin-bottom:6px;
+  }
+  .read-step h3{ margin:2px 0 6px; }
+  .read-step p{ font-family:"IBM Plex Serif", serif; font-size:13px; }
+  .walk{
+    font-family:"IBM Plex Sans", sans-serif; font-size:12px; color:var(--ink-soft);
+    background:var(--surface-raised); border-radius:4px; padding:10px 14px; margin:8px 0;
+  }
+  .walk b{ color:var(--ink); }
+
+  /* stack table */
+  table{ width:100%; border-collapse:collapse; font-family:"IBM Plex Sans", sans-serif; font-size:12px; margin:10px 0; }
+  th,td{ text-align:left; padding:7px 10px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  thead th{ font-family:"IBM Plex Mono", monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint); border-bottom:2px solid var(--rule); }
+  td.tech{ font-family:"IBM Plex Mono", monospace; font-size:11.5px; color:var(--accent-strong); font-weight:600; white-space:nowrap; }
+
+  .grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+  .stepcard{ background:var(--surface); border:1px solid var(--rule); border-radius:4px; padding:12px 14px; }
+  .stepcard .k{ font-family:"IBM Plex Mono", monospace; font-size:10px; color:var(--accent); display:block; margin-bottom:4px; }
+  .stepcard p{ font-family:"IBM Plex Sans", sans-serif; font-size:11.5px; margin:0; color:var(--ink-soft); }
+
+  /* deep, diagram-by-diagram walkthroughs */
+  .deepdive{
+    background:var(--surface); border:1px solid var(--rule); border-radius:6px;
+    padding:16px 20px; margin:14px 0 20px;
+  }
+  .deepdive-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:8px; }
+  .deepdive-head .ref{
+    font-family:"IBM Plex Mono", monospace; font-size:10px; letter-spacing:.05em; text-transform:uppercase;
+    color:#fff; background:var(--accent2); padding:3px 9px; border-radius:99px; white-space:nowrap;
+  }
+  .deepdive-head h3{ margin:0; font-size:15.5px; }
+  .deepdive p{ font-family:"IBM Plex Serif", serif; font-size:13px; }
+  .deepdive ol, .deepdive ul{ font-family:"IBM Plex Sans", sans-serif; font-size:12px; color:var(--ink-soft); padding-left:20px; }
+  .deepdive ol li, .deepdive ul li{ margin-bottom:5px; }
+  .deepdive .package{ margin:12px 0; padding:10px 14px; background:var(--surface-raised); border-radius:4px; }
+  .deepdive .package .pkgname{ font-family:"IBM Plex Mono", monospace; font-size:11px; font-weight:600; color:var(--accent-strong); display:block; margin-bottom:5px; }
+  .deepdive .package p{ font-family:"IBM Plex Sans", sans-serif; font-size:12px; color:var(--ink-soft); margin:0; }
+  .msg-req{ color:var(--accent-strong); }
+  .msg-resp{ color:var(--ink-faint); font-style:italic; }
+
+  footer{ margin-top:14mm; padding-top:8mm; border-top:1px solid var(--rule); font-family:"IBM Plex Sans", sans-serif; font-size:11px; color:var(--ink-faint); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <span class="eyebrow">Guide de lecture — pas de jargon sans explication</span>
+    <h1>EBIOS RM, expliqué simplement</h1>
+    <p class="subtitle">Pourquoi le logiciel est construit comme ça, ce que veulent dire les mots techniques qu'on entend souvent (Core Engine, mapping, EF...), et comment lire nos schémas, du plus simple au plus complexe.</p>
+    <div class="promise">Aucun terme technique n'est utilisé sans être d'abord expliqué avec une comparaison du quotidien. Si une phrase semble absconse, l'analogie juste avant ou après la démystifie.</div>
+    <div class="meta">18 août 2026 · Document d'accompagnement de l'audit architectural et des diagrammes UML</div>
+  </div>
+
+  <section>
+    <div class="section-head"><span class="num">01</span><h2>L'idée de base : trois métiers, trois pièces</h2></div>
+    <p>Imagine une agence bancaire. Il y a la <strong>salle d'accueil</strong> où tu remplis un formulaire au guichet, le <strong>bureau du back-office</strong> où un employé vérifie que tout est correct et applique les règles de la banque, et le <strong>coffre-fort</strong> où sont gardées les informations, en sécurité, pour toujours. Trois pièces, trois métiers, personne ne fait le travail d'un autre.</p>
+    <p>EBIOS RM est construit exactement pareil :</p>
+    <ul>
+      <li><strong>La salle d'accueil</strong> = ce que tu vois dans ton navigateur (le site web). Elle affiche les informations et récupère ce que tu tapes, mais elle ne décide rien toute seule.</li>
+      <li><strong>Le back-office</strong> = le programme qui tourne sur le serveur. C'est lui qui applique toutes les règles : « on ne peut pas valider un atelier qui n'est pas complet », « une gravité est un nombre entre 1 et 4 », etc.</li>
+      <li><strong>Le coffre-fort</strong> = la base de données. Elle ne fait qu'une chose, mais elle la fait très bien : garder l'information en sécurité et ne jamais la perdre.</li>
+    </ul>
+    <div class="analogy">
+      <span class="lbl">Pourquoi séparer les trois ?</span>
+      Si le guichetier de l'accueil décidait lui-même des règles de la banque, chaque agence appliquerait des règles différentes. En gardant les règles au même endroit (le back-office), toutes les manières d'utiliser l'application — le site web aujourd'hui, une appli mobile demain — respectent exactement les mêmes règles, écrites une seule fois.
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">02</span><h2>Un seul immeuble, ou plein de maisons séparées ?</h2></div>
+    <p>C'est le choix le plus important qu'on a fait, alors prenons le temps de bien l'expliquer.</p>
+    <div class="analogy">
+      <span class="lbl">Le restaurant contre les food trucks</span>
+      Imagine un restaurant avec <strong>une seule cuisine</strong> : tous les cuisiniers travaillent dans la même pièce, se parlent directement, partagent les mêmes ingrédients au même endroit. C'est rapide à organiser, facile à surveiller, et un seul chef sait tout ce qui s'y passe.<br><br>
+      Maintenant imagine <strong>dix food trucks séparés</strong>, chacun avec sa propre cuisine, garés à des endroits différents, qui doivent se téléphoner pour se coordonner quand un plat a besoin d'un ingrédient préparé par un autre truck. C'est ce qu'on appelle des « microservices ». Ça devient utile quand tu as une <em>armée</em> de cuisiniers et que plusieurs équipes différentes doivent travailler chacune dans son coin sans se marcher dessus.
+    </div>
+    <p>EBIOS RM, aujourd'hui, c'est <strong>une seule cuisine bien organisée en plusieurs postes de travail</strong> (un poste « étude », un poste « rapports »…) — on appelle ça un <strong>monolithe modulaire</strong>. Tout tourne dans un seul programme, mais à l'intérieur, chaque partie a sa zone bien à elle et ne piétine pas les autres.</p>
+    <div class="decision">
+      <span class="lbl">Pourquoi pas les food trucks tout de suite ?</span>
+      Parce qu'on n'a qu'un seul restaurant (une seule équipe, une seule base de clients) pour l'instant. Découper en food trucks maintenant ajouterait beaucoup de téléphones (d'appels réseau) à gérer, pour un problème — trop de monde dans une seule cuisine — qu'on n'a pas encore. Le jour où ce problème apparaît vraiment, on pourra sortir un poste de travail de la cuisine et en faire un food truck séparé, sans tout reconstruire.
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">03</span><h2>Le classeur : pourquoi PostgreSQL ?</h2></div>
+    <div class="analogy">
+      <span class="lbl">L'armoire à tiroirs avec des règles strictes</span>
+      Une base de données comme PostgreSQL, c'est une armoire immense où chaque dossier a un tiroir précis, étiqueté, avec des <strong>règles qui empêchent de mal ranger</strong> : impossible de mettre « douze » dans le tiroir qui n'accepte que des nombres entre 1 et 4, impossible de ranger un dossier « bien support » sans indiquer à quelle « valeur métier » il appartient. Ces règles s'appellent des <em>contraintes</em>, et elles existent pour qu'aucune erreur de rangement ne se glisse jamais, même si le programme qui range a un bug.
+    </div>
+    <p>PostgreSQL a été choisi parce que le contenu d'une étude EBIOS RM (les risques, les biens à protéger…) est une donnée <strong>précieuse et structurée</strong> — elle a besoin d'un classeur sérieux, pas d'un tas de post-it. C'est aussi un classeur gratuit, très utilisé, et qui sait parfaitement gérer « deux personnes qui essaient de ranger dans le même tiroir en même temps » sans tout casser.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">04</span><h2>Le bureau du back-office : pourquoi C# / .NET ?</h2></div>
+    <div class="analogy">
+      <span class="lbl">Le clerc pointilleux</span>
+      C# est un langage qui oblige à déclarer à l'avance « ce champ ne peut être qu'un nombre », « celui-ci ne peut jamais être vide ». C'est comme un employé de back-office très pointilleux qui refuse un formulaire mal rempli <em>avant même</em> de commencer à le traiter, plutôt que de découvrir l'erreur en cours de route. Pour une application où une erreur de gravité mal codée pourrait fausser toute une analyse de risque, ce genre de rigueur vaut mieux qu'un langage plus permissif.
+    </div>
+    <p>.NET 8 est la version actuelle et robuste de cet environnement, largement utilisée par des grandes entreprises et administrations — ce n'est pas un choix expérimental.</p>
+  </section>
+
+  <section class="long">
+    <div class="section-head"><span class="num">05</span><h2>Ce qu'il y a précisément dans le back-office</h2></div>
+    <p>La section 1 a dit « le back-office applique les règles ». Mais le back-office lui-même n'est pas un seul gros bloc — c'est plusieurs bureaux spécialisés qui se passent le dossier à tour de rôle, chacun avec un métier précis. Ce sont exactement les boîtes que tu vois dans le diagramme de composants. Voyons-les une par une, dans l'ordre où un dossier les traverse.</p>
+
+    <div class="concept">
+      <div class="term"><span class="word">Endpoint / API</span><span class="analogy-name">— le guichet d'accueil</span></div>
+      <p>Un « endpoint », c'est une adresse précise où envoyer une demande précise — comme un guichet numéroté dans une administration. Il n'y a pas UN guichet pour tout : il y a un guichet « créer une étude », un autre « valider un atelier », un autre « obtenir le rapport ». L'ensemble de ces guichets s'appelle une <strong>API</strong> (le comptoir complet de tous les guichets disponibles). La vitrine (le site web) sait à quel guichet frapper pour chaque demande.</p>
+      <div class="example"><span class="lbl">Dans nos diagrammes</span>Le rectangle « Endpoints » dans le composant « Présentation ».</div>
+    </div>
+
+    <div class="concept">
+      <div class="term"><span class="word">Handler / Application</span><span class="analogy-name">— le chef de dossier</span></div>
+      <p>Une fois la demande reçue au guichet, quelqu'un doit orchestrer les étapes : vérifier que le dossier existe, demander au bon bureau spécialisé de faire son travail, puis ranger le résultat. C'est le rôle du « handler » (littéralement : « celui qui gère »). Il ne connaît pas les règles métier lui-même — il sait juste dans quel ordre appeler les bons spécialistes.</p>
+      <div class="example"><span class="lbl">Dans nos diagrammes</span>Le rectangle « Handlers de cas d'usage » dans le composant « Application ».</div>
+    </div>
+
+    <div class="concept">
+      <div class="term"><span class="word">Core Engine (Domain)</span><span class="analogy-name">— le bureau des règles métier</span></div>
+      <p>C'est LE bureau spécialiste d'EBIOS RM. Il connaît par cœur toutes les règles de la méthode — « une étude ne peut être validée que si elle est en cours », « la gravité va de 1 à 4 » — et refuse tout ce qui les enfreint. Ce bureau ne sait <em>rien d'autre</em> : il ignore totalement à quoi ressemble le site web, et il ignore totalement comment les dossiers sont rangés dans le coffre-fort. C'est fait exprès : le jour où on change de classeur (une autre base de données) ou de vitrine (un autre site web), ce bureau ne bouge pas d'un pouce, parce que les règles EBIOS RM restent les mêmes.</p>
+      <div class="example"><span class="lbl">Dans nos diagrammes</span>Le rectangle « Etude — agrégat racine » et « Services de domaine », dans « Core Engine — Domain ». C'est aussi ce que montre le diagramme de classes en entier.</div>
+    </div>
+
+    <div class="concept">
+      <div class="term"><span class="word">Repository</span><span class="analogy-name">— le coursier des archives</span></div>
+      <p>Le bureau des règles métier ne va jamais lui-même fouiller dans le coffre-fort — ce n'est pas son travail, et ça le rendrait dépendant d'un classeur précis. À la place, il demande à un coursier : « va me chercher le dossier de l'étude numéro 12 » ou « range ce dossier modifié ». Le coursier (le <strong>repository</strong>) est le seul à savoir où et comment ranger physiquement les choses.</p>
+      <div class="example"><span class="lbl">Dans nos diagrammes</span>Le rectangle « Repositories EF Core » dans « Infrastructure ».</div>
+    </div>
+
+    <div class="concept">
+      <div class="term"><span class="word">Mapping / Entity Framework (EF) Core</span><span class="analogy-name">— le traducteur automatique</span></div>
+      <p>Voici un détail important : le bureau des règles métier parle un langage riche (« une Étude, avec un nom, un statut, et la capacité de se faire Valider »), alors que le coffre-fort ne comprend que des lignes et des colonnes bien rangées dans des tableaux. Quelqu'un doit traduire entre les deux, dans les deux sens, à chaque fois. Cette traduction automatique s'appelle le <strong>mapping</strong> (littéralement : « la mise en correspondance »), et l'outil qui la fait tout seul, sans qu'on ait à l'écrire à la main à chaque fois, s'appelle <strong>Entity Framework Core</strong> (EF Core). Grâce à lui, le coursier n'a même pas besoin d'écrire des ordres de rangement compliqués : il donne le dossier tel quel à EF Core, qui sait tout seul dans quel tiroir et sous quelle forme le ranger.</p>
+      <div class="example"><span class="lbl">Exemple concret de mapping</span>Un objet <strong>Etude</strong> en mémoire (Nom = "Banque X", Statut = EnCours) ↔ une ligne dans la table <strong>etudes</strong> de PostgreSQL (colonne Nom = 'Banque X', colonne Statut = 'EnCours'). EF Core fait cet aller-retour automatiquement.</div>
+    </div>
+
+    <div class="concept">
+      <div class="term"><span class="word">Reporting</span><span class="analogy-name">— l'imprimeur officiel</span></div>
+      <p>Un bureau à part, qui ne travaille que sur des dossiers <strong>déjà validés et tamponnés</strong> — jamais sur un brouillon en cours de modification. C'est lui qui produit le rapport PDF final. S'il travaillait sur un brouillon, le rapport pourrait changer sous tes yeux pendant que quelqu'un d'autre modifie encore l'étude — ce serait dangereux pour un document censé faire foi.</p>
+      <div class="example"><span class="lbl">Dans nos diagrammes</span>Le rectangle « Génération de rapports » dans « Reporting ».</div>
+    </div>
+
+    <p>Remets ces six bureaux bout à bout, dans l'ordre, et tu obtiens exactement le chemin que suit une demande : <b>guichet → chef de dossier → bureau des règles → coursier → traducteur → coffre-fort</b> — puis le même chemin en sens inverse pour répondre. C'est précisément ce que raconte le diagramme de composants, et dans le détail, le diagramme de séquence.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">06</span><h2>La salle d'accueil : pourquoi React ?</h2></div>
+    <div class="analogy">
+      <span class="lbl">La vitrine interactive</span>
+      React permet de construire une page web qui se met à jour toute seule, comme une vitrine de magasin où les prix changent automatiquement dès qu'on modifie le stock en arrière-boutique — sans devoir recharger toute la page. TypeScript ajoute la même rigueur que C# côté vitrine (« ce champ est forcément un texte, pas un nombre »), Vite est l'outil qui prépare rapidement la vitrine avant de l'ouvrir au public, et Tailwind est la boîte de peinture et de règles qui rend tout visuellement cohérent sans réinventer le style à chaque nouvelle page.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">07</span><h2>La règle pour l'assistant IA de demain</h2></div>
+    <div class="analogy">
+      <span class="lbl">Le stagiaire qui propose, mais ne signe jamais</span>
+      Un stagiaire dans une banque peut suggérer une idée — « je pense que ce risque devrait être noté plus grave » — mais il n'a jamais le droit de modifier un dossier officiel tout seul. Seul un employé habilité peut lire sa suggestion et décider de l'appliquer ou non.
+    </div>
+    <p>C'est exactement la règle actée pour la future assistance IA d'EBIOS RM : elle pourra <strong>proposer</strong>, jamais <strong>écrire directement</strong> dans une étude. Un humain doit toujours accepter explicitement la suggestion pour qu'elle devienne réelle. Cette règle est déjà dessinée dans les schémas d'architecture — le rectangle « Assistance IA » du diagramme de composants ne parle qu'au « chef de dossier » (l'Application), jamais directement au bureau des règles ni au coffre-fort — même si l'IA elle-même n'est pas encore construite.</p>
+  </section>
+
+  <section class="long">
+    <div class="section-head"><span class="num">08</span><h2>Comment lire nos schémas, du plus simple au plus complexe</h2></div>
+    <p>Tous les diagrammes utilisent le même alphabet visuel de base (des boîtes, des flèches, des étiquettes), mais chaque <em>type</em> de diagramme raconte une histoire différente. On va les prendre dans l'ordre du plus facile à lire au plus dense, pour construire ta lecture petit à petit.</p>
+
+    <div class="legend-grid">
+      <div class="legend-item"><span class="sym"><span class="sym-box"></span></span><span class="txt"><strong>Rectangle</strong><span>Un morceau du système (un composant, une classe, une étape)</span></span></div>
+      <div class="legend-item"><span class="sym"><span class="sym-actor"></span></span><span class="txt"><strong>Bonhomme / cercle</strong><span>Une personne qui utilise l'application</span></span></div>
+      <div class="legend-item"><span class="sym"><span class="sym-db"></span></span><span class="txt"><strong>Cylindre</strong><span>Une base de données — le coffre-fort</span></span></div>
+      <div class="legend-item"><span class="sym"><span class="sym-arrow"></span></span><span class="txt"><strong>Flèche pleine</strong><span>« Appelle directement » ou « envoie une information à »</span></span></div>
+      <div class="legend-item"><span class="sym"><span class="sym-dotted"></span></span><span class="txt"><strong>Ligne pointillée</strong><span>Un lien plus souple : une inclusion, une dépendance occasionnelle</span></span></div>
+      <div class="legend-item"><span class="sym"><span class="sym-box" style="border-radius:50%;"></span></span><span class="txt"><strong>Ovale</strong><span>Une action possible (« Créer une étude »), pas une chose</span></span></div>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">1 — le plus simple</span>
+      <h3>Le diagramme d'états : une histoire avec un début et des étapes</h3>
+      <p>C'est le plus facile : lis-le littéralement comme une bande dessinée, de gauche à droite ou de haut en bas. Le point noir plein, c'est le <strong>début de l'histoire</strong>. Chaque rectangle est une <strong>situation possible</strong>. Chaque flèche est un <strong>événement qui fait passer d'une situation à une autre</strong>, et son étiquette dit ce qui doit se passer pour que ça arrive.</p>
+      <div class="walk">Prends notre diagramme « Statut global de l'étude » : le point noir mène à <b>Brouillon</b> (l'étude vient d'être créée). La flèche « premier atelier démarré » mène à <b>EnCours</b>. La flèche « les 5 ateliers sont Validés » mène à <b>Finalisee</b>. Et une flèche revient en arrière si « un atelier est rouvert ». Tu viens de lire tout le cycle de vie d'une étude, sans rien savoir du code.</div>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">2</span>
+      <h3>Le diagramme de séquence : qui parle à qui, et dans quel ordre</h3>
+      <p>Chaque acteur ou bureau reçoit sa propre <strong>ligne verticale en pointillé</strong> qu'on appelle une « ligne de vie » — imagine des couloirs de piscine qui descendent la page. Le <strong>temps s'écoule du haut vers le bas</strong>. Une flèche horizontale qui part d'un couloir vers un autre est un <strong>message envoyé à ce moment précis</strong>. Un rectangle gris posé sur plusieurs couloirs à la fois est une <strong>note</strong> qui explique quelque chose d'important à cet instant de l'histoire.</p>
+      <div class="walk">Dans « Validation d'un atelier » : le couloir « Responsable » envoie « Valide l'atelier » au couloir « Frontend », qui relaie une requête au couloir « Endpoint », et ainsi de suite en descendant — jusqu'à la note grise qui rappelle que la validation et le snapshot se font ensemble, dans une seule transaction.</div>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">3</span>
+      <h3>Le diagramme de cas d'utilisation : qui a le droit de faire quoi</h3>
+      <p>Les bonhommes à gauche sont les <strong>humains</strong> qui utilisent la plateforme. Le grand rectangle à droite, c'est <strong>la plateforme elle-même</strong> — tout ce qui est dedans est une fonctionnalité qu'elle offre, dessinée en <strong>ovale</strong>. Une ligne simple entre un bonhomme et un ovale veut dire « cette personne peut faire cette action ». Une flèche en pointillés avec l'étiquette « include » veut dire « cette action en déclenche automatiquement une autre, sans qu'on ait besoin de le demander séparément ».</p>
+      <div class="walk">« Demander une suggestion IA » pointe en pointillé vers « Accepter / rejeter une suggestion » — ce qui te dit, sans lire une ligne de code, que demander une suggestion mène toujours, ensuite, à devoir l'accepter ou la rejeter. À l'inverse, remarque qu'il n'y a <em>pas</em> de flèche « include » entre « Valider un atelier » et « Générer un rapport » : valider fige automatiquement un instantané (un « snapshot »), mais générer le rapport PDF reste une action séparée, à la demande — les deux ne sont pas la même chose.</div>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">4</span>
+      <h3>Le diagramme de composants : les pièces du bâtiment, imbriquées</h3>
+      <p>Ici, une boîte peut en contenir d'autres, comme des pièces dans un bâtiment, dans une rue, dans une ville. Le grand rectangle « EbiosRM.Api » est le bâtiment ; à l'intérieur, chaque pièce (Présentation, Application, Core Engine…) contient elle-même ses propres meubles (Endpoints, Handlers…). Une flèche qui sort d'une pièce vers une autre veut dire « cette pièce a le droit d'appeler celle-là ». C'est exactement la liste des six bureaux qu'on a détaillés à la section 5 — ce schéma en est le plan d'étage.</p>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">5</span>
+      <h3>Le diagramme de déploiement : où ça tourne, pour de vrai</h3>
+      <p>Ressemble au diagramme de composants, mais ne parle plus du <em>logiciel</em> : il parle des <strong>machines physiques</strong> (ou virtuelles) qui le font tourner. Chaque grande boîte 3D est un ordinateur distinct — ton navigateur sur ton poste, le serveur qui exécute l'API, le serveur qui héberge la base de données. Les flèches entre les boîtes montrent le protocole réseau utilisé (HTTPS, par exemple) plutôt qu'un appel de code direct.</p>
+    </div>
+
+    <div class="read-step">
+      <span class="step-tag">6 — le plus dense, gardé pour la fin</span>
+      <h3>Le diagramme de classes : la carte d'identité complète du métier</h3>
+      <p>C'est le plus riche, donc le plus utile une fois qu'on sait le lire. Chaque rectangle est coupé en <strong>trois étages</strong> : en haut le <strong>nom</strong> de la chose (ex. <span class="tech" style="font-family:'IBM Plex Mono',monospace;">Etude</span>), au milieu ses <strong>caractéristiques</strong> (ex. <span style="font-family:'IBM Plex Mono',monospace;">Nom : string</span>), en bas ses <strong>actions possibles</strong> (ex. <span style="font-family:'IBM Plex Mono',monospace;">ValiderAtelier(numero)</span>).</p>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="sym">−</span><span class="txt"><strong>Signe moins</strong><span>Réservé à l'intérieur — les autres bureaux ne peuvent pas y toucher directement</span></span></div>
+        <div class="legend-item"><span class="sym">+</span><span class="txt"><strong>Signe plus</strong><span>Les autres bureaux ont le droit d'utiliser cette action</span></span></div>
+        <div class="legend-item"><span class="sym"><span class="sym-diamond"></span></span><span class="txt"><strong>Losange plein</strong><span>« Fait partie de » — ne peut pas exister sans son propriétaire</span></span></div>
+        <div class="legend-item"><span class="sym"><span class="sym-diamond open"></span></span><span class="txt"><strong>Losange vide</strong><span>« Regroupe », mais peut exister sans lui</span></span></div>
+      </div>
+      <p>Les petits chiffres près des lignes (comme <span style="font-family:'IBM Plex Mono',monospace;">1</span> et <span style="font-family:'IBM Plex Mono',monospace;">0..*</span>) s'appellent des <strong>cardinalités</strong> : ils répondent à « combien, exactement ? ». <span style="font-family:'IBM Plex Mono',monospace;">1</span> veut dire « exactement un ». <span style="font-family:'IBM Plex Mono',monospace;">0..*</span> veut dire « zéro, un, ou autant qu'on veut ».</p>
+      <div class="walk">Lis la ligne entre <b>Etude</b> et <b>ValeurMetier</b> : un losange plein côté Etude, « 1 » d'un côté et « 0..* » de l'autre, avec l'étiquette « contient ». Traduction en phrase normale : <b>« Une étude contient zéro, une, ou plusieurs valeurs métier, et une valeur métier ne peut pas exister sans son étude. »</b> C'est tout le principe des cardinalités : une ligne du diagramme se relit toujours comme une phrase complète.</div>
+    </div>
+  </section>
+
+  <section class="long">
+    <div class="section-head"><span class="num">09</span><h2>Nos diagrammes, expliqués un par un</h2></div>
+    <p>La section précédente t'a appris la <em>grammaire</em> de chaque type de schéma. Ici, on ouvre chacun de nos six diagrammes et on le lit en entier, littéralement, boîte par boîte et flèche par flèche — dans le même ordre que les diagrammes officiels (numérotés Diagramme 01 à 06 dans le PDF des diagrammes UML).</p>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 05</span><h3>Les états — le plus simple, en entier</h3></div>
+      <p>Ce diagramme est en réalité trois petites histoires côte à côte.</p>
+      <p><strong>« Cycle d'un atelier (1 à 5) »</strong> : le point noir part vers un rectangle appelé <b>NonDemarre</b>, avec l'étiquette « Etude créée » sur la flèche — ça veut dire qu'un atelier commence toujours non démarré, dès que l'étude existe. Une flèche part de <b>NonDemarre</b> vers <b>EnCours</b>, étiquetée <code>DemarrerAtelier(numero)</code> : c'est l'action qui fait passer d'un état à l'autre. De <b>EnCours</b>, une flèche mène à <b>Valide</b>, étiquetée <code>ValiderAtelier(numero)</code>, avec en dessous une précision « (crée une nouvelle version de snapshot) ». Et une dernière flèche revient de <b>Valide</b> vers <b>EnCours</b>, étiquetée <code>RouvrirAtelier(numero)</code> — la boucle est bouclée, un atelier validé peut redevenir « en cours ». Une note grise accrochée à <b>Valide</b> rappelle que chaque passage par cet état fige une nouvelle version, sans jamais écraser l'ancienne.</p>
+      <p><strong>« Statut global de l'étude »</strong> : même grammaire, quatre états cette fois. Le point noir mène à <b>Brouillon</b> (étiquette : <code>Creer(nom, perimetre, mission)</code>, l'action de création). De <b>Brouillon</b>, une flèche « premier atelier démarré » mène à <b>EnCours</b>. De <b>EnCours</b>, une flèche « les 5 ateliers sont Validés » mène à <b>Finalisee</b>. Et une flèche revient de <b>Finalisee</b> vers <b>EnCours</b>, étiquetée « cycle stratégique (reprise atelier 1) ou cycle opérationnel (reprise atelier 2) » — pas juste « un atelier est rouvert » : la documentation officielle montre que l'atelier 5 boucle vraiment vers l'atelier 1 (tout reprendre) ou vers l'atelier 2 (reprendre seulement la partie opérationnelle). La note accrochée à <b>Finalisee</b> précise que ce statut n'est jamais saisi à la main : il est <em>calculé</em> à partir de l'état des 5 ateliers, et que ce retour en arrière n'est pas une correction d'erreur — c'est la méthode elle-même qui fonctionne par cycles, pas en ligne droite.</p>
+      <p><strong>« Suivi d'une mesure PACS »</strong> : la plus courte des trois, trois états en ligne. Le point noir mène à <b>ALancer</b>, étiqueté <code>AjouterMesureComplementaire(...)</code> — dès qu'une mesure de sécurité est décidée dans le plan, elle démarre à ce statut. Une flèche « mise en œuvre démarrée » mène à <b>EnCours</b>, puis « mise en œuvre achevée » mène à <b>Termine</b>. Ce sont les trois statuts exacts trouvés dans le tableau de suivi du PACS de la documentation officielle — rien d'inventé. Et surtout : ce suivi est <em>individuel</em>, mesure par mesure, pas un seul statut global pour tout le plan.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 04</span><h3>La séquence de validation, message par message</h3></div>
+      <p>Huit couloirs verticaux, de gauche à droite : le bonhomme <b>Responsable / Validateur</b>, puis <b>Frontend</b>, <b>Endpoint</b>, <b>ValiderAtelierHandler</b>, <b>Etude (agrégat)</b>, <b>ServiceCreationSnapshot</b>, <b>IEtudeRepository</b>, et le cylindre <b>PostgreSQL</b> tout à droite. En descendant la page, voici exactement ce qui se passe, dans l'ordre :</p>
+      <ol>
+        <li><span class="msg-req">Responsable → Frontend :</span> « Valide l'atelier » — le clic sur le bouton.</li>
+        <li><span class="msg-req">Frontend → Endpoint :</span> « POST .../ateliers/{numero}/valider » — la vraie requête envoyée sur le réseau.</li>
+        <li><span class="msg-req">Endpoint → Handler :</span> « Handle(Commande) » — le guichet transmet le dossier au chef de dossier.</li>
+        <li><span class="msg-req">Handler → Repository :</span> « ObtenirParIdAsync(id) » — le chef de dossier demande le dossier complet de l'étude.</li>
+        <li><span class="msg-req">Repository → PostgreSQL :</span> « SELECT étude + enfants ».</li>
+        <li><span class="msg-resp">PostgreSQL ⇢ Repository :</span> « lignes » — flèche en pointillé, donc une <em>réponse</em>, pas une nouvelle demande.</li>
+        <li><span class="msg-resp">Repository ⇢ Handler :</span> « Etude (agrégat complet) ».</li>
+        <li><span class="msg-req">Handler → Etude :</span> « ValiderAtelier(numero) » — le chef de dossier demande au bureau des règles de faire la vérification.</li>
+        <li><span class="msg-resp">Etude ⇢ Handler :</span> « EnCours → Validé » — la transition a réussi.</li>
+        <li><span class="msg-req">Handler → ServiceCreationSnapshot :</span> « CreerSnapshot(...) ».</li>
+        <li><span class="msg-resp">ServiceCreationSnapshot ⇢ Handler :</span> « Snapshot (version n+1) ».</li>
+        <li>Une <strong>note grise</strong> posée entre le couloir Handler et le couloir PostgreSQL : « Transaction unique — étude et snapshot réussissent ou échouent ensemble ». C'est le moment le plus important du schéma.</li>
+        <li><span class="msg-req">Handler → Repository :</span> « MettreAJourAsync(...) ».</li>
+        <li><span class="msg-req">Repository → PostgreSQL :</span> « BEGIN · UPDATE · INSERT · COMMIT » — les quatre mots d'une vraie transaction de base de données, écrits littéralement sur la flèche.</li>
+        <li><span class="msg-resp">PostgreSQL ⇢ Repository :</span> « OK ».</li>
+        <li><span class="msg-resp">Repository ⇢ Handler :</span> « succès ».</li>
+        <li><span class="msg-resp">Handler ⇢ Endpoint :</span> « résultat ».</li>
+        <li><span class="msg-resp">Endpoint ⇢ Frontend :</span> « 200 OK » — le code qui veut dire « tout s'est bien passé ».</li>
+        <li><span class="msg-resp">Frontend ⇢ Responsable :</span> « Atelier validé » — ce que la personne voit finalement s'afficher à l'écran.</li>
+      </ol>
+      <p>Dix-neuf étapes, mais une seule chose à retenir : les étapes 13 et 14 (la vraie écriture dans le coffre-fort) ne peuvent jamais se produire qu'ensemble, grâce à la note de l'étape 12.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 01</span><h3>Les cas d'utilisation, bonhomme par bonhomme</h3></div>
+      <p>Trois bonhommes empilés à gauche, un grand rectangle « Plateforme EBIOS RM » à droite, avec onze ovales dedans.</p>
+      <p><strong>L'Administrateur</strong> (en haut) n'a que deux lignes qui partent de lui : une vers l'ovale « Gérer le référentiel », une vers « Gérer comptes et rôles ». C'est tout ce qu'il peut faire — il ne touche jamais aux études elles-mêmes.</p>
+      <p><strong>L'Analyste risque</strong> (au milieu) a cinq lignes : « Démarrer un atelier », « Demander une suggestion IA », « Créer une étude », « Saisir les données d'un atelier », et « Consulter l'historique des versions ».</p>
+      <p><strong>Le Responsable / Validateur</strong> (en bas) a cinq lignes aussi, dont une partagée avec l'Analyste (« Consulter l'historique des versions ») : « Valider un atelier », « Rouvrir un atelier validé », et deux longues courbes qui redescendent vers « Accepter / rejeter une suggestion » et « Générer un rapport ».</p>
+      <p>Une seule flèche en pointillés, étiquetée <code>«include»</code>, complète le tableau : de « Demander une suggestion IA » vers « Accepter / rejeter une suggestion » (demander une suggestion mène toujours, ensuite, à devoir l'accepter ou la rejeter). Il n'y en a volontairement <em>pas</em> entre « Valider un atelier » et « Générer un rapport » : valider fige un instantané automatiquement, mais générer le rapport PDF reste une action séparée, à la demande — ce n'est pas la même chose, donc pas un « include ».</p>
+      <p>Une précision honnête : ces 3 bonhommes ne sont <em>pas</em> les vraies personnes qui participent à un atelier EBIOS RM en vrai. La documentation officielle réunit Direction, Métiers, RSSI, DSI, et parfois un spécialiste cybersécurité selon l'atelier — des rôles de réunion, pas des comptes dans un logiciel. Nos 3 acteurs sont une simplification volontaire, pour que la plateforme reste utilisable sans reproduire toute la hiérarchie d'une entreprise.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 03</span><h3>Les composants, pièce par pièce</h3></div>
+      <p>Tout en haut, le rectangle « Frontend SPA — React + TypeScript + Vite ». Une flèche « HTTPS / JSON » descend vers un grand rectangle « EbiosRM.Api », qui contient six pièces :</p>
+      <ul>
+        <li><b>Présentation</b>, avec deux meubles à l'intérieur : « Endpoints » et « Authentification ». Une flèche va d'Endpoints vers Authentification.</li>
+        <li><b>Application</b>, avec « Handlers de cas d'usage ». Endpoints pointe vers ce meuble.</li>
+        <li><b>Core Engine — Domain</b>, avec « Etude — agrégat racine » et « Services de domaine ». Les Handlers pointent vers Etude, qui pointe elle-même vers les Services de domaine.</li>
+        <li><b>Infrastructure</b>, avec « Repositories EF Core ». Les Handlers pointent aussi vers ce meuble.</li>
+        <li><b>Reporting</b>, avec « Génération de rapports ». C'est Endpoints qui pointe directement vers lui — pas les Handlers, une route à part.</li>
+        <li><b>Assistance IA</b>, avec « Suggestions ». Deux flèches en pointillés la relient aux Handlers : une étiquetée « commande explicite » qui part des Handlers vers Suggestions, une étiquetée « suggestion » qui revient de Suggestions vers les Handlers.</li>
+      </ul>
+      <p>En bas, hors du grand rectangle, le cylindre « PostgreSQL ». Deux flèches y arrivent : une depuis « Repositories EF Core », une depuis « Génération de rapports » — les deux seuls chemins autorisés vers le coffre-fort.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 06</span><h3>Le déploiement, machine par machine</h3></div>
+      <p>Trois grandes boîtes empilées verticalement, chacune représentant un ordinateur distinct, pas un simple bout de logiciel.</p>
+      <p><strong>« Poste utilisateur »</strong> en haut, contenant « Navigateur — exécute le bundle React » : c'est ton ordinateur ou ton téléphone. Une flèche « HTTPS » (le protocole sécurisé du web) descend vers <strong>« Serveur applicatif »</strong>, qui contient « EbiosRM.Api (Kestrel) — .NET 8 » — Kestrel est simplement le nom du petit moteur qui fait tourner le programme .NET en continu sur ce serveur. Une seconde flèche, « Npgsql, TLS » (Npgsql est le nom du traducteur réseau que .NET utilise pour parler à PostgreSQL ; TLS veut dire que la conversation est chiffrée), descend vers <strong>« Serveur de données »</strong>, qui contient le cylindre « PostgreSQL 16 ».</p>
+      <p>Trois machines, deux flèches, aucune boîte supplémentaire : c'est exactement la simplicité voulue pour une V1, expliquée à la section 2.</p>
+    </div>
+
+    <div class="deepdive">
+      <div class="deepdive-head"><span class="ref">Diagramme 02</span><h3>Les classes, paquetage par paquetage — le plus long, gardé pour la fin</h3></div>
+      <p>Cinq paquetages, un par atelier. Leur position sur la page ne suit pas forcément l'ordre 1→5 (le moteur de mise en page les replace pour limiter les croisements de lignes) — la « vue d'ensemble » séparée, avec seulement 5 boîtes dans le bon ordre et ses deux flèches de bouclage, précède ce diagramme détaillé pour cette raison. Ce qui suit a été entièrement revérifié contre la documentation méthodologique officielle — deux classes qu'on avait ratées au premier passage (<b>CheminAttaque</b> et <b>ScenarioDeRisque</b>) ont été ajoutées, et plusieurs cardinalités corrigées.</p>
+
+      <div class="package">
+        <span class="pkgname">Atelier 1 — Cadrage</span>
+        <p>La classe <b>Etude</b> est en haut, avec ses caractéristiques (Nom, Perimetre, Mission, Statut) et ses actions (Creer, DemarrerAtelier, ValiderAtelier, RouvrirAtelier, AjouterValeurMetier…). Un losange plein la relie à <b>ValeurMetier</b> (étiquette « contient », 1 vers 0..*). ValeurMetier se relie à <b>EvenementRedoute</b> (« redoute », toujours en losange plein). La relation vers <b>BienSupport</b> (« repose sur »), elle, n'a <em>pas</em> de losange — une simple ligne, avec « 1..* » côté ValeurMetier et « 0..* » côté BienSupport : un même bien support (un serveur, par exemple) peut très bien être partagé par plusieurs valeurs métier, ce n'est donc pas une possession exclusive. Etude se relie aussi à <b>SocleSecurite</b> (« applique », 1 vers 0..1 — une étude a au plus un seul socle), qui se relie à <b>ReferentielApplicable</b> (« évalue »).</p>
+      </div>
+      <div class="package">
+        <span class="pkgname">Atelier 2 — Sources de risque</span>
+        <p>Etude se relie directement à <b>CoupleSourceRisqueObjectifVise</b> (« identifie ») et à <b>PartiePrenante</b> (« implique »). Une flèche en pointillé (une dépendance, pas une possession) relie CoupleSourceRisqueObjectifVise au rectangle « «domain service» ServiceCalculPertinence » : c'est ce service qui calcule automatiquement le champ Pertinence, jamais saisi à la main. De même, PartiePrenante dépend de « «domain service» ServiceCalculNiveauDangerosite » pour calculer sa NiveauDangerositeCalculee (« Dangerosité », terme officiel depuis EBIOS RM 1.5, remplace « Menace ») — dont on connaît maintenant la vraie formule officielle : <code>(Dépendance × Pénétration) / (Maturité × Confiance)</code>, revérifiée par calcul sur l'exemple du cours. L'analyste peut retenir une valeur différente du calcul (jugement d'expert, justification obligatoire), sans jamais écraser la valeur calculée.</p>
+      </div>
+      <div class="package">
+        <span class="pkgname">Atelier 3 — Scénarios stratégiques</span>
+        <p>Etude se relie à <b>ScenarioStrategique</b> (« projette »). Deux flèches pointent <em>vers</em> ScenarioStrategique : CoupleSourceRisqueObjectifVise « donne naissance à » un scénario — et ici la cardinalité est stricte, « 1 » des deux côtés, pas « 0..* » : la documentation officielle dit littéralement <em>« 1 couple SR/OV = 1 scénario stratégique »</em>. EvenementRedoute, lui, « est ciblé par » 0 à plusieurs scénarios (un même événement redouté peut être visé par plusieurs attaques différentes).</p>
+        <p>Nouveauté : ScenarioStrategique ne traverse plus directement les parties prenantes — il se décline d'abord en un ou plusieurs <b>CheminAttaque</b> (losange plein, « se décline en », 1..* — un scénario a toujours au moins un chemin d'attaque identifié). C'est le <em>chemin d'attaque</em>, pas le scénario dans son ensemble, qui traverse l'écosystème : losange creux vers <b>PartiePrenante</b>, « 0..* » des deux côtés — un chemin peut traverser zéro partie prenante (une attaque directe, sans tiers), une seule, ou plusieurs, exactement comme avant, mais porté par la bonne classe cette fois. Et chaque partie prenante traversée génère un <b>EvenementIntermediaire</b> nommé (un losange plein depuis CheminAttaque, « génère », 0..* — zéro si le chemin est direct) : c'est la trace de ce qui se passe concrètement à cette étape, par exemple « création d'un canal d'exfiltration depuis l'infrastructure du prestataire ». Un losange plein relie ScenarioStrategique à <b>MesureSecuriteEcosysteme</b> (« couvre »).</p>
+      </div>
+      <div class="package">
+        <span class="pkgname">Atelier 4 — Scénarios opérationnels</span>
+        <p><b>ScenarioOperationnel</b> se relie à <b>ModeOperatoire</b> (« compose », losange plein, 1..* — au moins une étape). Nouveauté : chaque mode opératoire se décompose à son tour en <b>ActionElementaire</b> (« décompose en », 1..*), le geste technique le plus fin, chacune portant sa propre <b>Phase</b> (CONNAÎTRE/RENTRER/TROUVER/EXPLOITER) — et chaque action élémentaire cible précisément un <b>BienSupport</b> de l'atelier 1 (flèche simple « cible ») : la boucle est bouclée, l'attaque finit toujours par toucher un bien concret identifié dès le premier atelier. Une dépendance en pointillé relie ScenarioOperationnel à « «domain service» ServiceCalculVraisemblance », qui calcule automatiquement la VraisemblanceCalculee de chaque mode opératoire — sur l'échelle officielle à 4 niveaux (peu vraisemblable à certain ou déjà produit). Là aussi, l'analyste peut retenir une vraisemblance différente avec justification, sans perdre la valeur calculée.</p>
+      </div>
+      <div class="package">
+        <span class="pkgname">Atelier 5 — Traitement du risque</span>
+        <p>C'est ici que la correction la plus importante a eu lieu. On avait mis <s>RisqueResiduel</s>, produit directement par ScenarioOperationnel — comme si le risque résiduel était encore une classe de plus dans la chaîne. En réalité, la documentation officielle dit : <em>« 1 scénario de risque = 1 chemin d'attaque et son scénario opérationnel associé »</em>. Autrement dit, <b>ScenarioDeRisque</b> n'ajoute rien de nouveau après coup : c'est le <em>même</em> chemin d'attaque et le <em>même</em> scénario opérationnel, simplement regardés ensemble, avec deux nouvelles caractéristiques — NiveauRisqueInitial (avant traitement) et NiveauRisqueResiduel (après). D'où les deux losanges pleins qui partent de ScenarioDeRisque : un vers CheminAttaque (« repose sur », toujours 1), un vers ScenarioOperationnel (« repose sur », 0..1 — il peut ne pas encore exister tant que l'atelier 4 n'a pas fait son travail). Une dépendance relie ScenarioDeRisque à « «domain service» ServiceCalculNiveauRisque ».</p>
+        <p>Enfin, Etude se relie à <b>PlanTraitementRisque</b> (« décide ») — le PACS (Plan d'Amélioration Continue de la Sécurité), le vrai nom officiel de ce plan. Il se relie en losange plein à <b>MesureSecuriteComplementaire</b> (« planifie »), et par une flèche simple à ScenarioDeRisque (« traite », 0..1 — un scénario peut n'avoir aucun plan si son risque a simplement été accepté comme faible). Chaque mesure complémentaire porte un Axe (les 4 axes officiels du PACS : Gouvernance, Protection, Défense, Résilience) et un Etat suivi individuellement (voir le 3ᵉ diagramme d'états, section précédente).</p>
+      </div>
+      <div class="package">
+        <span class="pkgname">Transverse — snapshot et rapport</span>
+        <p>Trois classes qui ne sont dans aucun des cinq paquetages, parce qu'elles s'appliquent identiquement à chacun d'eux : Etude dépend de « «domain service» ServiceCreationSnapshot », qui crée un <b>SnapshotAtelier</b> à chaque validation. Ce snapshot dépend à son tour de « «domain service» ServiceGenerationRapport », mais <em>séparément, à la demande</em> — pas automatiquement au moment de la validation. C'est le même mécanisme que celui détaillé étape par étape dans le diagramme de séquence.</p>
+      </div>
+
+      <p>Lu d'un bout à l'autre, ce diagramme raconte maintenant fidèlement le déroulement complet d'EBIOS RM : une source de risque et un objectif visé donnent naissance à exactement un scénario stratégique, qui se décline en chemins d'attaque traversant (ou non) l'écosystème, chacun donnant lieu à un scénario opérationnel — ensemble, ils forment un scénario de risque, évalué avant puis après le PACS. Le diagramme de classes n'est donc pas juste une liste de boîtes : c'est la méthode EBIOS RM elle-même, dessinée, et désormais vérifiée ligne par ligne contre sa documentation d'origine.</p>
+    </div>
+  </section>
+
+  <section class="long">
+    <div class="section-head"><span class="num">10</span><h2>La boîte à outils</h2></div>
+    <table>
+      <thead><tr><th>Pièce</th><th>Outil</th><th>Pourquoi celui-là, en clair</th></tr></thead>
+      <tbody>
+        <tr><td>Vitrine (frontend)</td><td class="tech">React</td><td>Une page web qui se met à jour toute seule, sans rechargement.</td></tr>
+        <tr><td></td><td class="tech">TypeScript</td><td>Le même genre de rigueur que C#, côté vitrine.</td></tr>
+        <tr><td></td><td class="tech">Vite</td><td>Prépare et sert la vitrine rapidement pendant qu'on la construit.</td></tr>
+        <tr><td></td><td class="tech">Tailwind CSS</td><td>La boîte à outils de style, pour que tout se ressemble visuellement.</td></tr>
+        <tr><td>Back-office</td><td class="tech">C# / .NET 8</td><td>Le clerc pointilleux qui applique les règles métier sans erreur.</td></tr>
+        <tr><td></td><td class="tech">ASP.NET Core</td><td>La partie qui sait recevoir et répondre aux demandes du navigateur — les guichets (endpoints).</td></tr>
+        <tr><td></td><td class="tech">Entity Framework Core</td><td>Le traducteur automatique entre le langage du bureau des règles et celui du classeur (voir section 5).</td></tr>
+        <tr><td>Coffre-fort</td><td class="tech">PostgreSQL 16</td><td>L'armoire à tiroirs stricte qui garde toutes les études EBIOS RM.</td></tr>
+        <tr><td>Rapports</td><td class="tech">QuestPDF</td><td>Transforme une étude figée en document PDF présentable.</td></tr>
+        <tr><td>Environnement</td><td class="tech">Docker Compose</td><td>Démarre le classeur (PostgreSQL) de façon identique sur n'importe quel ordinateur.</td></tr>
+        <tr><td>Sécurité (à venir)</td><td class="tech">Identité + OIDC</td><td>Vérifie qui se connecte, conçu pour brancher plus tard un système d'authentification d'entreprise.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="long">
+    <div class="section-head"><span class="num">11</span><h2>Ce qu'on a décidé ensemble, en clair</h2></div>
+    <div class="grid3">
+      <div class="stepcard"><span class="k">Décision 1</span><p><strong>Une « étude » protège ses propres dossiers.</strong> On ne peut plus ajouter un bien support à une étude en passant par-dessous — il faut toujours demander à l'étude elle-même, qui vérifie que tout est cohérent.</p></div>
+      <div class="stepcard"><span class="k">Décision 2</span><p><strong>Des petits assistants simples, pas une grosse machine.</strong> Chaque action (créer une étude, valider un atelier…) a son propre petit bout de code dédié, sans ajouter un système compliqué qui ferait tout passer par un seul gros tuyau.</p></div>
+      <div class="stepcard"><span class="k">Décision 3</span><p><strong>Une carte d'identité simple aujourd'hui, échangeable demain.</strong> On construit d'abord un système de connexion basique, pensé dès le départ pour être remplacé plus tard par un système d'entreprise (comme ceux des banques ou administrations) sans tout reconstruire.</p></div>
+      <div class="stepcard"><span class="k">Décision 4</span><p><strong>Le catalogue ISO 27001 attend son tour.</strong> Il reste, pour l'instant, dans la vitrine plutôt que dans le coffre-fort — ce n'est pas urgent tant qu'on n'en a pas vraiment besoin pour calculer quelque chose d'important.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="num">12</span><h2>Et après ?</h2></div>
+    <p>Rien de tout ça n'est gravé dans le marbre. Le principe qui guide toutes ces décisions est simple : <strong>construire ce dont on a besoin maintenant, de façon assez propre pour pouvoir ajouter la suite sans tout casser.</strong> Le jour où EBIOS RM aura vraiment beaucoup d'utilisateurs en même temps, on pourra ajouter un « portier » devant plusieurs cuisines (un reverse proxy devant plusieurs instances de l'API) sans changer une ligne des règles métier — précisément parce qu'on les a gardées bien séparées dès le début.</p>
+  </section>
+
+  <footer>Document d'accompagnement — à lire avec le rapport d'audit architectural et les diagrammes UML publiés séparément. Aucune décision ici n'a été prise sans validation explicite.</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+@startuml
+!include skin.iuml
+node "Poste utilisateur" {
+  [Navigateur\nexécute le bundle React] as NAV
+}
+node "Serveur applicatif" {
+  [EbiosRM.Api (Kestrel)\n.NET 8] as API
+}
+node "Serveur de données" {
+  database "PostgreSQL 16" as PG
+}
+
+NAV --> API : HTTPS
+API --> PG : Npgsql, TLS
+@enduml

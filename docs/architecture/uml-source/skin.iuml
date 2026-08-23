@@ -1,0 +1,113 @@
+skinparam backgroundColor transparent
+skinparam defaultFontColor #171B22
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 3
+skinparam padding 3
+skinparam ArrowColor #2C5875
+skinparam ArrowFontColor #4A5568
+skinparam ArrowFontSize 12
+skinparam ArrowThickness 1.1
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #171B22
+  AttributeFontColor #4A5568
+  AttributeFontSize 12
+  AttributeFontName "Liberation Mono"
+  FontName "Liberation Sans"
+  FontSize 13
+  FontStyle bold
+  HeaderBackgroundColor #DCE6EC
+  StereotypeFontColor #2C5875
+  StereotypeFontSize 11
+}
+
+skinparam package {
+  BackgroundColor #F7F9FA
+  BorderColor #D7DCE2
+  FontColor #1B3B4F
+  FontStyle bold
+  FontSize 13
+  BorderThickness 1
+}
+
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #171B22
+  FontSize 12
+}
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #2C5875
+  BorderThickness 1.3
+  FontColor #171B22
+  FontSize 13
+}
+
+skinparam rectangle {
+  BackgroundColor #FBFCFC
+  BorderColor #D7DCE2
+  FontColor #1B3B4F
+  FontStyle bold
+}
+
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #171B22
+  FontSize 12
+}
+
+skinparam node {
+  BackgroundColor #F7F9FA
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #171B22
+  FontSize 13
+}
+
+skinparam database {
+  BackgroundColor #DCE6EC
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #1B3B4F
+  FontSize 13
+}
+
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #2C5875
+  BorderThickness 1.1
+  FontColor #171B22
+  FontSize 13
+  StartColor #2C5875
+  EndColor #2C5875
+}
+
+skinparam note {
+  BackgroundColor #DCE6EC
+  BorderColor #2C5875
+  FontColor #1B3B4F
+  FontSize 11
+}
+
+' Note: PlantUML's grouped "skinparam sequence { ... }" block causes a
+' severe layout-width bug in this engine version (verified: 5-8x wider
+' lifeline spacing). Flat statements below achieve the same styling
+' without triggering it.
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam ParticipantBorderColor #2C5875
+skinparam ParticipantFontSize 12
+skinparam ParticipantFontStyle bold
+skinparam LifeLineBorderColor #B7C1C9
+skinparam LifeLineBackgroundColor #FFFFFF
+skinparam SequenceNoteBackgroundColor #DCE6EC
+skinparam SequenceNoteBorderColor #2C5875
+skinparam NoteFontSize 11

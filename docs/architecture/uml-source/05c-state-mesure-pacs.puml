@@ -1,0 +1,13 @@
+@startuml
+!include skin.iuml
+[*] --> ALancer : AjouterMesureComplementaire(...)
+ALancer --> EnCours : mise en œuvre démarrée
+EnCours --> Termine : mise en œuvre achevée
+
+note right of Termine
+  Statut réel d'une mesure du PACS
+  (Plan d'Amélioration Continue de
+  la Sécurité), suivi individuellement
+  par mesure, pas globalement par plan.
+end note
+@enduml

@@ -1,0 +1,16 @@
+@startuml
+!include skin.iuml
+[*] --> Brouillon : Creer(nom, perimetre, mission)
+Brouillon --> EnCours : premier atelier démarré
+EnCours --> Finalisee : les 5 ateliers\nsont Validés
+Finalisee --> EnCours : cycle stratégique (reprise\natelier 1) ou cycle opérationnel\n(reprise atelier 2)
+
+note right of Finalisee
+  Statut global de l'étude, dérivé
+  de l'état de ses 5 ateliers —
+  pas un champ saisi séparément.
+  La méthode est itérative : ce retour
+  n'est pas une correction d'erreur,
+  c'est un nouveau cycle d'analyse.
+end note
+@enduml
