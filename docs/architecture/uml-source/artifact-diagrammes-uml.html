@@ -255,7 +255,6 @@ classDiagram
         class ScenarioStrategique {
             -Guid Id
             -string Description
-            -int GraviteEstimee
         }
         class CheminAttaque {
             -Guid Id
@@ -266,7 +265,7 @@ classDiagram
             -string Description
             -int Ordre
         }
-        class MesureSecuriteEcosysteme {
+        class MesureEcosysteme {
             -Guid Id
             -string Description
         }
@@ -301,19 +300,29 @@ classDiagram
     namespace Atelier5_TraitementDuRisque {
         class ScenarioDeRisque {
             -Guid Id
-            -NiveauRisque NiveauRisqueInitial
-            -NiveauRisque NiveauRisqueResiduel
-            -NiveauAcceptabilite Acceptabilite
+            -NiveauRisque NiveauRisqueInitialRetenu
+            -int GraviteResiduelle
+            -Vraisemblance VraisemblanceResiduelle
+            -NiveauRisque NiveauRisqueResiduelCalcule
+            -NiveauRisque NiveauRisqueResiduelRetenu
+            -bool AccepteParDirection
+            -string NomProprietaireRisque
+            -string NomValidateurSecurite
+            -string NomSponsorExecutif
+            -string JustificationAcceptation
+            +EvaluerRisqueResiduel(graviteResiduelle, vraisemblanceResiduelle)
+            +AccepterRisqueResiduel(proprietaire, validateur, sponsor, justification)
         }
         class PlanTraitementRisque {
             -Guid Id
-            +AjouterMesureComplementaire(description, axe)
+            +AjouterMesure(description, axe, scenariosDeRisqueIds, responsable, coutComplexite, echeance, statut)
         }
-        class MesureSecuriteComplementaire {
+        class MesureTraitementRisque {
             -Guid Id
             -string Description
-            -AxePacs Axe
-            -EtatMiseEnOeuvre Etat
+            -AxeMesure Axe
+            -string Responsable
+            -StatutMesure Statut
         }
         class ServiceCalculNiveauRisque {
             <<domain service, pur>>
@@ -329,17 +338,22 @@ classDiagram
         -DateTime DateCreationUtc
     }
     class ServiceCreationSnapshot {
-        <<domain service>>
+        <<domain service, x5>>
         +Creer(etude, numeroAtelier)$ SnapshotAtelier
     }
     class ServiceGenerationRapport {
-        <<domain service>>
+        <<domain service, x5>>
         +Generer(snapshot)$ DocumentPdf
+    }
+    class RapportSyntheseGlobaleService {
+        <<domain service>>
+        +Construire(etudeId)$ RapportSyntheseGlobaleData
     }
 
     Etude ..> ServiceCreationSnapshot : dérive le snapshot via (à chaque validation)
     ServiceCreationSnapshot ..> SnapshotAtelier : crée (figé, historisé)
     SnapshotAtelier ..> ServiceGenerationRapport : dérive le PDF via (à la demande, séparément)
+    SnapshotAtelier "5" <.. RapportSyntheseGlobaleService : lit (les 5 numéros d'une même étude, une fois l'atelier 5 validé)
 
     Etude "1" *-- "0..*" ValeurMetier : contient
     ValeurMetier "1..*" -- "0..*" BienSupport : repose sur
@@ -357,7 +371,7 @@ classDiagram
     CheminAttaque "0..*" o-- "0..*" PartiePrenante : traverse (0 = attaque directe)
     CheminAttaque "1" *-- "0..*" EvenementIntermediaire : génère
     EvenementIntermediaire "1" --> "1" PartiePrenante : concerne
-    ScenarioStrategique "1" *-- "0..*" MesureSecuriteEcosysteme : couvre
+    PartiePrenante "1" *-- "0..*" MesureEcosysteme : réduit sa dangerosité via
     ScenarioOperationnel "1" *-- "1..*" ModeOperatoire : compose
     ModeOperatoire "1" *-- "1..*" ActionElementaire : décompose en
     ActionElementaire "0..*" --> "1" BienSupport : cible
@@ -365,12 +379,12 @@ classDiagram
     ScenarioDeRisque "1" *-- "1" CheminAttaque : repose sur
     ScenarioDeRisque "1" *-- "0..1" ScenarioOperationnel : repose sur
     ScenarioDeRisque ..> ServiceCalculNiveauRisque : dérive NiveauRisque via
-    Etude "1" *-- "0..*" PlanTraitementRisque : décide
-    PlanTraitementRisque "1" *-- "0..*" MesureSecuriteComplementaire : planifie
-    PlanTraitementRisque "0..1" --> "0..*" ScenarioDeRisque : traite
+    Etude "1" *-- "0..1" PlanTraitementRisque : décide
+    PlanTraitementRisque "1" *-- "0..*" MesureTraitementRisque : planifie
+    MesureTraitementRisque "0..*" --> "1..*" ScenarioDeRisque : traite (many-to-many, une mesure peut couvrir plusieurs scénarios)
 </pre>
   </div>
-  <p class="note">Le fil rouge méthodologique, vérifié contre la documentation officielle : un <span class="mono">CoupleSourceRisqueObjectifVise</span> (atelier 2) donne naissance à exactement un <span class="mono">ScenarioStrategique</span> (atelier 3, cardinalité bijective confirmée), qui se décline en un ou plusieurs <span class="mono">CheminAttaque</span> — chacun traversant zéro, une, ou plusieurs <span class="mono">PartiePrenante</span> de l'écosystème (zéro = attaque directe) et générant un <span class="mono">EvenementIntermediaire</span> à chaque tiers traversé. Un <span class="mono">CheminAttaque</span> et son <span class="mono">ScenarioOperationnel</span> associé (atelier 4) forment ensemble un seul <span class="mono">ScenarioDeRisque</span> (atelier 5) — pas deux classes reliées en cascade : le même scénario, observé avant (<span class="mono">NiveauRisqueInitial</span>) et après (<span class="mono">NiveauRisqueResiduel</span>) l'application du <span class="mono">PlanTraitementRisque</span> (terme officiel depuis EBIOS RM 1.5, remplace "PACS", structuré en 4 axes officiels : Gouvernance, Protection, Défense, Résilience). Chaque valeur dérivée (Pertinence, NiveauDangerosite, Vraisemblance, NiveauRisque) est calculée par un service de domaine dédié -- jamais saisie directement, mais l'analyste peut retenir une valeur différente avec justification obligatoire (jugement d'expert), sans jamais écraser la valeur calculée. Un <span class="mono">SnapshotAtelier</span> fige chaque validation d'atelier et sert de source unique au <span class="mono">ServiceGenerationRapport</span> — c'est ce que montre en détail le diagramme de séquence.</p></section>
+  <p class="note">Le fil rouge méthodologique, vérifié contre la documentation officielle : un <span class="mono">CoupleSourceRisqueObjectifVise</span> (atelier 2) donne naissance à exactement un <span class="mono">ScenarioStrategique</span> (atelier 3, cardinalité bijective confirmée), qui se décline en un ou plusieurs <span class="mono">CheminAttaque</span> — chacun traversant zéro, une, ou plusieurs <span class="mono">PartiePrenante</span> de l'écosystème (zéro = attaque directe) et générant un <span class="mono">EvenementIntermediaire</span> à chaque tiers traversé. La <span class="mono">Gravite</span> n'est jamais dupliquée sur <span class="mono">ScenarioStrategique</span> : elle reste portée par l'<span class="mono">EvenementRedoute</span> ciblé (atelier 1) et lue en direct — même principe pour <span class="mono">ScenarioDeRisque</span>, dont le niveau de risque <em>initial</em> n'est jamais stocké (il se dérive à la volée de cette Gravite et de la Vraisemblance du <span class="mono">ScenarioOperationnel</span>). Un <span class="mono">CheminAttaque</span> et son <span class="mono">ScenarioOperationnel</span> associé (atelier 4) forment ensemble ce même <span class="mono">ScenarioDeRisque</span> (atelier 5) — pas deux classes reliées en cascade. Le risque <em>résiduel</em>, en revanche, exige une nouvelle saisie de l'analyste (Gravite et Vraisemblance résiduelles, après application des mesures), d'où les attributs stockés sur cette classe. Chaque <span class="mono">MesureTraitementRisque</span> du <span class="mono">PlanTraitementRisque</span> (terme officiel depuis EBIOS RM 1.5, remplace "PACS", structuré en 4 axes officiels : Gouvernance, Protection, Défense, Résilience) porte un <span class="mono">Responsable</span> — qui exécute la mesure, un rôle distinct du <span class="mono">EntiteProprietaire</span> d'un actif (atelier 1) ou du propriétaire d'un risque (ci-dessous) — et peut couvrir plusieurs scénarios de risque à la fois (many-to-many). L'acceptation du risque résiduel par la Direction est formalisée directement sur <span class="mono">ScenarioDeRisque</span> (propriétaire du risque, validateur sécurité, et — uniquement si le résiduel reste Élevé — sponsor exécutif nommé et justification écrite, conformément à ISO/CEI 27005:2022). Chaque valeur dérivée (Pertinence, NiveauDangerosite, Vraisemblance, NiveauRisque) est calculée par un service de domaine dédié -- jamais saisie directement, mais l'analyste peut retenir une valeur différente avec justification obligatoire (jugement d'expert), sans jamais écraser la valeur calculée. Un <span class="mono">SnapshotAtelier</span> fige chaque validation d'atelier et sert de source unique au <span class="mono">ServiceGenerationRapport</span> de son atelier — c'est ce que montre en détail le diagramme de séquence — et, une fois les 5 ateliers validés, au <span class="mono">RapportSyntheseGlobaleService</span> qui consolide les 5 snapshots d'une même étude dans le document remis à la Direction.</p></section>
 
 <section id="composants">
   <h2><span class="num">03</span>Diagramme de composants</h2>
@@ -429,7 +443,7 @@ flowchart TB
   <div class="specs">
     <div class="item"><dt>Objectif</dt><dd>Montrer, étape par étape, le flux le plus critique du produit : valider un atelier et figer son livrable.</dd></div>
     <div class="item"><dt>Niveau d'abstraction</dt><dd>Applicatif — un cas d'usage précis, de bout en bout.</dd></div>
-    <div class="item"><dt>Représenté</dt><dd>La validation et la création du snapshot dans une seule transaction.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le contrôle de complétude préalable, puis la validation et la création du snapshot dans une seule transaction.</dd></div>
     <div class="item"><dt>Exclu volontairement</dt><dd>Les autres séquences (création d'étude, saisie, rapport, suggestion IA) — un diagramme par flux critique pour rester lisible ; celui-ci illustre le schéma applicatif commun aux 5 ateliers.</dd></div>
   </div>
 
@@ -440,6 +454,7 @@ sequenceDiagram
     participant FE as Frontend
     participant EP as Endpoint
     participant H as ValiderAtelierHandler
+    participant SV as ServiceValidationCompletude
     participant AG as Etude (agrégat)
     participant SS as ServiceCreationSnapshot
     participant REPO as IEtudeRepository
@@ -452,6 +467,8 @@ sequenceDiagram
     REPO->>DB: SELECT étude + enfants
     DB-->>REPO: lignes
     REPO-->>H: Etude (agrégat complet)
+    H->>SV: VerifierAsync(id)
+    SV-->>H: complet ? (sinon 400, aucune écriture)
     H->>AG: ValiderAtelier(numero)
     AG-->>H: statut EnCours → Validé (invariant vérifié)
     H->>SS: CreerSnapshot(agrégat, numero)
@@ -472,9 +489,9 @@ sequenceDiagram
 <section id="etats">
   <h2><span class="num">05</span>Diagrammes d'états — cycles de vie</h2>
   <div class="specs">
-    <div class="item"><dt>Objectif</dt><dd>Les transitions autorisées, à trois échelles : un atelier, l'étude entière, et une mesure du PACS.</dd></div>
+    <div class="item"><dt>Objectif</dt><dd>Les transitions autorisées, à trois échelles : un atelier, l'étude entière, et une mesure du plan de traitement du risque.</dd></div>
     <div class="item"><dt>Niveau d'abstraction</dt><dd>Domaine — trois machines à états complémentaires.</dd></div>
-    <div class="item"><dt>Représenté</dt><dd>Le cycle générique d'un atelier ; le statut global de l'étude, itératif ; le suivi individuel d'une mesure PACS (statuts officiels).</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le cycle générique d'un atelier ; le statut global de l'étude, itératif ; le suivi individuel d'une mesure du plan de traitement du risque (statuts officiels).</dd></div>
     <div class="item"><dt>Exclu volontairement</dt><dd>Les 5 machines à états d'atelier déroulées séparément — toutes des instances du même cycle générique.</dd></div>
   </div>
 
@@ -518,19 +535,20 @@ stateDiagram-v2
   <div class="diagram-wrap">
 <pre class="mermaid">
 stateDiagram-v2
-    [*] --> ALancer : AjouterMesureComplementaire(...)
+    [*] --> ALancer : AjouterMesure(...)
     ALancer --> EnCours2 : mise en œuvre démarrée
     EnCours2 --> Termine : mise en œuvre achevée
 
     note right of Termine
-        Statuts officiels du suivi PACS
-        (Plan d'Amélioration Continue de
-        la Sécurité), suivis individuellement
-        par mesure, pas globalement par plan.
+        Statuts officiels du suivi du plan
+        de traitement du risque (terme
+        EBIOS RM 1.5, remplace "PACS"),
+        suivis individuellement par mesure,
+        pas globalement par plan.
     end note
 </pre>
   </div>
-  <p class="note">« À lancer / En cours / Terminé » — les trois statuts réels utilisés dans le tableau de suivi PACS de la documentation officielle.</p>
+  <p class="note">« À lancer / En cours / Terminé » — les trois statuts réels utilisés dans le tableau de suivi du plan de traitement du risque de la documentation officielle.</p>
 </section>
 
 <section id="deploiement">
