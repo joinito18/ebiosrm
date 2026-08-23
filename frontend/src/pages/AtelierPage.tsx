@@ -2354,7 +2354,7 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
 
 // ============================= ATELIER 5 -- Traitement du risque =============================
 
-function couleurNiveauRisque(niveau?: string | null) {
+export function couleurNiveauRisque(niveau?: string | null) {
   if (niveau === 'Eleve') return 'text-risk-critical'
   if (niveau === 'Moyen') return 'text-risk-high'
   return 'text-risk-low'
@@ -2376,7 +2376,7 @@ var OPTIONS_VRAISEMBLANCE = [
   { value: 'V1', label: 'V1' }, { value: 'V2', label: 'V2' }, { value: 'V3', label: 'V3' }, { value: 'V4', label: 'V4' },
 ]
 
-function ScenariosDeRisqueSection(props: {
+export function ScenariosDeRisqueSection(props: {
   etudeId: string
   scenarios: ScenarioStrategique[]
   couples: CoupleSourceRisqueObjectifVise[]
@@ -2416,7 +2416,7 @@ function ScenariosDeRisqueSection(props: {
   )
 }
 
-function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque; scenarioOperationnel?: ScenarioOperationnel; scenarioDeRisque?: ScenarioDeRisque; onChange: () => void }) {
+export function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque; scenarioOperationnel?: ScenarioOperationnel; scenarioDeRisque?: ScenarioDeRisque; onChange: () => void }) {
   var [enCours, setEnCours] = useState(false)
   var [erreur, setErreur] = useState('')
 
@@ -2444,7 +2444,7 @@ function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque; scenar
   return <ScenarioDeRisqueCard etudeId={props.etudeId} description={props.chemin.description} scenario={props.scenarioDeRisque} onChange={props.onChange} />
 }
 
-function ScenarioDeRisqueCard(props: { etudeId: string; description: string; scenario: ScenarioDeRisque; onChange: () => void }) {
+export function ScenarioDeRisqueCard(props: { etudeId: string; description: string; scenario: ScenarioDeRisque; onChange: () => void }) {
   var s = props.scenario
   var [erreur, setErreur] = useState('')
   var [graviteResiduelle, setGraviteResiduelle] = useState(String(s.graviteResiduelle || s.gravite))
@@ -2531,7 +2531,7 @@ function ScenarioDeRisqueCard(props: { etudeId: string; description: string; sce
   )
 }
 
-function AcceptationFormelleSection(props: { etudeId: string; scenario: ScenarioDeRisque; onChange: () => void }) {
+export function AcceptationFormelleSection(props: { etudeId: string; scenario: ScenarioDeRisque; onChange: () => void }) {
   var s = props.scenario
   var [proprietaire, setProprietaire] = useState('')
   var [validateur, setValidateur] = useState('')
@@ -2600,7 +2600,7 @@ var AXES_MESURE = ['Gouvernance', 'Protection', 'Defense', 'Resilience']
 var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+', PlusPlus: '++', PlusPlusPlus: '+++' }
 var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' }
 
-function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitementRisque | null; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
+export function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitementRisque | null; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var [enCours, setEnCours] = useState(false)
   var [erreur, setErreur] = useState('')
 
@@ -2642,14 +2642,14 @@ function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitem
   )
 }
 
-function libellesScenarios(scenariosDeRisque: ScenarioDeRisque[], ids: string[]) {
+export function libellesScenarios(scenariosDeRisque: ScenarioDeRisque[], ids: string[]) {
   return ids.map(function (id) {
     var s = scenariosDeRisque.filter(function (sc) { return sc.id === id })[0]
     return s ? s.libelleCouple + ' -- ' + s.libelleChemin : '(scenario supprime)'
   })
 }
 
-function SelectionScenariosDeRisque(props: { scenariosDeRisque: ScenarioDeRisque[]; selection: string[]; onChange: (ids: string[]) => void }) {
+export function SelectionScenariosDeRisque(props: { scenariosDeRisque: ScenarioDeRisque[]; selection: string[]; onChange: (ids: string[]) => void }) {
   function basculer(id: string) {
     if (props.selection.indexOf(id) >= 0) {
       props.onChange(props.selection.filter(function (s) { return s !== id }))
@@ -2676,7 +2676,7 @@ function SelectionScenariosDeRisque(props: { scenariosDeRisque: ScenarioDeRisque
   )
 }
 
-function MesureTraitementRisqueRow(props: { etudeId: string; mesure: MesureTraitementRisque; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
+export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: MesureTraitementRisque; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var m = props.mesure
   var [edition, setEdition] = useState(false)
   var [description, setDescription] = useState(m.description)
@@ -2754,7 +2754,7 @@ function MesureTraitementRisqueRow(props: { etudeId: string; mesure: MesureTrait
   )
 }
 
-function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
+export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var [description, setDescription] = useState('')
   var [axe, setAxe] = useState('Gouvernance')
   var [scenariosIds, setScenariosIds] = useState<string[]>([])
