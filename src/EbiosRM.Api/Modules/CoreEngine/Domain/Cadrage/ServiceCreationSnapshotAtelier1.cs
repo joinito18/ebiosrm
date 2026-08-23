@@ -17,7 +17,7 @@ public sealed class ServiceCreationSnapshotAtelier1
     private readonly IBienSupportRepository _bienSupportRepository;
     private readonly IEvenementRedouteRepository _evenementRedouteRepository;
     private readonly ISocleSecuriteRepository _socleSecuriteRepository;
-    private readonly ISnapshotAtelier1Repository _snapshotRepository;
+    private readonly ISnapshotAtelierRepository _snapshotRepository;
 
     public ServiceCreationSnapshotAtelier1(
         IEtudeRepository etudeRepository,
@@ -25,7 +25,7 @@ public sealed class ServiceCreationSnapshotAtelier1
         IBienSupportRepository bienSupportRepository,
         IEvenementRedouteRepository evenementRedouteRepository,
         ISocleSecuriteRepository socleSecuriteRepository,
-        ISnapshotAtelier1Repository snapshotRepository)
+        ISnapshotAtelierRepository snapshotRepository)
     {
         _etudeRepository = etudeRepository;
         _valeurMetierRepository = valeurMetierRepository;
@@ -35,7 +35,7 @@ public sealed class ServiceCreationSnapshotAtelier1
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<SnapshotAtelier1> CreerAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<SnapshotAtelier> CreerAsync(Guid etudeId, CancellationToken cancellationToken)
     {
         var etude = await _etudeRepository.ObtenirParIdAsync(etudeId, cancellationToken);
         if (etude is null)
@@ -51,11 +51,11 @@ public sealed class ServiceCreationSnapshotAtelier1
         var socleSecurite = await _socleSecuriteRepository.ObtenirParEtudeAsync(etudeId, cancellationToken);
 
         var valeursMetierSnapshot = valeursMetier
-            .Select(vm => new ValeurMetierSnapshot(vm.Id, vm.Description, vm.EntiteResponsable))
+            .Select(vm => new ValeurMetierSnapshot(vm.Id, vm.Description, vm.EntiteProprietaire))
             .ToList();
 
         var biensSupportSnapshot = biensSupport
-            .Select(b => new BienSupportSnapshot(b.Id, b.ValeurMetierId, b.Description, b.Type.ToString(), b.EntiteResponsable))
+            .Select(b => new BienSupportSnapshot(b.Id, b.ValeurMetierId, b.Description, b.Type.ToString(), b.EntiteProprietaire))
             .ToList();
 
         var evenementsRedoutesSnapshot = evenementsRedoutes
@@ -67,13 +67,18 @@ public sealed class ServiceCreationSnapshotAtelier1
             : new SocleSecuriteSnapshot(
                 socleSecurite.Id,
                 socleSecurite.Referentiels
-                    .Select(r => new ReferentielApplicableSnapshot(r.Id, r.Nom, r.Etat.ToString()))
+                    .Select(r => new ReferentielApplicableSnapshot(r.Id, r.Nom, r.Etat.ToString(), r.Theme, r.CodeControle, r.EtatActuel))
                     .ToList());
+
+        var versionPrecedente = await _snapshotRepository.CompterParEtudeIdAsync(etudeId, numeroAtelier: 1, cancellationToken);
+        var nouvelleVersion = versionPrecedente + 1;
 
         var contenu = new SnapshotAtelier1Content(
             etude.Id,
+            nouvelleVersion,
             etude.Nom,
             etude.Perimetre,
+            etude.Mission,
             etude.Statut.ToString(),
             DateTime.UtcNow,
             valeursMetierSnapshot,
@@ -83,10 +88,7 @@ public sealed class ServiceCreationSnapshotAtelier1
 
         var contenuJson = JsonSerializer.Serialize(contenu);
 
-        var versionPrecedente = await _snapshotRepository.CompterParEtudeIdAsync(etudeId, cancellationToken);
-        var nouvelleVersion = versionPrecedente + 1;
-
-        var snapshot = SnapshotAtelier1.Creer(etudeId, nouvelleVersion, contenuJson);
+        var snapshot = SnapshotAtelier.Creer(etudeId, numeroAtelier: 1, nouvelleVersion, contenuJson);
         await _snapshotRepository.AjouterAsync(snapshot, cancellationToken);
 
         return snapshot;

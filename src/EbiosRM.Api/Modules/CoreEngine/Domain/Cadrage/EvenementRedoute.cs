@@ -31,13 +31,10 @@ public sealed class EvenementRedoute
     {
         if (etudeId == Guid.Empty)
             throw new ArgumentException("L'événement redouté doit être rattaché à une étude.", nameof(etudeId));
-
         if (valeurMetierId == Guid.Empty)
             throw new ArgumentException("L'événement redouté doit être rattaché à une valeur métier.", nameof(valeurMetierId));
-
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("La description de l'événement redouté est obligatoire.", nameof(description));
-
         if (gravite < GraviteMin || gravite > GraviteMax)
             throw new ArgumentOutOfRangeException(
                 nameof(gravite),
@@ -59,6 +56,8 @@ public sealed class EvenementRedoute
     /// Permet de recoter la gravité après création — nécessaire pour le flux
     /// "modification d'une donnée d'un atelier précédent" (Phase 1.5, §3.5),
     /// qui déclenchera plus tard un recalcul des scénarios dépendants.
+    /// Reste une méthode séparée de ModifierDescription : la gravité a un
+    /// impact métier (recalcul futur), la description n'en a pas.
     /// </summary>
     public void RecoterGravite(int nouvelleGravite)
     {
@@ -69,5 +68,13 @@ public sealed class EvenementRedoute
                 $"La gravité doit être comprise entre {GraviteMin} et {GraviteMax} (échelle EBIOS RM, INV8).");
 
         Gravite = nouvelleGravite;
+    }
+
+    public void ModifierDescription(string description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            throw new ArgumentException("La description de l'événement redouté est obligatoire.", nameof(description));
+
+        Description = description.Trim();
     }
 }

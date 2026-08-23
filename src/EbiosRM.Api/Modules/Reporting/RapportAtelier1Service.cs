@@ -11,16 +11,16 @@ namespace EbiosRM.Api.Modules.Reporting;
 /// </summary>
 public sealed class RapportAtelier1Service
 {
-    private readonly ISnapshotAtelier1Repository _snapshotRepository;
+    private readonly ISnapshotAtelierRepository _snapshotRepository;
 
-    public RapportAtelier1Service(ISnapshotAtelier1Repository snapshotRepository)
+    public RapportAtelier1Service(ISnapshotAtelierRepository snapshotRepository)
     {
         _snapshotRepository = snapshotRepository;
     }
 
     public async Task<RapportAtelier1Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
     {
-        var snapshot = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, cancellationToken);
+        var snapshot = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 1, cancellationToken);
         if (snapshot is null)
             return null;
 
@@ -30,10 +30,10 @@ public sealed class RapportAtelier1Service
 
         var valeursMetierData = contenu.ValeursMetier.Select(vm => new ValeurMetierData(
             vm.Description,
-            vm.EntiteResponsable,
+            vm.EntiteProprietaire,
             contenu.BiensSupport
                 .Where(b => b.ValeurMetierId == vm.Id)
-                .Select(b => new BienSupportData(b.Description, b.Type, b.EntiteResponsable))
+                .Select(b => new BienSupportData(b.Description, b.Type, b.EntiteProprietaire))
                 .ToList()
         )).ToList();
 
@@ -47,13 +47,15 @@ public sealed class RapportAtelier1Service
         }).ToList();
 
         var referentielsData = (contenu.SocleSecurite?.Referentiels ?? new List<ReferentielApplicableSnapshot>())
-            .Select(r => new ReferentielApplicableData(r.Nom, r.EtatConformite))
+            .Select(r => new ReferentielApplicableData(r.Nom, r.EtatConformite, r.Theme, r.CodeControle, r.EtatActuel))
             .ToList();
 
         return new RapportAtelier1Data(
             contenu.NomEtude,
             contenu.Perimetre,
+            contenu.Mission,
             contenu.StatutEtude,
+            contenu.Version,
             contenu.DateValidationUtc,
             valeursMetierData,
             evenementsRedoutesData,

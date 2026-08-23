@@ -3,7 +3,9 @@ namespace EbiosRM.Api.Modules.Reporting;
 public sealed record RapportAtelier1Data(
     string NomEtude,
     string Perimetre,
+    string Mission,
     string Statut,
+    int Version,
     DateTime DateValidationUtc,
     List<ValeurMetierData> ValeursMetier,
     List<EvenementRedouteData> EvenementsRedoutes,
@@ -11,13 +13,13 @@ public sealed record RapportAtelier1Data(
 
 public sealed record ValeurMetierData(
     string Description,
-    string EntiteResponsable,
+    string EntiteProprietaire,
     List<BienSupportData> BiensSupport);
 
 public sealed record BienSupportData(
     string Description,
     string Type,
-    string EntiteResponsable);
+    string EntiteProprietaire);
 
 public sealed record EvenementRedouteData(
     string ValeurMetierDescription,
@@ -26,4 +28,7 @@ public sealed record EvenementRedouteData(
 
 public sealed record ReferentielApplicableData(
     string Nom,
-    string Etat);
+    string Etat,
+    string? Theme,
+    string? CodeControle,
+    string? EtatActuel);

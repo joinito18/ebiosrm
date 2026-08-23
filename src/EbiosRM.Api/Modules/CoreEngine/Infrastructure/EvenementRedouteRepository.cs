@@ -33,8 +33,13 @@ public sealed class EvenementRedouteRepository : IEvenementRedouteRepository
 
     public async Task MettreAJourAsync(EvenementRedoute evenementRedoute, CancellationToken cancellationToken)
     {
-        // Même correction que SocleSecuriteRepository : entité déjà trackée
-        // dans la même requête, pas d'Update() explicite nécessaire.
+        // Entité déjà trackée dans la même requête, pas d'Update() explicite nécessaire.
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SupprimerAsync(EvenementRedoute evenementRedoute, CancellationToken cancellationToken)
+    {
+        _db.EvenementsRedoutes.Remove(evenementRedoute);
         await _db.SaveChangesAsync(cancellationToken);
     }
 }

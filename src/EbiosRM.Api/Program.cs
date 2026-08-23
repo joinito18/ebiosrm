@@ -1,5 +1,7 @@
 using EbiosRM.Api.Infrastructure.Persistence;
+using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
+using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
 using EbiosRM.Api.Modules.CoreEngine.Infrastructure;
 using EbiosRM.Api.Modules.Reporting;
 using Microsoft.EntityFrameworkCore;
@@ -20,27 +22,72 @@ builder.Services.AddDbContext<EbiosDbContext>(options =>
         builder.Configuration.GetConnectionString("EbiosDb")
     ));
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+        policy.WithOrigins("http://localhost:5174", "http://localhost:5175")
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+});
+
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
 builder.Services.AddScoped<IBienSupportRepository, BienSupportRepository>();
 builder.Services.AddScoped<IEvenementRedouteRepository, EvenementRedouteRepository>();
 builder.Services.AddScoped<ISocleSecuriteRepository, SocleSecuriteRepository>();
-builder.Services.AddScoped<ISnapshotAtelier1Repository, SnapshotAtelier1Repository>();
+builder.Services.AddScoped<ISnapshotAtelierRepository, SnapshotAtelierRepository>();
+builder.Services.AddScoped<ICoupleSourceRisqueObjectifViseRepository, CoupleSourceRisqueObjectifViseRepository>();
+builder.Services.AddScoped<IPartiePrenanteRepository, PartiePrenanteRepository>();
+builder.Services.AddScoped<IScenarioStrategiqueRepository, ScenarioStrategiqueRepository>();
+builder.Services.AddScoped<ICheminAttaqueRepository, CheminAttaqueRepository>();
+builder.Services.AddScoped<IScenarioOperationnelRepository, ScenarioOperationnelRepository>();
+builder.Services.AddScoped<IScenarioDeRisqueRepository, ScenarioDeRisqueRepository>();
+builder.Services.AddScoped<IPlanTraitementRisqueRepository, PlanTraitementRisqueRepository>();
 builder.Services.AddScoped<ServiceValidationCompletudeAtelier1>();
 builder.Services.AddScoped<ServiceCreationSnapshotAtelier1>();
+builder.Services.AddScoped<ServiceCreationSnapshotAtelier2>();
+builder.Services.AddScoped<ServiceCreationSnapshotAtelier3>();
+builder.Services.AddScoped<ServiceCreationSnapshotAtelier4>();
+builder.Services.AddScoped<ServiceCreationSnapshotAtelier5>();
+builder.Services.AddScoped<ServiceValidationCompletudeAtelier2>();
+builder.Services.AddScoped<ServiceValidationCompletudeAtelier3>();
+builder.Services.AddScoped<ServiceValidationCompletudeAtelier4>();
+builder.Services.AddScoped<ServiceValidationCompletudeAtelier5>();
+builder.Services.AddScoped<ServiceAssemblageScenariosDeRisque>();
 builder.Services.AddScoped<RapportAtelier1Service>();
 builder.Services.AddScoped<RapportAtelier1PdfGenerator>();
+builder.Services.AddScoped<RapportAtelier2Service>();
+builder.Services.AddScoped<RapportAtelier2PdfGenerator>();
+builder.Services.AddScoped<RapportAtelier3Service>();
+builder.Services.AddScoped<RapportAtelier3PdfGenerator>();
+builder.Services.AddScoped<RapportAtelier4Service>();
+builder.Services.AddScoped<RapportAtelier4PdfGenerator>();
+builder.Services.AddScoped<RapportAtelier5Service>();
+builder.Services.AddScoped<RapportAtelier5PdfGenerator>();
+builder.Services.AddScoped<RapportSyntheseGlobaleService>();
+builder.Services.AddScoped<RapportSyntheseGlobalePdfGenerator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
 
 var app = builder.Build();
+
+// Gestion d'erreurs centralisée : toute exception non prévue (ex. violation
+// de contrainte SQL, timeout...) renvoie un ProblemDetails générique au lieu
+// de laisser fuiter une erreur 500 non standardisée. Les erreurs métier
+// prévues (ArgumentException, InvalidOperationException...) continuent
+// d'être traitées explicitement dans chaque endpoint, qui reste prioritaire.
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors();
+
 
 app.MapGet("/api/v1/health", async (EbiosDbContext db) =>
 {
@@ -60,7 +107,7 @@ app.MapPost("/api/v1/etudes", async (CreerEtudeRequest request, IEtudeRepository
 {
     try
     {
-        var etude = Etude.Creer(request.Nom, request.Perimetre);
+        var etude = Etude.Creer(request.Nom, request.Perimetre, request.Mission);
         await repo.AjouterAsync(etude, ct);
         return Results.Created($"/api/v1/etudes/{etude.Id}", etude);
     }
@@ -108,6 +155,7 @@ app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier1", async (
     IEtudeRepository repo,
     ServiceValidationCompletudeAtelier1 serviceValidation,
     ServiceCreationSnapshotAtelier1 serviceSnapshot,
+    EbiosDbContext db,
     CancellationToken ct) =>
 {
     var etude = await repo.ObtenirParIdAsync(id, ct);
@@ -124,17 +172,359 @@ app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier1", async (
         });
     }
 
+    // Transaction unique : la transition de statut et la création du snapshot
+    // doivent réussir ou échouer ensemble (P13 -- jamais d'étude "Validee"
+    // sans son snapshot). Voir audit architectural, constat critique.
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
     try
     {
         etude.ValiderAtelier1();
         await repo.MettreAJourAsync(etude, ct);
 
-        // P13 : chaque validation (initiale ou après correction) fige une
-        // nouvelle version du snapshot. L'historique des versions précédentes
-        // n'est jamais écrasé.
         var snapshot = await serviceSnapshot.CreerAsync(id, ct);
 
+        await transaction.CommitAsync(ct);
+
         return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
+    }
+    catch (InvalidOperationException ex)
+    {
+        await transaction.RollbackAsync(ct);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/rouvrir-atelier1", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.RouvrirAtelier1();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier2", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.DemarrerAtelier2();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier2", async (
+    Guid id,
+    IEtudeRepository repo,
+    ServiceValidationCompletudeAtelier2 serviceValidation,
+    ServiceCreationSnapshotAtelier2 serviceSnapshot,
+    EbiosDbContext db,
+    CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var resultat = await serviceValidation.VerifierAsync(id, ct);
+    if (!resultat.EstComplet)
+    {
+        return Results.BadRequest(new
+        {
+            error = "L'atelier 2 n'est pas complet.",
+            elementsManquants = resultat.ElementsManquants
+        });
+    }
+
+    // Transaction unique : la transition de statut et la création du snapshot
+    // doivent réussir ou échouer ensemble (P13 -- jamais d'atelier "Validee"
+    // sans son snapshot), même patron que valider-atelier1.
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    try
+    {
+        etude.ValiderAtelier2();
+        await repo.MettreAJourAsync(etude, ct);
+
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+
+        await transaction.CommitAsync(ct);
+
+        return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
+    }
+    catch (InvalidOperationException ex)
+    {
+        await transaction.RollbackAsync(ct);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/rouvrir-atelier2", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.RouvrirAtelier2();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier3", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.DemarrerAtelier3();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier3", async (
+    Guid id,
+    IEtudeRepository repo,
+    ServiceValidationCompletudeAtelier3 serviceValidation,
+    ServiceCreationSnapshotAtelier3 serviceSnapshot,
+    EbiosDbContext db,
+    CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var resultat = await serviceValidation.VerifierAsync(id, ct);
+    if (!resultat.EstComplet)
+    {
+        return Results.BadRequest(new
+        {
+            error = "L'atelier 3 n'est pas complet.",
+            elementsManquants = resultat.ElementsManquants
+        });
+    }
+
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    try
+    {
+        etude.ValiderAtelier3();
+        await repo.MettreAJourAsync(etude, ct);
+
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+
+        await transaction.CommitAsync(ct);
+
+        return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
+    }
+    catch (InvalidOperationException ex)
+    {
+        await transaction.RollbackAsync(ct);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/rouvrir-atelier3", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.RouvrirAtelier3();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier4", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.DemarrerAtelier4();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier4", async (
+    Guid id,
+    IEtudeRepository repo,
+    ServiceValidationCompletudeAtelier4 serviceValidation,
+    ServiceCreationSnapshotAtelier4 serviceSnapshot,
+    EbiosDbContext db,
+    CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var resultat = await serviceValidation.VerifierAsync(id, ct);
+    if (!resultat.EstComplet)
+    {
+        return Results.BadRequest(new
+        {
+            error = "L'atelier 4 n'est pas complet.",
+            elementsManquants = resultat.ElementsManquants
+        });
+    }
+
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    try
+    {
+        etude.ValiderAtelier4();
+        await repo.MettreAJourAsync(etude, ct);
+
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+
+        await transaction.CommitAsync(ct);
+
+        return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
+    }
+    catch (InvalidOperationException ex)
+    {
+        await transaction.RollbackAsync(ct);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/rouvrir-atelier4", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.RouvrirAtelier4();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier5", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.DemarrerAtelier5();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier5", async (
+    Guid id,
+    IEtudeRepository repo,
+    ServiceValidationCompletudeAtelier5 serviceValidation,
+    ServiceCreationSnapshotAtelier5 serviceSnapshot,
+    EbiosDbContext db,
+    CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var resultat = await serviceValidation.VerifierAsync(id, ct);
+    if (!resultat.EstComplet)
+    {
+        return Results.BadRequest(new
+        {
+            error = "L'atelier 5 n'est pas complet.",
+            elementsManquants = resultat.ElementsManquants
+        });
+    }
+
+    await using var transaction = await db.Database.BeginTransactionAsync(ct);
+    try
+    {
+        etude.ValiderAtelier5();
+        await repo.MettreAJourAsync(etude, ct);
+
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+
+        await transaction.CommitAsync(ct);
+
+        return Results.Ok(new { etude, snapshotVersion = snapshot.Version });
+    }
+    catch (InvalidOperationException ex)
+    {
+        await transaction.RollbackAsync(ct);
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPost("/api/v1/etudes/{id:guid}/rouvrir-atelier5", async (
+    Guid id, IEtudeRepository repo, CancellationToken ct) =>
+{
+    var etude = await repo.ObtenirParIdAsync(id, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    try
+    {
+        etude.RouvrirAtelier5();
+        await repo.MettreAJourAsync(etude, ct);
+        return Results.Ok(etude);
     }
     catch (InvalidOperationException ex)
     {
@@ -154,7 +544,7 @@ app.MapPost("/api/v1/etudes/{etudeId:guid}/valeurs-metier", async (
 
     try
     {
-        var valeurMetier = ValeurMetier.Creer(etudeId, request.Description, request.EntiteResponsable);
+        var valeurMetier = ValeurMetier.Creer(etudeId, request.Description, request.EntiteProprietaire);
         await valeurRepo.AjouterAsync(valeurMetier, ct);
         return Results.Created($"/api/v1/etudes/{etudeId}/valeurs-metier/{valeurMetier.Id}", valeurMetier);
     }
@@ -169,6 +559,37 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/valeurs-metier", async (
 {
     var valeurs = await valeurRepo.ListerParEtudeAsync(etudeId, ct);
     return Results.Ok(valeurs);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/valeurs-metier/{id:guid}", async (
+    Guid etudeId, Guid id, CreerValeurMetierRequest request,
+    IValeurMetierRepository valeurRepo, CancellationToken ct) =>
+{
+    var valeurMetier = await valeurRepo.ObtenirParIdAsync(id, ct);
+    if (valeurMetier is null || valeurMetier.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Valeur métier introuvable pour cette étude." });
+
+    try
+    {
+        valeurMetier.Modifier(request.Description, request.EntiteProprietaire);
+        await valeurRepo.MettreAJourAsync(valeurMetier, ct);
+        return Results.Ok(valeurMetier);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/valeurs-metier/{id:guid}", async (
+    Guid etudeId, Guid id, IValeurMetierRepository valeurRepo, CancellationToken ct) =>
+{
+    var valeurMetier = await valeurRepo.ObtenirParIdAsync(id, ct);
+    if (valeurMetier is null || valeurMetier.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Valeur métier introuvable pour cette étude." });
+
+    await valeurRepo.SupprimerAsync(valeurMetier, ct);
+    return Results.NoContent();
 });
 
 // --- Biens support ---
@@ -190,7 +611,7 @@ app.MapPost("/api/v1/etudes/{etudeId:guid}/valeurs-metier/{valeurMetierId:guid}/
 
     try
     {
-        var bienSupport = BienSupport.Creer(etudeId, valeurMetierId, request.Description, type, request.EntiteResponsable);
+        var bienSupport = BienSupport.Creer(etudeId, valeurMetierId, request.Description, type, request.EntiteProprietaire);
         await bienRepo.AjouterAsync(bienSupport, ct);
         return Results.Created($"/api/v1/etudes/{etudeId}/biens-support/{bienSupport.Id}", bienSupport);
     }
@@ -205,6 +626,40 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/biens-support", async (
 {
     var biens = await bienRepo.ListerParEtudeAsync(etudeId, ct);
     return Results.Ok(biens);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/biens-support/{id:guid}", async (
+    Guid etudeId, Guid id, CreerBienSupportRequest request,
+    IBienSupportRepository bienRepo, CancellationToken ct) =>
+{
+    var bienSupport = await bienRepo.ObtenirParIdAsync(id, ct);
+    if (bienSupport is null || bienSupport.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Bien support introuvable pour cette étude." });
+
+    if (!Enum.TryParse<TypeBienSupport>(request.Type, ignoreCase: true, out var type))
+        return Results.BadRequest(new { error = $"Type de bien support invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<TypeBienSupport>())}" });
+
+    try
+    {
+        bienSupport.Modifier(request.Description, type, request.EntiteProprietaire);
+        await bienRepo.MettreAJourAsync(bienSupport, ct);
+        return Results.Ok(bienSupport);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/biens-support/{id:guid}", async (
+    Guid etudeId, Guid id, IBienSupportRepository bienRepo, CancellationToken ct) =>
+{
+    var bienSupport = await bienRepo.ObtenirParIdAsync(id, ct);
+    if (bienSupport is null || bienSupport.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Bien support introuvable pour cette étude." });
+
+    await bienRepo.SupprimerAsync(bienSupport, ct);
+    return Results.NoContent();
 });
 
 // --- Événements redoutés ---
@@ -264,6 +719,43 @@ app.MapPut("/api/v1/etudes/{etudeId:guid}/evenements-redoutes/{erId:guid}/gravit
     }
 });
 
+app.MapPut("/api/v1/etudes/{etudeId:guid}/evenements-redoutes/{erId:guid}", async (
+    Guid etudeId, Guid erId, CreerEvenementRedouteRequest request,
+    IEvenementRedouteRepository erRepo, CancellationToken ct) =>
+{
+    var er = await erRepo.ObtenirParIdAsync(erId, ct);
+    if (er is null || er.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Événement redouté introuvable pour cette étude." });
+
+    try
+    {
+        er.ModifierDescription(request.Description);
+        if (request.Gravite != er.Gravite)
+            er.RecoterGravite(request.Gravite);
+        await erRepo.MettreAJourAsync(er, ct);
+        return Results.Ok(er);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/evenements-redoutes/{erId:guid}", async (
+    Guid etudeId, Guid erId, IEvenementRedouteRepository erRepo, CancellationToken ct) =>
+{
+    var er = await erRepo.ObtenirParIdAsync(erId, ct);
+    if (er is null || er.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Événement redouté introuvable pour cette étude." });
+
+    await erRepo.SupprimerAsync(er, ct);
+    return Results.NoContent();
+});
+
 // --- Socle de sécurité ---
 
 app.MapPost("/api/v1/etudes/{etudeId:guid}/socle-securite", async (
@@ -302,9 +794,51 @@ app.MapPost("/api/v1/etudes/{etudeId:guid}/socle-securite/referentiels", async (
 
     try
     {
-        socle.AjouterReferentiel(request.Nom, etat);
+        socle.AjouterReferentiel(request.Nom, etat, request.Theme, request.CodeControle, request.EtatActuel);
         await socleRepo.MettreAJourAsync(socle, ct);
         return Results.Ok(socle);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/socle-securite/referentiels/{referentielId:guid}", async (
+    Guid etudeId, Guid referentielId, AjouterReferentielRequest request,
+    ISocleSecuriteRepository socleRepo, CancellationToken ct) =>
+{
+    var socle = await socleRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (socle is null)
+        return Results.NotFound(new { error = "Socle de sécurité introuvable pour cette étude." });
+
+    if (!Enum.TryParse<EtatConformite>(request.Etat, ignoreCase: true, out var etat))
+        return Results.BadRequest(new { error = $"État de conformité invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<EtatConformite>())}" });
+
+    try
+    {
+        socle.ModifierReferentiel(referentielId, request.Nom, etat, request.Theme, request.CodeControle, request.EtatActuel);
+        await socleRepo.MettreAJourAsync(socle, ct);
+        return Results.Ok(socle);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/socle-securite/referentiels/{referentielId:guid}", async (
+    Guid etudeId, Guid referentielId, ISocleSecuriteRepository socleRepo, CancellationToken ct) =>
+{
+    var socle = await socleRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (socle is null)
+        return Results.NotFound(new { error = "Socle de sécurité introuvable pour cette étude." });
+
+    try
+    {
+        socle.SupprimerReferentiel(referentielId);
+        await socleRepo.MettreAJourAsync(socle, ct);
+        return Results.NoContent();
     }
     catch (ArgumentException ex)
     {
@@ -335,11 +869,1201 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier1", async (
     return Results.File(pdfBytes, "application/pdf", $"rapport-atelier1-{etudeId}.pdf");
 });
 
+
+
+// --- Couples Source de Risque / Objectif Vise (Atelier 2) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/couples-sr-ov", async (
+    Guid etudeId, CreerCoupleSrOvRequest request,
+    IEtudeRepository etudeRepo, ICoupleSourceRisqueObjectifViseRepository coupleRepo, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    if (!Enum.TryParse<CategorieSourceRisque>(request.SourceRisque, ignoreCase: true, out var sr))
+        return Results.BadRequest(new { error = $"Catégorie de source de risque invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategorieSourceRisque>())}" });
+
+    if (!Enum.TryParse<CategorieObjectifVise>(request.ObjectifVise, ignoreCase: true, out var ov))
+        return Results.BadRequest(new { error = $"Catégorie d objectif visé invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategorieObjectifVise>())}" });
+
+    try
+    {
+        var pertinenceCalculee = ServiceCalculPertinence.Calculer(request.Motivation, request.Ressources);
+        var couple = CoupleSourceRisqueObjectifVise.Creer(
+            etudeId, sr, request.DescriptionSourceRisque, ov, request.DescriptionObjectifVise,
+            request.ContexteVulnerabilite, request.Theme, request.Motivation, request.Ressources, pertinenceCalculee);
+        await coupleRepo.AjouterAsync(couple, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/couples-sr-ov/{couple.Id}", couple);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/couples-sr-ov", async (
+    Guid etudeId, ICoupleSourceRisqueObjectifViseRepository coupleRepo, CancellationToken ct) =>
+{
+    var couples = await coupleRepo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(couples);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{id:guid}", async (
+    Guid etudeId, Guid id, CreerCoupleSrOvRequest request,
+    ICoupleSourceRisqueObjectifViseRepository coupleRepo, CancellationToken ct) =>
+{
+    var couple = await coupleRepo.ObtenirParIdAsync(id, ct);
+    if (couple is null || couple.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Couple SR/OV introuvable pour cette étude." });
+
+    if (!Enum.TryParse<CategorieSourceRisque>(request.SourceRisque, ignoreCase: true, out var sr))
+        return Results.BadRequest(new { error = $"Catégorie de source de risque invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategorieSourceRisque>())}" });
+
+    if (!Enum.TryParse<CategorieObjectifVise>(request.ObjectifVise, ignoreCase: true, out var ov))
+        return Results.BadRequest(new { error = $"Catégorie d objectif visé invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategorieObjectifVise>())}" });
+
+    try
+    {
+        var pertinenceCalculee = ServiceCalculPertinence.Calculer(request.Motivation, request.Ressources);
+        couple.Modifier(
+            sr, request.DescriptionSourceRisque, ov, request.DescriptionObjectifVise,
+            request.ContexteVulnerabilite, request.Theme, request.Motivation, request.Ressources, pertinenceCalculee);
+        await coupleRepo.MettreAJourAsync(couple, ct);
+        return Results.Ok(couple);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{id:guid}/pertinence-retenue", async (
+    Guid etudeId, Guid id, DefinirPertinenceRetenueRequest request,
+    ICoupleSourceRisqueObjectifViseRepository coupleRepo, CancellationToken ct) =>
+{
+    var couple = await coupleRepo.ObtenirParIdAsync(id, ct);
+    if (couple is null || couple.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Couple SR/OV introuvable pour cette étude." });
+
+    if (!Enum.TryParse<NiveauPertinence>(request.PertinenceRetenue, ignoreCase: true, out var pertinenceRetenue))
+        return Results.BadRequest(new { error = $"Pertinence invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauPertinence>())}" });
+
+    try
+    {
+        couple.DefinirPertinenceRetenue(pertinenceRetenue, request.Justification);
+        await coupleRepo.MettreAJourAsync(couple, ct);
+        return Results.Ok(couple);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{id:guid}/pertinence-retenue", async (
+    Guid etudeId, Guid id, ICoupleSourceRisqueObjectifViseRepository coupleRepo, CancellationToken ct) =>
+{
+    var couple = await coupleRepo.ObtenirParIdAsync(id, ct);
+    if (couple is null || couple.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Couple SR/OV introuvable pour cette étude." });
+
+    couple.ReinitialiserPertinence();
+    await coupleRepo.MettreAJourAsync(couple, ct);
+    return Results.Ok(couple);
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{id:guid}", async (
+    Guid etudeId, Guid id, ICoupleSourceRisqueObjectifViseRepository coupleRepo,
+    IScenarioStrategiqueRepository scenarioRepo, ICheminAttaqueRepository cheminRepo,
+    IScenarioOperationnelRepository scenarioOpRepo, IScenarioDeRisqueRepository sdrRepo,
+    IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var couple = await coupleRepo.ObtenirParIdAsync(id, ct);
+    if (couple is null || couple.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Couple SR/OV introuvable pour cette étude." });
+
+    // Nettoyage en cascade manuel (pas de FK réelle entre agrégats, cf. suppression
+    // de scénario stratégique ci-dessus) : un couple supprimé emporte son éventuel
+    // scénario stratégique (relation 1:1), les chemins d'attaque de ce dernier, et
+    // les scenarios operationnels et scenarios de risque 1:1 de chaque chemin.
+    var scenario = await scenarioRepo.ObtenirParCoupleIdAsync(id, ct);
+    if (scenario is not null)
+    {
+        var chemins = await cheminRepo.ListerParScenarioAsync(scenario.Id, ct);
+        foreach (var chemin in chemins)
+        {
+            var scenarioOp = await scenarioOpRepo.ObtenirParCheminIdAsync(chemin.Id, ct);
+            if (scenarioOp is not null)
+                await scenarioOpRepo.SupprimerAsync(scenarioOp, ct);
+            await SupprimerScenarioDeRisqueEtReferencesAsync(chemin.Id, etudeId, sdrRepo, planRepo, ct);
+            await cheminRepo.SupprimerAsync(chemin, ct);
+        }
+        await scenarioRepo.SupprimerAsync(scenario, ct);
+    }
+
+    await coupleRepo.SupprimerAsync(couple, ct);
+    return Results.NoContent();
+});
+
+// --- Reporting Atelier 2 ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier2", async (
+    Guid etudeId, RapportAtelier2Service rapportService, RapportAtelier2PdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier2-{etudeId}.pdf");
+});
+
+// --- Reporting Atelier 3 ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier3", async (
+    Guid etudeId, RapportAtelier3Service rapportService, RapportAtelier3PdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier3-{etudeId}.pdf");
+});
+
+// --- Reporting Atelier 4 ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier4", async (
+    Guid etudeId, RapportAtelier4Service rapportService, RapportAtelier4PdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier4-{etudeId}.pdf");
+});
+
+// --- Reporting Atelier 5 ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier5", async (
+    Guid etudeId, RapportAtelier5Service rapportService, RapportAtelier5PdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier5-{etudeId}.pdf");
+});
+
+// --- Reporting Synthese globale ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/synthese", async (
+    Guid etudeId, IEtudeRepository etudeRepo, RapportSyntheseGlobaleService rapportService, RapportSyntheseGlobalePdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+    if (etude.StatutAtelier5 != StatutEtude.Validee)
+        return Results.BadRequest(new { error = "La synthèse globale n'est disponible qu'une fois l'atelier 5 validé." });
+
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Un ou plusieurs snapshots d'atelier sont manquants pour cette étude." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"rapport-synthese-{etudeId}.pdf");
+});
+
+// --- Parties Prenantes (Atelier 2) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/parties-prenantes", async (
+    Guid etudeId, CreerPartiePrenanteRequest request,
+    IEtudeRepository etudeRepo, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    if (!Enum.TryParse<CategoriePartiePrenante>(request.Categorie, ignoreCase: true, out var categorie))
+        return Results.BadRequest(new { error = $"Catégorie de partie prenante invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategoriePartiePrenante>())}" });
+
+    try
+    {
+        var pp = PartiePrenante.Creer(etudeId, request.Nom, request.RolesEtAttentes, request.Representant, categorie, request.DescriptionCategorie);
+        await ppRepo.AjouterAsync(pp, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/parties-prenantes/{pp.Id}", pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/parties-prenantes", async (
+    Guid etudeId, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var parties = await ppRepo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(parties);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}", async (
+    Guid etudeId, Guid id, CreerPartiePrenanteRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    if (!Enum.TryParse<CategoriePartiePrenante>(request.Categorie, ignoreCase: true, out var categorie))
+        return Results.BadRequest(new { error = $"Catégorie de partie prenante invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<CategoriePartiePrenante>())}" });
+
+    try
+    {
+        pp.Modifier(request.Nom, request.RolesEtAttentes, request.Representant, categorie, request.DescriptionCategorie);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}", async (
+    Guid etudeId, Guid id, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    await ppRepo.SupprimerAsync(pp, ct);
+    return Results.NoContent();
+});
+
+// --- Evaluation de la dangerosite (Atelier 3) ---
+// "Dangerosite" est le terme officiel depuis EBIOS RM 1.5 (mars 2024,
+// conformite ISO/CEI 27005:2022) -- remplace "Menace" partout (routes,
+// records, methodes de domaine).
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite", async (
+    Guid etudeId, Guid id, EvaluerDangerositeRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        var niveauDangerositeCalculee = ServiceCalculNiveauDangerosite.Calculer(
+            request.Dependance, request.Penetration, request.MaturiteCyber, request.Confiance);
+        pp.EvaluerDangerosite(request.Dependance, request.Penetration, request.MaturiteCyber, request.Confiance, niveauDangerositeCalculee);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite-residuelle", async (
+    Guid etudeId, Guid id, EvaluerDangerositeRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        var niveauDangerositeCalculee = ServiceCalculNiveauDangerosite.Calculer(
+            request.Dependance, request.Penetration, request.MaturiteCyber, request.Confiance);
+        pp.EvaluerDangerositeResiduelle(request.Dependance, request.Penetration, request.MaturiteCyber, request.Confiance, niveauDangerositeCalculee);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite-retenue", async (
+    Guid etudeId, Guid id, DefinirDangerositeRetenueRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        pp.DefinirDangerositeRetenue(request.NiveauRetenu, request.Justification);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite-retenue", async (
+    Guid etudeId, Guid id, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    pp.ReinitialiserDangerosite();
+    await ppRepo.MettreAJourAsync(pp, ct);
+    return Results.Ok(pp);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite-residuelle-retenue", async (
+    Guid etudeId, Guid id, DefinirDangerositeRetenueRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        pp.DefinirDangerositeResiduelleRetenue(request.NiveauRetenu, request.Justification);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/dangerosite-residuelle-retenue", async (
+    Guid etudeId, Guid id, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    pp.ReinitialiserDangerositeResiduelle();
+    await ppRepo.MettreAJourAsync(pp, ct);
+    return Results.Ok(pp);
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/mesures", async (
+    Guid etudeId, Guid id, MesureEcosystemeRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        pp.AjouterMesure(request.Description);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/parties-prenantes/{id}/mesures", pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/mesures/{mesureId:guid}", async (
+    Guid etudeId, Guid id, Guid mesureId, MesureEcosystemeRequest request,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        pp.ModifierMesure(mesureId, request.Description);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.Ok(pp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/parties-prenantes/{id:guid}/mesures/{mesureId:guid}", async (
+    Guid etudeId, Guid id, Guid mesureId,
+    IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var pp = await ppRepo.ObtenirParIdAsync(id, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        pp.SupprimerMesure(mesureId);
+        await ppRepo.MettreAJourAsync(pp, ct);
+        return Results.NoContent();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+// --- Scenarios strategiques (Atelier 3) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{coupleId:guid}/scenario-strategique", async (
+    Guid etudeId, Guid coupleId, CreerScenarioStrategiqueRequest request,
+    ICoupleSourceRisqueObjectifViseRepository coupleRepo, IScenarioStrategiqueRepository scenarioRepo,
+    IEvenementRedouteRepository erRepo, CancellationToken ct) =>
+{
+    var couple = await coupleRepo.ObtenirParIdAsync(coupleId, ct);
+    if (couple is null || couple.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Couple source de risque / objectif visé introuvable pour cette étude." });
+
+    if (couple.Pertinence is not (NiveauPertinence.TresPertinent or NiveauPertinence.PlutotPertinent))
+        return Results.BadRequest(new { error = "Seul un couple retenu (pertinence 'Très pertinent' ou 'Plutôt pertinent') peut donner lieu à un scénario stratégique." });
+
+    var existant = await scenarioRepo.ObtenirParCoupleIdAsync(coupleId, ct);
+    if (existant is not null)
+        return Results.BadRequest(new { error = "Ce couple a déjà un scénario stratégique (relation 1:1)." });
+
+    var er = await erRepo.ObtenirParIdAsync(request.EvenementRedouteId, ct);
+    if (er is null || er.EtudeId != etudeId)
+        return Results.BadRequest(new { error = "Événement redouté introuvable pour cette étude." });
+
+    try
+    {
+        var scenario = ScenarioStrategique.Creer(etudeId, coupleId, request.EvenementRedouteId, request.Description);
+        await scenarioRepo.AjouterAsync(scenario, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/scenarios-strategiques/{scenario.Id}", scenario);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/scenarios-strategiques", async (
+    Guid etudeId, IScenarioStrategiqueRepository scenarioRepo, CancellationToken ct) =>
+{
+    var scenarios = await scenarioRepo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(scenarios);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-strategiques/{id:guid}", async (
+    Guid etudeId, Guid id, ModifierScenarioStrategiqueRequest request,
+    IScenarioStrategiqueRepository scenarioRepo, IEvenementRedouteRepository erRepo, CancellationToken ct) =>
+{
+    var scenario = await scenarioRepo.ObtenirParIdAsync(id, ct);
+    if (scenario is null || scenario.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario stratégique introuvable pour cette étude." });
+
+    var er = await erRepo.ObtenirParIdAsync(request.EvenementRedouteId, ct);
+    if (er is null || er.EtudeId != etudeId)
+        return Results.BadRequest(new { error = "Événement redouté introuvable pour cette étude." });
+
+    try
+    {
+        scenario.Modifier(request.EvenementRedouteId, request.Description);
+        await scenarioRepo.MettreAJourAsync(scenario, ct);
+        return Results.Ok(scenario);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-strategiques/{id:guid}", async (
+    Guid etudeId, Guid id, IScenarioStrategiqueRepository scenarioRepo, ICheminAttaqueRepository cheminRepo,
+    IScenarioOperationnelRepository scenarioOpRepo, IScenarioDeRisqueRepository sdrRepo,
+    IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var scenario = await scenarioRepo.ObtenirParIdAsync(id, ct);
+    if (scenario is null || scenario.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario stratégique introuvable pour cette étude." });
+
+    // Pas de contrainte FK entre ScenarioStrategique et CheminAttaque (agrégats
+    // séparés, référencés par Id seulement -- cohérent avec le reste du projet).
+    // Nettoyage explicite requis ici pour éviter des chemins d'attaque, scenarios
+    // operationnels et scenarios de risque orphelins.
+    var cheminsOrphelins = await cheminRepo.ListerParScenarioAsync(id, ct);
+    foreach (var chemin in cheminsOrphelins)
+    {
+        var scenarioOp = await scenarioOpRepo.ObtenirParCheminIdAsync(chemin.Id, ct);
+        if (scenarioOp is not null)
+            await scenarioOpRepo.SupprimerAsync(scenarioOp, ct);
+        await SupprimerScenarioDeRisqueEtReferencesAsync(chemin.Id, etudeId, sdrRepo, planRepo, ct);
+        await cheminRepo.SupprimerAsync(chemin, ct);
+    }
+
+    await scenarioRepo.SupprimerAsync(scenario, ct);
+    return Results.NoContent();
+});
+
+// --- Chemins d'attaque et evenements intermediaires (Atelier 3) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/scenarios-strategiques/{scenarioId:guid}/chemins-attaque", async (
+    Guid etudeId, Guid scenarioId, CreerCheminAttaqueRequest request,
+    IScenarioStrategiqueRepository scenarioRepo, ICheminAttaqueRepository cheminRepo, CancellationToken ct) =>
+{
+    var scenario = await scenarioRepo.ObtenirParIdAsync(scenarioId, ct);
+    if (scenario is null || scenario.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario stratégique introuvable pour cette étude." });
+
+    try
+    {
+        var chemin = CheminAttaque.Creer(etudeId, scenarioId, request.Description);
+        await cheminRepo.AjouterAsync(chemin, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/chemins-attaque/{chemin.Id}", chemin);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/chemins-attaque", async (
+    Guid etudeId, ICheminAttaqueRepository cheminRepo, CancellationToken ct) =>
+{
+    var chemins = await cheminRepo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(chemins);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{id:guid}", async (
+    Guid etudeId, Guid id, ModifierCheminAttaqueRequest request,
+    ICheminAttaqueRepository cheminRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(id, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    try
+    {
+        chemin.Modifier(request.Description);
+        await cheminRepo.MettreAJourAsync(chemin, ct);
+        return Results.Ok(chemin);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{id:guid}", async (
+    Guid etudeId, Guid id, ICheminAttaqueRepository cheminRepo, IScenarioOperationnelRepository scenarioOpRepo,
+    IScenarioDeRisqueRepository sdrRepo, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(id, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    // Cascade manuelle (pas de FK reelle entre agregats) : le scenario
+    // operationnel et le scenario de risque 1:1 de ce chemin doivent
+    // disparaitre avec lui.
+    var scenarioOp = await scenarioOpRepo.ObtenirParCheminIdAsync(id, ct);
+    if (scenarioOp is not null)
+        await scenarioOpRepo.SupprimerAsync(scenarioOp, ct);
+    await SupprimerScenarioDeRisqueEtReferencesAsync(id, etudeId, sdrRepo, planRepo, ct);
+
+    await cheminRepo.SupprimerAsync(chemin, ct);
+    return Results.NoContent();
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{cheminId:guid}/evenements-intermediaires", async (
+    Guid etudeId, Guid cheminId, CreerEvenementIntermediaireRequest request,
+    ICheminAttaqueRepository cheminRepo, IPartiePrenanteRepository ppRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(cheminId, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    var pp = await ppRepo.ObtenirParIdAsync(request.PartiePrenanteId, ct);
+    if (pp is null || pp.EtudeId != etudeId)
+        return Results.BadRequest(new { error = "Partie prenante introuvable pour cette étude." });
+
+    try
+    {
+        chemin.AjouterEvenementIntermediaire(request.PartiePrenanteId, request.Description);
+        await cheminRepo.MettreAJourAsync(chemin, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/chemins-attaque/{cheminId}", chemin);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{cheminId:guid}/evenements-intermediaires/{eiId:guid}", async (
+    Guid etudeId, Guid cheminId, Guid eiId, ModifierEvenementIntermediaireRequest request,
+    ICheminAttaqueRepository cheminRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(cheminId, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    try
+    {
+        chemin.ModifierEvenementIntermediaire(eiId, request.Description);
+        await cheminRepo.MettreAJourAsync(chemin, ct);
+        return Results.Ok(chemin);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{cheminId:guid}/evenements-intermediaires/{eiId:guid}", async (
+    Guid etudeId, Guid cheminId, Guid eiId, ICheminAttaqueRepository cheminRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(cheminId, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    try
+    {
+        chemin.SupprimerEvenementIntermediaire(eiId);
+        await cheminRepo.MettreAJourAsync(chemin, ct);
+        return Results.NoContent();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+// --- Scenarios operationnels et modes operatoires (Atelier 4) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{cheminId:guid}/scenario-operationnel", async (
+    Guid etudeId, Guid cheminId, ICheminAttaqueRepository cheminRepo, IScenarioOperationnelRepository scenarioOpRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(cheminId, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    var existant = await scenarioOpRepo.ObtenirParCheminIdAsync(cheminId, ct);
+    if (existant is not null)
+        return Results.BadRequest(new { error = "Ce chemin d'attaque a déjà un scénario opérationnel (relation 1:1)." });
+
+    try
+    {
+        var scenarioOp = ScenarioOperationnel.Creer(etudeId, cheminId);
+        await scenarioOpRepo.AjouterAsync(scenarioOp, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/scenarios-operationnels/{scenarioOp.Id}", scenarioOp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels", async (
+    Guid etudeId, IScenarioOperationnelRepository scenarioOpRepo, CancellationToken ct) =>
+{
+    var scenarios = await scenarioOpRepo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(scenarios);
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}", async (
+    Guid etudeId, Guid id, IScenarioOperationnelRepository scenarioOpRepo,
+    IScenarioDeRisqueRepository sdrRepo, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    // Sans ce scénario opérationnel, plus de Vraisemblance disponible : le
+    // scénario de risque 1:1 de ce chemin devient incalculable, donc invalide.
+    await SupprimerScenarioDeRisqueEtReferencesAsync(scenarioOp.CheminAttaqueId, etudeId, sdrRepo, planRepo, ct);
+
+    await scenarioOpRepo.SupprimerAsync(scenarioOp, ct);
+    return Results.NoContent();
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}/modes-operatoires", async (
+    Guid etudeId, Guid id, ModeOperatoireRequest request, IScenarioOperationnelRepository scenarioOpRepo,
+    IBienSupportRepository bienRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    var (actions, erreurActions) = await ParseActionsElementairesAsync(etudeId, request.Actions, bienRepo, ct);
+    if (erreurActions is not null)
+        return erreurActions;
+
+    try
+    {
+        scenarioOp.AjouterModeOperatoire(request.Description, actions!, request.ProbabiliteSucces, request.DifficulteTechnique);
+        await scenarioOpRepo.MettreAJourAsync(scenarioOp, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/scenarios-operationnels/{id}/modes-operatoires", scenarioOp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}/modes-operatoires/{modeId:guid}", async (
+    Guid etudeId, Guid id, Guid modeId, ModeOperatoireRequest request, IScenarioOperationnelRepository scenarioOpRepo,
+    IBienSupportRepository bienRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    var (actions, erreurActions) = await ParseActionsElementairesAsync(etudeId, request.Actions, bienRepo, ct);
+    if (erreurActions is not null)
+        return erreurActions;
+
+    try
+    {
+        scenarioOp.ModifierModeOperatoire(modeId, request.Description, actions!, request.ProbabiliteSucces, request.DifficulteTechnique);
+        await scenarioOpRepo.MettreAJourAsync(scenarioOp, ct);
+        return Results.Ok(scenarioOp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}/modes-operatoires/{modeId:guid}", async (
+    Guid etudeId, Guid id, Guid modeId, IScenarioOperationnelRepository scenarioOpRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    try
+    {
+        scenarioOp.SupprimerModeOperatoire(modeId);
+        await scenarioOpRepo.MettreAJourAsync(scenarioOp, ct);
+        return Results.NoContent();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}/modes-operatoires/{modeId:guid}/vraisemblance-retenue", async (
+    Guid etudeId, Guid id, Guid modeId, DefinirVraisemblanceRetenueRequest request,
+    IScenarioOperationnelRepository scenarioOpRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    if (!Enum.TryParse<NiveauVraisemblance>(request.VraisemblanceRetenue, ignoreCase: true, out var vraisemblanceRetenue))
+        return Results.BadRequest(new { error = $"Vraisemblance invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauVraisemblance>())}" });
+
+    try
+    {
+        scenarioOp.DefinirVraisemblanceRetenueModeOperatoire(modeId, vraisemblanceRetenue, request.Justification);
+        await scenarioOpRepo.MettreAJourAsync(scenarioOp, ct);
+        return Results.Ok(scenarioOp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-operationnels/{id:guid}/modes-operatoires/{modeId:guid}/vraisemblance-retenue", async (
+    Guid etudeId, Guid id, Guid modeId, IScenarioOperationnelRepository scenarioOpRepo, CancellationToken ct) =>
+{
+    var scenarioOp = await scenarioOpRepo.ObtenirParIdAsync(id, ct);
+    if (scenarioOp is null || scenarioOp.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario opérationnel introuvable pour cette étude." });
+
+    try
+    {
+        scenarioOp.ReinitialiserVraisemblanceModeOperatoire(modeId);
+        await scenarioOpRepo.MettreAJourAsync(scenarioOp, ct);
+        return Results.Ok(scenarioOp);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+// --- Scenarios de risque (Atelier 5) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/chemins-attaque/{cheminId:guid}/scenario-de-risque", async (
+    Guid etudeId, Guid cheminId, ICheminAttaqueRepository cheminRepo, IScenarioOperationnelRepository scenarioOpRepo,
+    IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var chemin = await cheminRepo.ObtenirParIdAsync(cheminId, ct);
+    if (chemin is null || chemin.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Chemin d'attaque introuvable pour cette étude." });
+
+    var scenarioOp = await scenarioOpRepo.ObtenirParCheminIdAsync(cheminId, ct);
+    if (scenarioOp is null)
+        return Results.BadRequest(new { error = "Ce chemin d'attaque doit avoir un scénario opérationnel avant de matérialiser son scénario de risque." });
+
+    var existant = await sdrRepo.ObtenirParCheminIdAsync(cheminId, ct);
+    if (existant is not null)
+        return Results.BadRequest(new { error = "Ce chemin d'attaque a déjà un scénario de risque (relation 1:1)." });
+
+    try
+    {
+        var scenarioDeRisque = ScenarioDeRisque.Creer(etudeId, cheminId);
+        await sdrRepo.AjouterAsync(scenarioDeRisque, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/scenarios-de-risque/{scenarioDeRisque.Id}", scenarioDeRisque);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque", async (
+    Guid etudeId, ServiceAssemblageScenariosDeRisque serviceAssemblage, CancellationToken ct) =>
+{
+    var vues = await serviceAssemblage.ListerAsync(etudeId, ct);
+    return Results.Ok(vues);
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}", async (
+    Guid etudeId, Guid id, IScenarioDeRisqueRepository sdrRepo, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is not null)
+    {
+        plan.RetirerReferenceScenario(sdr.Id);
+        await planRepo.MettreAJourAsync(plan, ct);
+    }
+
+    await sdrRepo.SupprimerAsync(sdr, ct);
+    return Results.NoContent();
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/niveau-risque-initial-retenue", async (
+    Guid etudeId, Guid id, DefinirNiveauRisqueRetenuRequest request, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    if (!Enum.TryParse<NiveauRisque>(request.NiveauRetenu, ignoreCase: true, out var niveauRetenu))
+        return Results.BadRequest(new { error = $"Niveau de risque invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauRisque>())}" });
+
+    try
+    {
+        sdr.DefinirNiveauRisqueInitialRetenu(niveauRetenu, request.Justification);
+        await sdrRepo.MettreAJourAsync(sdr, ct);
+        return Results.Ok(sdr);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/niveau-risque-initial-retenue", async (
+    Guid etudeId, Guid id, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    sdr.ReinitialiserNiveauRisqueInitial();
+    await sdrRepo.MettreAJourAsync(sdr, ct);
+    return Results.Ok(sdr);
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/risque-residuel", async (
+    Guid etudeId, Guid id, EvaluerRisqueResiduelRequest request, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    if (!Enum.TryParse<NiveauVraisemblance>(request.VraisemblanceResiduelle, ignoreCase: true, out var vraisemblanceResiduelle))
+        return Results.BadRequest(new { error = $"Vraisemblance invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauVraisemblance>())}" });
+
+    try
+    {
+        var niveauCalcule = ServiceCalculNiveauRisque.Calculer(request.GraviteResiduelle, vraisemblanceResiduelle);
+        sdr.EvaluerRisqueResiduel(request.GraviteResiduelle, vraisemblanceResiduelle, niveauCalcule);
+        await sdrRepo.MettreAJourAsync(sdr, ct);
+        return Results.Ok(sdr);
+    }
+    catch (ArgumentOutOfRangeException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/niveau-risque-residuel-retenue", async (
+    Guid etudeId, Guid id, DefinirNiveauRisqueRetenuRequest request, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    if (!Enum.TryParse<NiveauRisque>(request.NiveauRetenu, ignoreCase: true, out var niveauRetenu))
+        return Results.BadRequest(new { error = $"Niveau de risque invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauRisque>())}" });
+
+    try
+    {
+        sdr.DefinirNiveauRisqueResiduelRetenu(niveauRetenu, request.Justification);
+        await sdrRepo.MettreAJourAsync(sdr, ct);
+        return Results.Ok(sdr);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/niveau-risque-residuel-retenue", async (
+    Guid etudeId, Guid id, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    sdr.ReinitialiserNiveauRisqueResiduel();
+    await sdrRepo.MettreAJourAsync(sdr, ct);
+    return Results.Ok(sdr);
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/acceptation", async (
+    Guid etudeId, Guid id, AccepterRisqueResiduelRequest request, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    try
+    {
+        sdr.AccepterRisqueResiduel(request.NomProprietaireRisque, request.NomValidateurSecurite, request.NomSponsorExecutif, request.Justification);
+        await sdrRepo.MettreAJourAsync(sdr, ct);
+        return Results.Ok(sdr);
+    }
+    catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/scenarios-de-risque/{id:guid}/acceptation", async (
+    Guid etudeId, Guid id, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var sdr = await sdrRepo.ObtenirParIdAsync(id, ct);
+    if (sdr is null || sdr.EtudeId != etudeId)
+        return Results.NotFound(new { error = "Scénario de risque introuvable pour cette étude." });
+
+    sdr.RetirerAcceptation();
+    await sdrRepo.MettreAJourAsync(sdr, ct);
+    return Results.Ok(sdr);
+});
+
+// --- Plan de traitement du risque (Atelier 5) ---
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque", async (
+    Guid etudeId, IEtudeRepository etudeRepo, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    var existant = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (existant is not null)
+        return Results.BadRequest(new { error = "Cette étude a déjà un plan de traitement du risque." });
+
+    var plan = PlanTraitementRisque.Creer(etudeId);
+    await planRepo.AjouterAsync(plan, ct);
+    return Results.Created($"/api/v1/etudes/{etudeId}/plan-traitement-risque", plan);
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque", async (
+    Guid etudeId, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is null)
+        return Results.NotFound(new { error = "Aucun plan de traitement du risque pour cette étude." });
+    return Results.Ok(plan);
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures", async (
+    Guid etudeId, MesureTraitementRisqueRequest request, IPlanTraitementRisqueRepository planRepo,
+    IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is null)
+        return Results.NotFound(new { error = "Aucun plan de traitement du risque pour cette étude." });
+
+    var (erreurValidation, axe, coutComplexite, statut) = await ValiderMesureTraitementRisqueAsync(etudeId, request, sdrRepo, ct);
+    if (erreurValidation is not null)
+        return erreurValidation;
+
+    try
+    {
+        plan.AjouterMesure(request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut);
+        await planRepo.MettreAJourAsync(plan, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/plan-traitement-risque", plan);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures/{mesureId:guid}", async (
+    Guid etudeId, Guid mesureId, MesureTraitementRisqueRequest request, IPlanTraitementRisqueRepository planRepo,
+    IScenarioDeRisqueRepository sdrRepo, CancellationToken ct) =>
+{
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is null)
+        return Results.NotFound(new { error = "Aucun plan de traitement du risque pour cette étude." });
+
+    var (erreurValidation, axe, coutComplexite, statut) = await ValiderMesureTraitementRisqueAsync(etudeId, request, sdrRepo, ct);
+    if (erreurValidation is not null)
+        return erreurValidation;
+
+    try
+    {
+        plan.ModifierMesure(mesureId, request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut);
+        await planRepo.MettreAJourAsync(plan, ct);
+        return Results.Ok(plan);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures/{mesureId:guid}", async (
+    Guid etudeId, Guid mesureId, IPlanTraitementRisqueRepository planRepo, CancellationToken ct) =>
+{
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is null)
+        return Results.NotFound(new { error = "Aucun plan de traitement du risque pour cette étude." });
+
+    try
+    {
+        plan.SupprimerMesure(mesureId);
+        await planRepo.MettreAJourAsync(plan, ct);
+        return Results.NoContent();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
 app.Run();
 
-record CreerEtudeRequest(string Nom, string Perimetre);
-record CreerValeurMetierRequest(string Description, string EntiteResponsable);
-record CreerBienSupportRequest(string Description, string Type, string EntiteResponsable);
+static async Task SupprimerScenarioDeRisqueEtReferencesAsync(
+    Guid cheminAttaqueId, Guid etudeId, IScenarioDeRisqueRepository sdrRepo, IPlanTraitementRisqueRepository planRepo, CancellationToken ct)
+{
+    var sdr = await sdrRepo.ObtenirParCheminIdAsync(cheminAttaqueId, ct);
+    if (sdr is null)
+        return;
+
+    var plan = await planRepo.ObtenirParEtudeAsync(etudeId, ct);
+    if (plan is not null)
+    {
+        plan.RetirerReferenceScenario(sdr.Id);
+        await planRepo.MettreAJourAsync(plan, ct);
+    }
+
+    await sdrRepo.SupprimerAsync(sdr, ct);
+}
+
+static async Task<(IResult? Erreur, AxeMesure Axe, NiveauCoutComplexite CoutComplexite, StatutMesure Statut)> ValiderMesureTraitementRisqueAsync(
+    Guid etudeId, MesureTraitementRisqueRequest request, IScenarioDeRisqueRepository sdrRepo, CancellationToken ct)
+{
+    if (!Enum.TryParse<AxeMesure>(request.Axe, ignoreCase: true, out var axe))
+        return (Results.BadRequest(new { error = $"Axe invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<AxeMesure>())}" }), default, default, default);
+    if (!Enum.TryParse<NiveauCoutComplexite>(request.CoutComplexite, ignoreCase: true, out var coutComplexite))
+        return (Results.BadRequest(new { error = $"Coût/complexité invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<NiveauCoutComplexite>())}" }), default, default, default);
+    if (!Enum.TryParse<StatutMesure>(request.Statut, ignoreCase: true, out var statut))
+        return (Results.BadRequest(new { error = $"Statut invalide. Valeurs autorisées : {string.Join(", ", Enum.GetNames<StatutMesure>())}" }), default, default, default);
+
+    foreach (var scenarioId in request.ScenariosDeRisqueIds)
+    {
+        var scenario = await sdrRepo.ObtenirParIdAsync(scenarioId, ct);
+        if (scenario is null || scenario.EtudeId != etudeId)
+            return (Results.BadRequest(new { error = $"Scénario de risque introuvable pour cette étude : {scenarioId}." }), default, default, default);
+    }
+
+    return (null, axe, coutComplexite, statut);
+}
+
+static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> ParseActionsElementairesAsync(
+    Guid etudeId, List<ActionElementaireInput> actionsInput, IBienSupportRepository bienRepo, CancellationToken ct)
+{
+    var actions = new List<ActionElementaireEntree>();
+    foreach (var a in actionsInput)
+    {
+        if (!Enum.TryParse<PhaseActionElementaire>(a.Phase, out var phase))
+            return (null, Results.BadRequest(new
+            {
+                error = $"Phase invalide : '{a.Phase}'. Valeurs autorisées : {string.Join(", ", Enum.GetNames<PhaseActionElementaire>())}."
+            }));
+
+        var bien = await bienRepo.ObtenirParIdAsync(a.BienSupportId, ct);
+        if (bien is null || bien.EtudeId != etudeId)
+            return (null, Results.BadRequest(new { error = $"Bien support introuvable pour cette étude : {a.BienSupportId}." }));
+
+        actions.Add(new ActionElementaireEntree(a.Description, phase, a.BienSupportId));
+    }
+    return (actions, null);
+}
+
+record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
+record CreerValeurMetierRequest(string Description, string EntiteProprietaire);
+record CreerBienSupportRequest(string Description, string Type, string EntiteProprietaire);
 record CreerEvenementRedouteRequest(string Description, int Gravite);
 record RecoterGraviteRequest(int NouvelleGravite);
-record AjouterReferentielRequest(string Nom, string Etat);
+record AjouterReferentielRequest(string Nom, string Etat, string? Theme = null, string? CodeControle = null, string? EtatActuel = null);
+record CreerCoupleSrOvRequest(string SourceRisque, string DescriptionSourceRisque, string ObjectifVise, string DescriptionObjectifVise, string ContexteVulnerabilite, string Theme, int Motivation, int Ressources);
+record DefinirPertinenceRetenueRequest(string PertinenceRetenue, string Justification);
+record CreerPartiePrenanteRequest(string Nom, string RolesEtAttentes, string Representant, string Categorie, string? DescriptionCategorie = null);
+record EvaluerDangerositeRequest(int Dependance, int Penetration, int MaturiteCyber, int Confiance);
+record DefinirDangerositeRetenueRequest(double NiveauRetenu, string Justification);
+record MesureEcosystemeRequest(string Description);
+record CreerScenarioStrategiqueRequest(Guid EvenementRedouteId, string Description);
+record ModifierScenarioStrategiqueRequest(Guid EvenementRedouteId, string Description);
+record CreerCheminAttaqueRequest(string Description);
+record ModifierCheminAttaqueRequest(string Description);
+record CreerEvenementIntermediaireRequest(Guid PartiePrenanteId, string Description);
+record ModeOperatoireRequest(string Description, List<ActionElementaireInput> Actions, int ProbabiliteSucces, int DifficulteTechnique);
+record ActionElementaireInput(string Description, string Phase, Guid BienSupportId);
+record DefinirVraisemblanceRetenueRequest(string VraisemblanceRetenue, string Justification);
+record ModifierEvenementIntermediaireRequest(string Description);
+record DefinirNiveauRisqueRetenuRequest(string NiveauRetenu, string Justification);
+record EvaluerRisqueResiduelRequest(int GraviteResiduelle, string VraisemblanceResiduelle);
+record AccepterRisqueResiduelRequest(string NomProprietaireRisque, string NomValidateurSecurite, string? NomSponsorExecutif, string? Justification);
+record MesureTraitementRisqueRequest(
+    string Description, string Axe, List<Guid> ScenariosDeRisqueIds, string Responsable,
+    string? FreinsEtDifficultes, string CoutComplexite, string? Echeance, string Statut);
+
+// Rend la classe Program (générée implicitement par les top-level statements)
+// accessible depuis le projet de tests, requis par WebApplicationFactory<Program>.
+public partial class Program { }

@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D296F2FE-CB7
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EbiosRM.Api", "src\EbiosRM.Api\EbiosRM.Api.csproj", "{EB8DAC2F-94A3-4BD9-85B6-140EADA9EA45}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{030040D3-1B2F-428C-865C-C1B8D1C49322}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EbiosRM.Api.Tests", "tests\EbiosRM.Api.Tests\EbiosRM.Api.Tests.csproj", "{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +24,13 @@ Global
 		{EB8DAC2F-94A3-4BD9-85B6-140EADA9EA45}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB8DAC2F-94A3-4BD9-85B6-140EADA9EA45}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB8DAC2F-94A3-4BD9-85B6-140EADA9EA45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{EB8DAC2F-94A3-4BD9-85B6-140EADA9EA45} = {D296F2FE-CB7B-492C-A56C-1381A50E8A83}
+		{8B05CBCE-A181-4A82-9ACE-0B27875EC9AD} = {030040D3-1B2F-428C-865C-C1B8D1C49322}
 	EndGlobalSection
 EndGlobal

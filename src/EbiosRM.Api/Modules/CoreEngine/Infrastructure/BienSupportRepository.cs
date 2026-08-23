@@ -19,6 +19,11 @@ public sealed class BienSupportRepository : IBienSupportRepository
         await _db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<BienSupport?> ObtenirParIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _db.BiensSupport.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+    }
+
     public async Task<List<BienSupport>> ListerParEtudeAsync(Guid etudeId, CancellationToken cancellationToken)
     {
         return await _db.BiensSupport
@@ -31,5 +36,17 @@ public sealed class BienSupportRepository : IBienSupportRepository
         return await _db.BiensSupport
             .Where(b => b.ValeurMetierId == valeurMetierId)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task MettreAJourAsync(BienSupport bienSupport, CancellationToken cancellationToken)
+    {
+        _db.BiensSupport.Update(bienSupport);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SupprimerAsync(BienSupport bienSupport, CancellationToken cancellationToken)
+    {
+        _db.BiensSupport.Remove(bienSupport);
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }
