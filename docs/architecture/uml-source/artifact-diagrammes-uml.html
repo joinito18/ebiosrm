@@ -103,17 +103,17 @@ flowchart LR
 
     subgraph SYS["Plateforme EBIOS RM"]
         direction TB
-        UC1(("Créer une étude"))
-        UC2(("Saisir les données d'un atelier"))
-        UC3(("Démarrer un atelier"))
-        UC4(("Valider un atelier"))
-        UC5(("Rouvrir un atelier validé"))
-        UC6(("Générer un rapport"))
-        UC7(("Consulter l'historique des versions"))
-        UC8(("Gérer le référentiel"))
-        UC9(("Gérer comptes et rôles"))
-        UC10(("Demander une suggestion IA"))
-        UC11(("Accepter / rejeter une suggestion"))
+        UC1(["Créer une étude"])
+        UC2(["Saisir les données d'un atelier"])
+        UC3(["Démarrer un atelier"])
+        UC4(["Valider un atelier"])
+        UC5(["Rouvrir un atelier validé"])
+        UC6(["Générer un rapport"])
+        UC7(["Consulter l'historique des versions"])
+        UC8(["Gérer le référentiel"])
+        UC9(["Gérer comptes et rôles"])
+        UC10(["Demander une suggestion IA"])
+        UC11(["Accepter / rejeter une suggestion"])
     end
 
     A1 --- UC1
@@ -133,7 +133,6 @@ flowchart LR
 </pre>
   </div>
   <p class="note">Le validateur signe la validation d'un atelier, ce qui fige automatiquement un snapshot — mais ne génère pas le rapport PDF lui-même : « Générer un rapport » reste une action séparée, à la demande, qui relit le dernier snapshot disponible (cf. diagramme de séquence). C'est volontairement <em>sans</em> lien «include» sur ce schéma. Aucun acteur « invité » ou « visiteur » : le métier EBIOS RM ne définit que ces trois rôles, correspondant à trois responsabilités distinctes — produire l'analyse, l'engager formellement, administrer la plateforme.</p>
-  <p class="note">Ces 3 acteurs sont des rôles applicatifs (RBAC), pas les participants réels d'un atelier EBIOS RM en présentiel — la méthode réunit Direction, Métiers, RSSI, DSI et parfois un spécialiste cybersécurité selon l'atelier (documentation officielle), des rôles de réunion sans équivalent logiciel formel. La simplification à 3 rôles applicatifs est délibérée et assumée pour la plateforme.</p>
   <p class="note">Ces 3 acteurs sont des rôles applicatifs (RBAC), pas les participants réels d'un atelier EBIOS RM en présentiel — la documentation officielle réunit Direction, Métiers, RSSI, DSI et parfois un spécialiste cybersécurité selon l'atelier, des rôles de réunion sans équivalent logiciel formel. La simplification à 3 rôles applicatifs est délibérée et assumée pour la plateforme.</p>
 </section>
 
@@ -142,7 +141,7 @@ flowchart LR
   <div class="specs">
     <div class="item"><dt>Objectif</dt><dd>Fixer l'ordre de lecture avant le détail : quel atelier alimente lequel.</dd></div>
     <div class="item"><dt>Niveau d'abstraction</dt><dd>Repère — 5 boîtes, pas de classes.</dd></div>
-    <div class="item"><dt>Représenté</dt><dd>Le flux réel : les ateliers 1 et 2 alimentent tous deux l'atelier 3, qui se décline ensuite en 4 puis 5.</dd></div>
+    <div class="item"><dt>Représenté</dt><dd>Le flux réel : l'atelier 1 cadre l'atelier 2, et les deux alimentent l'atelier 3, qui se décline ensuite en 4 puis 5.</dd></div>
   </div>
   <div class="diagram-wrap">
 <pre class="mermaid">
@@ -153,6 +152,7 @@ flowchart TB
     A4["Atelier 4<br/>Scénarios opérationnels"]
     A5["Atelier 5<br/>Traitement du risque"]
 
+    A1 -->|cadre| A2
     A1 -->|événements redoutés| A3
     A2 -->|couples SR/OV| A3
     A3 -->|décline en| A4
