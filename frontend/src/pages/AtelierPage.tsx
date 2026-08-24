@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
+import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import InlineForm from '../components/shared/InlineForm'
 import GrilleMatrice from '../components/shared/GrilleMatrice'
 import OverrideJugementExpert from '../components/shared/OverrideJugementExpert'
@@ -55,16 +56,6 @@ var TYPES_BIEN_SUPPORT = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 
 var LIBELLE_TYPE_BIEN_SUPPORT: { [key: string]: string } = { SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local' }
 var ETATS_CONFORMITE = ['Conforme', 'NonConforme', 'NonApplicable']
 var LIBELLE_ETAT_CONFORMITE: { [key: string]: string } = { Conforme: 'Conforme', NonConforme: 'Non conforme', NonApplicable: 'Non applicable' }
-
-var LIBELLE_STATUT_ATELIER: { [key: string]: string } = { Brouillon: 'Brouillon', EnCours: 'En cours', Validee: 'Validee' }
-function BadgeStatutAtelier(props: { statut: string }) {
-  var style = props.statut === 'Validee'
-    ? 'border-risk-low/30 bg-risk-low/10 text-risk-low'
-    : props.statut === 'EnCours'
-      ? 'border-signature/30 bg-signature/10 text-signature'
-      : 'border-paper-line bg-white text-steel'
-  return <span className={'rounded-sm border px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide ' + style}>{LIBELLE_STATUT_ATELIER[props.statut] || props.statut}</span>
-}
 
 export default function AtelierPage() {
   var params = useParams()

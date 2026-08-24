@@ -6,12 +6,12 @@ import type { AtelierNode } from '../methodology/AtelierChain'
 import { getEtude } from '../../lib/api'
 import type { Etude } from '../../lib/api'
 
-function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode }) {
+function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean }) {
   var Icon = props.icon
   return (
     <NavLink
       to={props.to}
-      end={props.to === '/etudes'}
+      end={props.end !== undefined ? props.end : props.to === '/etudes'}
       className={function (state) {
         var base = 'flex items-center gap-3 rounded-md px-2.5 py-2 text-xs font-medium transition-colors '
         return base + (state.isActive
@@ -25,30 +25,27 @@ function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: Re
   )
 }
 
+function statutDe(s: string | undefined): 'done' | 'current' | 'todo' {
+  if (s === 'Validee') return 'done'
+  if (s === 'EnCours') return 'current'
+  return 'todo'
+}
+function progressionDe(s: 'done' | 'current' | 'todo'): number {
+  return s === 'done' ? 100 : s === 'current' ? 50 : 0
+}
+
 function ateliersDepuisEtude(etude: Etude | null): AtelierNode[] {
-  var statutAtelier1: 'done' | 'current' | 'todo' = 'todo'
-  var statutAtelier2: 'done' | 'current' | 'todo' = 'todo'
-  var statutAtelier3: 'done' | 'current' | 'todo' = 'todo'
-  var statutAtelier4: 'done' | 'current' | 'todo' = 'todo'
-  if (etude) {
-    if (etude.statut === 'Validee') statutAtelier1 = 'done'
-    else if (etude.statut === 'EnCours') statutAtelier1 = 'current'
-
-    if (etude.statutAtelier2 === 'Validee') statutAtelier2 = 'done'
-    else if (etude.statutAtelier2 === 'EnCours') statutAtelier2 = 'current'
-
-    if (etude.statutAtelier3 === 'Validee') statutAtelier3 = 'done'
-    else if (etude.statutAtelier3 === 'EnCours') statutAtelier3 = 'current'
-
-    if (etude.statutAtelier4 === 'Validee') statutAtelier4 = 'done'
-    else if (etude.statutAtelier4 === 'EnCours') statutAtelier4 = 'current'
-  }
+  var statutAtelier1 = statutDe(etude?.statut)
+  var statutAtelier2 = statutDe(etude?.statutAtelier2)
+  var statutAtelier3 = statutDe(etude?.statutAtelier3)
+  var statutAtelier4 = statutDe(etude?.statutAtelier4)
+  var statutAtelier5 = statutDe(etude?.statutAtelier5)
   return [
-    { numero: 1, nom: 'Cadrage', statut: statutAtelier1, progression: statutAtelier1 === 'done' ? 100 : statutAtelier1 === 'current' ? 50 : 0 },
-    { numero: 2, nom: 'Sources de risque', statut: statutAtelier2, progression: statutAtelier2 === 'done' ? 100 : statutAtelier2 === 'current' ? 50 : 0 },
-    { numero: 3, nom: 'Scenarios strategiques', statut: statutAtelier3, progression: statutAtelier3 === 'done' ? 100 : statutAtelier3 === 'current' ? 50 : 0 },
-    { numero: 4, nom: 'Scenarios operationnels', statut: statutAtelier4, progression: statutAtelier4 === 'done' ? 100 : statutAtelier4 === 'current' ? 50 : 0 },
-    { numero: 5, nom: 'Traitement du risque', statut: 'todo', progression: 0 },
+    { numero: 1, nom: 'Cadrage', statut: statutAtelier1, progression: progressionDe(statutAtelier1) },
+    { numero: 2, nom: 'Sources de risque', statut: statutAtelier2, progression: progressionDe(statutAtelier2) },
+    { numero: 3, nom: 'Scenarios strategiques', statut: statutAtelier3, progression: progressionDe(statutAtelier3) },
+    { numero: 4, nom: 'Scenarios operationnels', statut: statutAtelier4, progression: progressionDe(statutAtelier4) },
+    { numero: 5, nom: 'Traitement du risque', statut: statutAtelier5, progression: progressionDe(statutAtelier5) },
   ]
 }
 
@@ -75,7 +72,7 @@ export default function Sidebar() {
 
       <div className="flex-1 overflow-y-auto px-5 py-6">
         <nav className="space-y-0.5">
-          <NavItem to="/etudes" icon={LayoutDashboard}>Tableau de bord</NavItem>
+          <NavItem to={etudeId ? '/etudes/' + etudeId : '/etudes'} icon={LayoutDashboard} end>Tableau de bord</NavItem>
           <NavItem to="/etudes" icon={FolderOpen}>Etudes</NavItem>
         </nav>
 
