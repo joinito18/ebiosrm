@@ -1,6 +1,7 @@
 using System.Text.Json;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
+using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 
 namespace EbiosRM.Api.Modules.Reporting;
 
@@ -50,8 +51,8 @@ public sealed class RapportAtelier3Service
         foreach (var s in contenu.ScenariosStrategiques)
         {
             couplesParId.TryGetValue(s.CoupleSourceRisqueObjectifViseId, out var couple);
-            var libelleSr = couple is null ? "?" : (couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : couple.SourceRisque);
-            var libelleOv = couple is null ? "?" : (couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : couple.ObjectifVise);
+            var libelleSr = couple is null ? "?" : (couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque));
+            var libelleOv = couple is null ? "?" : (couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise));
             var pertinence = couple?.Pertinence ?? "";
 
             evenementsParId.TryGetValue(s.EvenementRedouteId, out var er);

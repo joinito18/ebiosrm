@@ -1,6 +1,7 @@
 using System.Text.Json;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
+using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 
 namespace EbiosRM.Api.Modules.Reporting;
 
@@ -43,8 +44,8 @@ public sealed class RapportAtelier4Service
             {
                 if (couplesParId.TryGetValue(scenarioStrat.CoupleSourceRisqueObjectifViseId, out var couple))
                 {
-                    var sr = couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : couple.SourceRisque;
-                    var ov = couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : couple.ObjectifVise;
+                    var sr = couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque);
+                    var ov = couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise);
                     libelleCouple = sr + " -- " + ov;
                 }
             }

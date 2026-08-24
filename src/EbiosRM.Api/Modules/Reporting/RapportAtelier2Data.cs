@@ -1,3 +1,5 @@
+using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
+
 namespace EbiosRM.Api.Modules.Reporting;
 
 public sealed record RapportAtelier2Data(
@@ -25,8 +27,8 @@ public sealed record CoupleSrOvData(
     string? JustificationPertinence)
 {
     /// <summary>Libellé affichable : la catégorie, sauf pour "Autre" où la description libre est plus parlante.</summary>
-    public string LibelleSourceRisque => SourceRisque == "Autre" ? "Autre : " + DescriptionSourceRisque : SourceRisque;
-    public string LibelleObjectifVise => ObjectifVise == "Autre" ? "Autre : " + DescriptionObjectifVise : ObjectifVise;
+    public string LibelleSourceRisque => SourceRisque == "Autre" ? "Autre : " + DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(SourceRisque);
+    public string LibelleObjectifVise => ObjectifVise == "Autre" ? "Autre : " + DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(ObjectifVise);
     public string DescriptionSourceRisque { get; init; } = "";
     public string DescriptionObjectifVise { get; init; } = "";
 }

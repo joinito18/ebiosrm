@@ -26,6 +26,42 @@ public enum CategorieObjectifVise
 }
 
 /// <summary>
+/// Libellés français des deux enums ci-dessus, utilisés partout où ils sont
+/// affichés (frontend et rapports PDF) -- évite un .ToString() brut qui
+/// afficherait le nom du membre C# tel quel (ex. "EspionnageEtatiqueOuIndustriel").
+/// </summary>
+public static class LibellesSourceRisqueObjectifVise
+{
+    private static readonly Dictionary<string, string> LibellesSr = new()
+    {
+        ["Etatique"] = "Etatique",
+        ["CrimeOrganise"] = "Crime organise",
+        ["Terroriste"] = "Terroriste",
+        ["ActivisteIdeologique"] = "Activiste ideologique",
+        ["OfficineSpecialisee"] = "Officine specialisee",
+        ["Amateur"] = "Amateur",
+        ["Vengeur"] = "Vengeur",
+        ["MalveillantPathologique"] = "Malveillant pathologique",
+        ["Autre"] = "Autre",
+    };
+
+    private static readonly Dictionary<string, string> LibellesOv = new()
+    {
+        ["EspionnageEtatiqueOuIndustriel"] = "Espionnage etatique ou industriel",
+        ["PrePositionnementStrategique"] = "Pre-positionnement strategique",
+        ["InfluenceDestabilisation"] = "Influence / destabilisation",
+        ["EntraveAuFonctionnement"] = "Entrave au fonctionnement",
+        ["SabotageDestruction"] = "Sabotage / destruction",
+        ["Lucratif"] = "Lucratif",
+        ["DefiAmusement"] = "Defi / amusement",
+        ["Autre"] = "Autre",
+    };
+
+    public static string SourceRisque(string valeur) => LibellesSr.TryGetValue(valeur, out var libelle) ? libelle : valeur;
+    public static string ObjectifVise(string valeur) => LibellesOv.TryGetValue(valeur, out var libelle) ? libelle : valeur;
+}
+
+/// <summary>
 /// Niveau de pertinence dérivé, jamais saisi manuellement (cf. Phase 2 §6.5).
 /// 4 niveaux, cohérent avec le rapport PDF Atelier 2 (cartographie de synthèse).
 /// Calculé exclusivement par ServiceCalculPertinence à partir de la matrice

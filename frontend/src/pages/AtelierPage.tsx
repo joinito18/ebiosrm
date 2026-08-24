@@ -52,7 +52,19 @@ var NOMS_ATELIERS: { [key: number]: string } = {
 }
 
 var TYPES_BIEN_SUPPORT = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 'Local']
+var LIBELLE_TYPE_BIEN_SUPPORT: { [key: string]: string } = { SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local' }
 var ETATS_CONFORMITE = ['Conforme', 'NonConforme', 'NonApplicable']
+var LIBELLE_ETAT_CONFORMITE: { [key: string]: string } = { Conforme: 'Conforme', NonConforme: 'Non conforme', NonApplicable: 'Non applicable' }
+
+var LIBELLE_STATUT_ATELIER: { [key: string]: string } = { Brouillon: 'Brouillon', EnCours: 'En cours', Validee: 'Validee' }
+function BadgeStatutAtelier(props: { statut: string }) {
+  var style = props.statut === 'Validee'
+    ? 'border-risk-low/30 bg-risk-low/10 text-risk-low'
+    : props.statut === 'EnCours'
+      ? 'border-signature/30 bg-signature/10 text-signature'
+      : 'border-paper-line bg-white text-steel'
+  return <span className={'rounded-sm border px-2 py-0.5 font-mono text-[10px] font-medium tracking-wide ' + style}>{LIBELLE_STATUT_ATELIER[props.statut] || props.statut}</span>
+}
 
 export default function AtelierPage() {
   var params = useParams()
@@ -372,7 +384,7 @@ export default function AtelierPage() {
       {estAtelier1 && (
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-paper-line pb-6">
-            <div className="font-mono text-[11px] text-steel">STATUT ACTUEL : <span className="font-medium text-ink">{etude.statut}</span></div>
+            <BadgeStatutAtelier statut={etude.statut} />
             <div className="flex gap-2">{boutonAction}</div>
           </div>
 
@@ -386,7 +398,7 @@ export default function AtelierPage() {
       {estAtelier2 && (
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-paper-line pb-6">
-            <div className="font-mono text-[11px] text-steel">STATUT ATELIER 2 : <span className="font-medium text-ink">{etude.statutAtelier2}</span></div>
+            <BadgeStatutAtelier statut={etude.statutAtelier2} />
             <div className="flex gap-2">{boutonActionAtelier2}</div>
           </div>
 
@@ -397,7 +409,7 @@ export default function AtelierPage() {
       {estAtelier3 && (
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-paper-line pb-6">
-            <div className="font-mono text-[11px] text-steel">STATUT ATELIER 3 : <span className="font-medium text-ink">{etude.statutAtelier3}</span></div>
+            <BadgeStatutAtelier statut={etude.statutAtelier3} />
             <div className="flex gap-2">{boutonActionAtelier3}</div>
           </div>
           <PartiesPrenantesSection etudeId={etudeId} parties={parties} onChange={charger} />
@@ -411,7 +423,7 @@ export default function AtelierPage() {
       {estAtelier4 && (
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-paper-line pb-6">
-            <div className="font-mono text-[11px] text-steel">STATUT ATELIER 4 : <span className="font-medium text-ink">{etude.statutAtelier4}</span></div>
+            <BadgeStatutAtelier statut={etude.statutAtelier4} />
             <div className="flex gap-2">{boutonActionAtelier4}</div>
           </div>
           <ScenariosOperationnelsSection etudeId={etudeId} scenarios={scenarios} couples={couples} chemins={cheminsAttaque} scenariosOperationnels={scenariosOperationnels} biens={biens} onChange={charger} />
@@ -421,7 +433,7 @@ export default function AtelierPage() {
       {estAtelier5 && (
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-paper-line pb-6">
-            <div className="font-mono text-[11px] text-steel">STATUT ATELIER 5 : <span className="font-medium text-ink">{etude.statutAtelier5}</span></div>
+            <BadgeStatutAtelier statut={etude.statutAtelier5} />
             <div className="flex gap-2">{boutonActionAtelier5}</div>
           </div>
           <ScenariosDeRisqueSection etudeId={etudeId} scenarios={scenarios} couples={couples} chemins={cheminsAttaque} scenariosOperationnels={scenariosOperationnels} scenariosDeRisque={scenariosDeRisque} onChange={charger} />
@@ -603,7 +615,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
                 <div key={b.id} className="flex items-center gap-2 py-2">
                   <input type="text" value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <select value={typeEdit} onChange={function (e) { setTypeEdit(e.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                    {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{t}</option> })}
+                    {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BIEN_SUPPORT[t]}</option> })}
                   </select>
                   <input type="text" value={entiteEdit} onChange={function (e) { setEntiteEdit(e.target.value) }} className="w-32 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <button onClick={function () { sauvegarderEdition(b.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
@@ -615,7 +627,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
               <div key={b.id} className="flex items-center justify-between py-3">
                 <span className="text-sm text-ink">{b.description}</span>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[11px] text-steel-light">{b.type} - {b.entiteProprietaire}</span>
+                  <span className="font-mono text-[11px] text-steel-light">{LIBELLE_TYPE_BIEN_SUPPORT[b.type] || b.type} - {b.entiteProprietaire}</span>
                   <button onClick={function () { ouvrirEdition(b) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
                   <button onClick={function () { supprimer(b.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
                 </div>
@@ -635,7 +647,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
               </select>
               <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <select value={type} onChange={function (e) { setType(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{t}</option> })}
+                {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BIEN_SUPPORT[t]}</option> })}
               </select>
               <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
@@ -906,7 +918,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                               <input type="text" value={nomRefEdit} onChange={function (ev) { setNomRefEdit(ev.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                               <div className="flex items-center gap-2">
                                 <select value={etatRefEdit} onChange={function (ev) { setEtatRefEdit(ev.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                                  {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{e}</option> })}
+                                  {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{LIBELLE_ETAT_CONFORMITE[e]}</option> })}
                                 </select>
                                 <input type="text" value={etatActuelRefEdit} onChange={function (ev) { setEtatActuelRefEdit(ev.target.value) }} placeholder="Etat actuel observe" className="flex-1 border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
                                 <button onClick={function () { sauvegarderEditionRef(r.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
@@ -923,7 +935,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                                 {r.nom}
                               </span>
                               <div className="flex shrink-0 items-center gap-3">
-                                <span className={'font-mono text-[11px] font-medium ' + couleur}>{r.etat.toUpperCase()}</span>
+                                <span className={'font-mono text-[11px] font-medium ' + couleur}>{(LIBELLE_ETAT_CONFORMITE[r.etat] || r.etat).toUpperCase()}</span>
                                 <button onClick={function () { ouvrirEditionRef(r) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
                                 <button onClick={function () { supprimerRef(r.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
                               </div>
@@ -974,7 +986,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                   )}
 
                   <select value={etat} onChange={function (e) { setEtat(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                    {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{e}</option> })}
+                    {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{LIBELLE_ETAT_CONFORMITE[e]}</option> })}
                   </select>
 
                   <textarea placeholder="Etat actuel observe (ex: Supports amovibles non chiffres)" value={etatActuel} onChange={function (e) { setEtatActuel(e.target.value) }} rows={2} className="mb-3 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
@@ -993,6 +1005,16 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
 
 var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeologique', 'OfficineSpecialisee', 'Amateur', 'Vengeur', 'MalveillantPathologique', 'Autre']
 var CATEGORIES_OV = ['EspionnageEtatiqueOuIndustriel', 'PrePositionnementStrategique', 'InfluenceDestabilisation', 'EntraveAuFonctionnement', 'SabotageDestruction', 'Lucratif', 'DefiAmusement', 'Autre']
+var LIBELLE_CATEGORIE_SR: { [key: string]: string } = {
+  Etatique: 'Etatique', CrimeOrganise: 'Crime organise', Terroriste: 'Terroriste',
+  ActivisteIdeologique: 'Activiste ideologique', OfficineSpecialisee: 'Officine specialisee',
+  Amateur: 'Amateur', Vengeur: 'Vengeur', MalveillantPathologique: 'Malveillant pathologique', Autre: 'Autre',
+}
+var LIBELLE_CATEGORIE_OV: { [key: string]: string } = {
+  EspionnageEtatiqueOuIndustriel: 'Espionnage etatique ou industriel', PrePositionnementStrategique: 'Pre-positionnement strategique',
+  InfluenceDestabilisation: 'Influence / destabilisation', EntraveAuFonctionnement: 'Entrave au fonctionnement',
+  SabotageDestruction: 'Sabotage / destruction', Lucratif: 'Lucratif', DefiAmusement: 'Defi / amusement', Autre: 'Autre',
+}
 var THEMES_SR_OV = ['Organisationnel', 'Personnes', 'Physique', 'Technologique']
 
 var CATEGORIES_PP = ['Client', 'Partenaire', 'Prestataire', 'Autre']
@@ -1050,7 +1072,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PARTIES PRENANTES IMPORTANTES ({props.parties.length})</h2>
-      <p className="mb-4 text-xs text-steel">Identifiez ici les parties prenantes de l ecosysteme, puis evaluez leur niveau de menace (dependance, penetration, maturite cyber, confiance) et proposez des mesures de securite ci-dessous.</p>
+      <p className="mb-4 text-xs text-steel">Identifiez les parties prenantes de l ecosysteme ; leur niveau de menace s evalue juste en dessous.</p>
       {props.parties.length === 0 ? (
         <p className="text-xs text-steel">Aucune partie prenante renseignee.</p>
       ) : (
@@ -1143,6 +1165,7 @@ var OPTIONS_PERTINENCE = [
   { value: 'PlutotPertinent', label: 'Plutot pertinent' },
   { value: 'TresPertinent', label: 'Tres pertinent' },
 ]
+var LIBELLE_PERTINENCE: { [key: string]: string } = { PeuPertinent: 'Peu pertinent', MoyennementPertinent: 'Moyennement pertinent', PlutotPertinent: 'Plutot pertinent', TresPertinent: 'Tres pertinent' }
 
 function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifVise; onChange: () => void }) {
   var c = props.couple
@@ -1177,11 +1200,11 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
     return (
       <div className="border-l-2 border-signature space-y-1.5 py-2.5 pl-3">
         <select value={sourceRisque} onChange={function (e) { setSourceRisque(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none">
-          {CATEGORIES_SR.map(function (cc) { return <option key={cc} value={cc}>{cc}</option> })}
+          {CATEGORIES_SR.map(function (cc) { return <option key={cc} value={cc}>{LIBELLE_CATEGORIE_SR[cc]}</option> })}
         </select>
         <input type="text" value={descSr} onChange={function (e) { setDescSr(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
         <select value={objectifVise} onChange={function (e) { setObjectifVise(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none">
-          {CATEGORIES_OV.map(function (cc) { return <option key={cc} value={cc}>{cc}</option> })}
+          {CATEGORIES_OV.map(function (cc) { return <option key={cc} value={cc}>{LIBELLE_CATEGORIE_OV[cc]}</option> })}
         </select>
         <input type="text" value={descOv} onChange={function (e) { setDescOv(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
         <textarea value={contexte} onChange={function (e) { setContexte(e.target.value) }} rows={2} className="w-full resize-none border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
@@ -1209,9 +1232,9 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
   return (
     <div className="py-2.5">
       <div className="flex items-center justify-between gap-6">
-        <span className="text-sm text-ink">{c.sourceRisque === 'Autre' ? c.descriptionSourceRisque : c.sourceRisque} -- {c.objectifVise === 'Autre' ? c.descriptionObjectifVise : c.objectifVise}</span>
+        <span className="text-sm text-ink">{libelleCouple(c)}</span>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={'font-mono text-[11px] font-medium ' + couleurPertinence(c.pertinence)}>{c.pertinence}</span>
+          <span className={'font-mono text-[11px] font-medium ' + couleurPertinence(c.pertinence)}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</span>
           <button onClick={function () { setEdition(true) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
           <button onClick={supprimer} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
         </div>
@@ -1297,11 +1320,11 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
           return (
             <div>
               <select value={sourceRisque} onChange={function (e) { setSourceRisque(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+                {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{LIBELLE_CATEGORIE_SR[c]}</option> })}
               </select>
               <input type="text" placeholder={sourceRisque === 'Autre' ? 'Precisez la categorie de source de risque' : 'Description de la source de risque'} value={descSr} onChange={function (e) { setDescSr(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (sourceRisque === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
               <select value={objectifVise} onChange={function (e) { setObjectifVise(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+                {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{LIBELLE_CATEGORIE_OV[c]}</option> })}
               </select>
               <input type="text" placeholder={objectifVise === 'Autre' ? 'Precisez la categorie d objectif vise' : 'Description de l objectif vise'} value={descOv} onChange={function (e) { setDescOv(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (objectifVise === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
               <textarea placeholder="Contexte / vulnerabilite associee" value={contexte} onChange={function (e) { setContexte(e.target.value) }} rows={2} className="mb-2 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
@@ -1385,7 +1408,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE DE LA DANGEROSITE DE L ECOSYSTEME</h2>
-      <p className="mb-4 text-xs text-steel">Niveau de dangerosite = (Dependance x Penetration) / (Maturite cyber x Confiance) -- formule officielle EBIOS Risk Manager, calculee automatiquement. Les parties prenantes en zone de controle ou de danger sont dites <span className="font-medium text-ink">critiques</span> : elles definissent le perimetre reel de l analyse et doivent etre prises en compte dans les scenarios strategiques.</p>
+      <p className="mb-4 text-xs text-steel">Niveau = (Dependance x Penetration) / (Maturite cyber x Confiance), calcule automatiquement. En zone de controle ou de danger, une partie est dite <span className="font-medium text-ink">critique</span>.</p>
       {props.parties.length === 0 ? (
         <p className="mb-8 text-xs text-steel">Aucune partie prenante renseignee ci-dessus pour l instant.</p>
       ) : (
@@ -1505,10 +1528,7 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
   return (
     <div className="py-2.5">
       <div className="flex items-center justify-between gap-6">
-        <div>
-          <div className="text-sm text-ink">{p.nom}</div>
-          <div className="mt-0.5 font-mono text-[10px] tracking-wide text-steel-light">{p.categorie === 'Autre' ? p.descriptionCategorie : p.categorie} -- {p.representant}</div>
-        </div>
+        <div className="text-sm text-ink">{p.nom}</div>
         <div className="flex shrink-0 items-center gap-3">
           <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone || '')}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</span>
           <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>
@@ -1537,7 +1557,7 @@ function MesuresEcosystemeSection(props: { etudeId: string; parties: PartiePrena
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">MESURES DE SECURITE SUR L ECOSYSTEME</h2>
-      <p className="mb-4 text-xs text-steel">Pour chaque partie prenante critique, proposez des mesures de reduction du risque (reduire la dangerosite induite, ou agir sur le deroulement des scenarios strategiques), puis reevaluez la dangerosite residuelle apres application des mesures.</p>
+      <p className="mb-4 text-xs text-steel">Proposez des mesures pour chaque partie critique, puis reevaluez sa dangerosite residuelle.</p>
       {critiques.length === 0 ? (
         <p className="text-xs text-steel">Aucune partie prenante critique (zone de controle ou de danger) -- rien a traiter ici pour l instant.</p>
       ) : (
@@ -1593,11 +1613,10 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
   return (
     <div className="border border-paper-line p-4">
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{p.nom}</span>
         <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone || '')}>{libelleZone(p.zone || '')}</span>
       </div>
-      <div className="mb-3 font-mono text-[10px] tracking-wide text-steel-light">{p.categorie === 'Autre' ? p.descriptionCategorie : p.categorie} -- {p.representant}</div>
 
       <div className="mb-3 flex items-center gap-4 border-y border-paper-line py-2">
         <div>
@@ -1701,8 +1720,8 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 }
 
 function libelleCouple(c: CoupleSourceRisqueObjectifVise) {
-  var sr = c.sourceRisque === 'Autre' ? c.descriptionSourceRisque : c.sourceRisque
-  var ov = c.objectifVise === 'Autre' ? c.descriptionObjectifVise : c.objectifVise
+  var sr = c.sourceRisque === 'Autre' ? c.descriptionSourceRisque : (LIBELLE_CATEGORIE_SR[c.sourceRisque] || c.sourceRisque)
+  var ov = c.objectifVise === 'Autre' ? c.descriptionObjectifVise : (LIBELLE_CATEGORIE_OV[c.objectifVise] || c.objectifVise)
   return sr + ' -- ' + ov
 }
 
@@ -1794,7 +1813,7 @@ function ScenariosStrategiquesSection(props: {
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS STRATEGIQUES ({props.scenarios.length})</h2>
-      <p className="mb-4 text-xs text-steel">1 couple SR/OV retenu =&gt; 1 scenario stratégique. Chaque scenario cible un evenement redoute (Atelier 1) dont il herite la gravite -- identique pour le scenario et tous ses chemins d attaque.</p>
+      <p className="mb-4 text-xs text-steel">Chaque couple retenu donne un scenario stratégique, cible sur un evenement redoute dont il herite la gravite.</p>
 
       {props.scenarios.length === 0 ? (
         <p className="text-xs text-steel">Aucun scenario strategique cree.</p>
@@ -1851,7 +1870,7 @@ function ScenariosStrategiquesSection(props: {
                 return (
                   <li key={c.id} className="flex items-center justify-between gap-4 font-mono text-[11px] text-steel">
                     <span>{libelleCouple(c)}</span>
-                    <span className={couleurPertinence(c.pertinence)}>{OPTIONS_PERTINENCE.filter(function (o) { return o.value === c.pertinence })[0]?.label || c.pertinence}</span>
+                    <span className={couleurPertinence(c.pertinence)}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</span>
                   </li>
                 )
               })}
@@ -1906,7 +1925,7 @@ function CheminsAttaqueSection(props: {
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CHEMINS D ATTAQUE ({props.chemins.length})</h2>
-      <p className="mb-4 text-xs text-steel">1 scenario stratégique =&gt; plusieurs chemins d attaque. Un chemin d attaque est un sequencement d actions/effets que la source de risque devra probablement generer pour atteindre son objectif -- il peut etre direct (0 partie prenante traversee) ou passer par une ou plusieurs parties prenantes de l ecosysteme, chaque franchissement generant un evenement intermediaire.</p>
+      <p className="mb-4 text-xs text-steel">Un chemin d attaque decrit comment la source de risque atteint son objectif -- direct, ou via une ou plusieurs parties prenantes de l ecosysteme.</p>
       {props.scenarios.length === 0 ? (
         <p className="text-xs text-steel">Aucun scenario stratégique -- creez-en un ci-dessus avant d ajouter des chemins d attaque.</p>
       ) : (
@@ -2158,7 +2177,7 @@ function ScenariosOperationnelsSection(props: {
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS OPERATIONNELS ({props.scenariosOperationnels.length})</h2>
-      <p className="mb-4 text-xs text-steel">1 chemin d attaque stratégique =&gt; 1 scenario operationnel decrivant eventuellement plusieurs modes operatoires techniques (sequence CONNAITRE / RENTRER / TROUVER / EXPLOITER). La vraisemblance globale du scenario est la plus vraisemblable de ses modes operatoires.</p>
+      <p className="mb-4 text-xs text-steel">Chaque chemin d attaque a un scenario operationnel, decrit par un ou plusieurs modes operatoires (Connaitre / Rentrer / Trouver / Exploiter).</p>
       {props.scenarios.length === 0 ? (
         <p className="text-xs text-steel">Aucun scenario stratégique -- rien a traiter ici pour l instant.</p>
       ) : (
@@ -2481,7 +2500,7 @@ export function ScenariosDeRisqueSection(props: {
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS DE RISQUE ({props.scenariosDeRisque.length})</h2>
-      <p className="mb-4 text-xs text-steel">1 scenario de risque = 1 chemin d attaque + son scenario operationnel. Le niveau initial est integralement derive (Gravite x Vraisemblance), le residuel exige une nouvelle evaluation apres application du plan de traitement.</p>
+      <p className="mb-4 text-xs text-steel">Le niveau initial se deduit automatiquement (Gravite x Vraisemblance) ; le residuel s evalue apres application du plan de traitement.</p>
       {props.scenarios.length === 0 ? (
         <p className="text-xs text-steel">Aucun scenario stratégique -- rien a traiter ici pour l instant.</p>
       ) : (

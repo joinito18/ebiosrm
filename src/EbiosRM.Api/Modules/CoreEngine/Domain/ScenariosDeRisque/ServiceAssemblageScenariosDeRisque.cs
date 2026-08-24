@@ -91,8 +91,8 @@ public sealed class ServiceAssemblageScenariosDeRisque
                     gravite = er.Gravite;
                 if (couples.TryGetValue(scenarioStrat.CoupleSourceRisqueObjectifViseId, out var couple))
                 {
-                    var sr = couple.SourceRisque == CategorieSourceRisque.Autre ? couple.DescriptionSourceRisque : couple.SourceRisque.ToString();
-                    var ov = couple.ObjectifVise == CategorieObjectifVise.Autre ? couple.DescriptionObjectifVise : couple.ObjectifVise.ToString();
+                    var sr = couple.SourceRisque == CategorieSourceRisque.Autre ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque.ToString());
+                    var ov = couple.ObjectifVise == CategorieObjectifVise.Autre ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise.ToString());
                     libelleCouple = sr + " -- " + ov;
                 }
             }
