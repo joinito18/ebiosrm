@@ -54,4 +54,4 @@ PYEOF
 }
 
 render artifact-diagrammes-uml.html ../EBIOS-RM-diagrammes-UML.pdf "A3 landscape"
-render artifact-explique-simplement.html ../EBIOS-RM-explique-simplement.pdf "A4"
+render artifact-notice-technique.html ../EBIOS-RM-notice-technique.pdf "A4"

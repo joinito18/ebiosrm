@@ -99,18 +99,6 @@ export default function Sidebar() {
           <NavItem to="/parametres" icon={Settings}>Parametres</NavItem>
         </nav>
       </div>
-
-      <div className="border-t border-ink-line px-5 py-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 font-mono text-[10px] text-white">
-            AR
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-xs font-medium text-white">Analyste de risques</div>
-            <div className="truncate font-mono text-[10px] text-steel-light">CENADI</div>
-          </div>
-        </div>
-      </div>
     </aside>
   )
 }
