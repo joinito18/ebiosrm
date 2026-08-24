@@ -95,7 +95,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         else
                         {
                             var pctConforme = 100.0 * socle.NombreConforme / totalControles;
-                            c.Item().PaddingTop(6).Row(row =>
+                            c.Item().PaddingTop(6).ShowEntire().Row(row =>
                             {
                                 row.ConstantItem(100).Height(100).Svg(AnneauMultiSegments(
                                     new List<(double, string)>
@@ -171,33 +171,29 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         }
                         else
                         {
-                            var initiaux = data.ScenariosDeRisque.Where(s => s.NiveauRisqueInitial != null).GroupBy(s => s.NiveauRisqueInitial!).ToDictionary(g => g.Key, g => g.Count());
-                            var residuels = data.ScenariosDeRisque.Where(s => s.NiveauRisqueResiduel != null).GroupBy(s => s.NiveauRisqueResiduel!).ToDictionary(g => g.Key, g => g.Count());
-                            List<(double, string)> SegmentsNiveau(Dictionary<string, int> parNiveau) => new()
+                            var codes = data.ScenariosDeRisque.Select((s, i) => (Scenario: s, Code: "R" + (i + 1))).ToList();
+
+                            c.Item().PaddingTop(8).ShowEntire().Row(row =>
                             {
-                                (parNiveau.GetValueOrDefault("Faible"), VertConforme),
-                                (parNiveau.GetValueOrDefault("Moyen"), OrangeAlerte),
-                                (parNiveau.GetValueOrDefault("Eleve"), RougeAlerte),
-                            };
-                            c.Item().PaddingTop(6).Row(row =>
-                            {
-                                row.ConstantItem(140).Column(cc =>
-                                {
-                                    cc.Item().AlignCenter().Text("Niveau initial").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(90).Height(90).Svg(AnneauMultiSegments(SegmentsNiveau(initiaux), initiaux.Values.Sum().ToString())).FitWidth();
-                                });
-                                row.ConstantItem(140).Column(cc =>
-                                {
-                                    cc.Item().AlignCenter().Text("Niveau residuel").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(90).Height(90).Svg(AnneauMultiSegments(SegmentsNiveau(residuels), residuels.Values.Sum().ToString())).FitWidth();
-                                });
-                                row.ConstantItem(110).Column(cc =>
-                                {
-                                    cc.Item().Row(r => Legende(r, VertConforme, "Faible"));
-                                    cc.Item().PaddingTop(3).Row(r => Legende(r, OrangeAlerte, "Moyen"));
-                                    cc.Item().PaddingTop(3).Row(r => Legende(r, RougeAlerte, "Eleve"));
-                                });
+                                row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque initial", codes,
+                                    x => x.Gravite, x => VraisemblanceVersIndex(x.VraisemblanceInitiale)));
+                                row.ConstantItem(36).AlignMiddle().AlignCenter().Text("->").FontFamily(SerifTitreSemiBold).FontSize(20).FontColor(BleuFrance);
+                                row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque residuel", codes,
+                                    x => x.GraviteResiduelle ?? 0, x => VraisemblanceVersIndex(x.VraisemblanceResiduelle)));
                             });
+
+                            c.Item().PaddingTop(10).Column(cc =>
+                            {
+                                foreach (var (scenario, code) in codes)
+                                {
+                                    cc.Item().PaddingTop(1.5f).Text(t =>
+                                    {
+                                        t.Span(code + " -- ").FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance);
+                                        t.Span(scenario.LibelleCouple + " -- " + scenario.LibelleChemin).FontSize(7.5f).FontColor(GrisTexte);
+                                    });
+                                }
+                            });
+
                             c.Item().PaddingTop(10).Table(table =>
                             {
                                 table.ColumnsDefinition(cd =>
@@ -250,7 +246,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         {
                             var termine = data.AvancementPlanParStatut.GetValueOrDefault("Termine", 0);
                             var pctTermine = 100.0 * termine / data.Mesures.Count;
-                            c.Item().PaddingTop(6).Row(row =>
+                            c.Item().PaddingTop(6).ShowEntire().Row(row =>
                             {
                                 row.ConstantItem(90).Height(90).Svg(AnneauSimple(pctTermine, VertConforme, pctTermine.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
                                 row.RelativeItem().PaddingLeft(16).AlignMiddle().Row(rr =>
@@ -329,6 +325,68 @@ public sealed class RapportSyntheseGlobalePdfGenerator
         "Faible" => VertConforme,
         _ => GrisTexte,
     };
+
+    // Grille officielle Gravite x Vraisemblance (identique a ServiceCalculNiveauRisque.cs
+    // et a la table "Grille de determination du niveau de risque" ci-dessus).
+    // MatriceNiveaux[gravite-1][vraisemblance-1].
+    private static readonly string[][] MatriceNiveaux =
+    {
+        new[] { "Faible", "Faible", "Moyen", "Moyen" },
+        new[] { "Faible", "Faible", "Moyen", "Eleve" },
+        new[] { "Faible", "Moyen", "Eleve", "Eleve" },
+        new[] { "Faible", "Moyen", "Eleve", "Eleve" },
+    };
+
+    private static int VraisemblanceVersIndex(string? v) => v switch { "V1" => 1, "V2" => 2, "V3" => 3, "V4" => 4, _ => 0 };
+
+    /// <summary>
+    /// Reproduit la cartographie officielle EBIOS RM (cf. Atelier 5, "Gerer les
+    /// risques residuels") : une grille Gravite x Vraisemblance a 4x4 cases
+    /// colorees, chaque scenario etant place dans la case correspondant a ses
+    /// coordonnees reelles -- pas un graphique generique, la representation
+    /// exacte que la methode recommande.
+    /// </summary>
+    private static void GrilleCartographie(IContainer container, string titre, List<(ScenarioDeRisqueData Scenario, string Code)> codes, Func<ScenarioDeRisqueData, int> graviteFn, Func<ScenarioDeRisqueData, int> vraisemblanceIndexFn)
+    {
+        container.Column(col =>
+        {
+            col.Item().AlignCenter().Text(titre).FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+            col.Item().PaddingTop(6).Row(row =>
+            {
+                row.ConstantItem(14).Column(cc =>
+                {
+                    cc.Item().Height(16);
+                    for (var gravite = 4; gravite >= 1; gravite--)
+                        cc.Item().Height(34).AlignMiddle().AlignCenter().Text(gravite.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
+                });
+                row.AutoItem().Column(cc =>
+                {
+                    cc.Item().Height(16).AlignCenter().Text("GRAVITE").FontFamily(MonoMedium).FontSize(6).FontColor(BleuFrance).LetterSpacing(0.03f);
+                    for (var gravite = 4; gravite >= 1; gravite--)
+                    {
+                        var g = gravite;
+                        cc.Item().Row(ligne =>
+                        {
+                            for (var vrai = 1; vrai <= 4; vrai++)
+                            {
+                                var v = vrai;
+                                var niveau = MatriceNiveaux[g - 1][v - 1];
+                                var codesCellule = codes.Where(x => graviteFn(x.Scenario) == g && vraisemblanceIndexFn(x.Scenario) == v).Select(x => x.Code).ToList();
+                                ligne.ConstantItem(34).Height(34).Border(0.7f).BorderColor(Colors.White).Background(CouleurNiveau(niveau))
+                                    .AlignMiddle().AlignCenter().Text(string.Join(" ", codesCellule)).FontFamily(SansSemiBold).FontSize(6.5f).FontColor(Colors.White);
+                            }
+                        });
+                    }
+                    cc.Item().Row(ligne =>
+                    {
+                        for (var vrai = 1; vrai <= 4; vrai++)
+                            ligne.ConstantItem(34).AlignCenter().PaddingTop(2).Text(vrai.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
+                    });
+                    cc.Item().AlignCenter().Text("VRAISEMBLANCE").FontFamily(MonoMedium).FontSize(6).FontColor(BleuFrance).LetterSpacing(0.03f);
+                });
+            });
+        });
+    }
 
     private static string LibelleClasse(string? classe) => classe switch
     {
