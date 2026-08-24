@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -83,6 +85,57 @@ public sealed class RapportSyntheseGlobalePdfGenerator
 
                     col.Item().Column(c =>
                     {
+                        SectionTitre(c, "Socle de securite -- conformite ISO/IEC 27001:2022");
+                        var socle = data.ConformiteSocle;
+                        var totalControles = socle.NombreConforme + socle.NombreNonConforme + socle.NombreNonApplicable;
+                        if (totalControles == 0)
+                        {
+                            c.Item().PaddingTop(4).Text("Aucun controle renseigne dans le socle de securite.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                        }
+                        else
+                        {
+                            var pctConforme = 100.0 * socle.NombreConforme / totalControles;
+                            c.Item().PaddingTop(6).Row(row =>
+                            {
+                                row.ConstantItem(100).Height(100).Svg(AnneauMultiSegments(
+                                    new List<(double, string)>
+                                    {
+                                        (socle.NombreConforme, VertConforme),
+                                        (socle.NombreNonConforme, RougeAlerte),
+                                        (socle.NombreNonApplicable, GrisLigne),
+                                    },
+                                    pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
+                                row.RelativeItem().PaddingLeft(16).Column(cc =>
+                                {
+                                    cc.Item().Row(r => Legende(r, VertConforme, socle.NombreConforme + " conforme(s)"));
+                                    cc.Item().PaddingTop(3).Row(r => Legende(r, RougeAlerte, socle.NombreNonConforme + " non conforme(s)"));
+                                    cc.Item().PaddingTop(3).Row(r => Legende(r, GrisLigne, socle.NombreNonApplicable + " non applicable(s)"));
+                                    cc.Item().PaddingTop(3).Text(totalControles + " controle(s) evalue(s) au total.").FontSize(7.5f).FontColor(GrisTexte);
+                                });
+                            });
+                            if (socle.ControlesNonConformes.Count > 0)
+                            {
+                                c.Item().PaddingTop(10).Text("Controles non conformes a traiter en priorite :").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                c.Item().PaddingTop(3).Column(cc =>
+                                {
+                                    foreach (var ctrl in socle.ControlesNonConformes)
+                                    {
+                                        cc.Item().PaddingTop(2).Text(t =>
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(ctrl.CodeControle))
+                                                t.Span(ctrl.CodeControle + " -- ").FontFamily(Mono).FontSize(7.5f).FontColor(RougeAlerte);
+                                            t.Span(ctrl.Nom).FontSize(8).FontColor(GrisTexte);
+                                            if (!string.IsNullOrWhiteSpace(ctrl.EtatActuel))
+                                                t.Span("  (" + ctrl.EtatActuel + ")").FontSize(7.5f).Italic().FontColor(GrisTexte);
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                    });
+
+                    col.Item().Column(c =>
+                    {
                         SectionTitre(c, "Grille de determination du niveau de risque");
                         c.Item().PaddingTop(4).Text("Croisement Gravite (evenement redoute vise) x Vraisemblance (scenario operationnel), seuils par defaut du projet ajustables. La cartographie ci-dessous indique, pour chaque scenario, le calcul exact qui a produit son niveau.").FontSize(8).Italic().FontColor(GrisTexte);
                         c.Item().PaddingTop(6).Table(table =>
@@ -118,7 +171,34 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         }
                         else
                         {
-                            c.Item().PaddingTop(6).Table(table =>
+                            var initiaux = data.ScenariosDeRisque.Where(s => s.NiveauRisqueInitial != null).GroupBy(s => s.NiveauRisqueInitial!).ToDictionary(g => g.Key, g => g.Count());
+                            var residuels = data.ScenariosDeRisque.Where(s => s.NiveauRisqueResiduel != null).GroupBy(s => s.NiveauRisqueResiduel!).ToDictionary(g => g.Key, g => g.Count());
+                            List<(double, string)> SegmentsNiveau(Dictionary<string, int> parNiveau) => new()
+                            {
+                                (parNiveau.GetValueOrDefault("Faible"), VertConforme),
+                                (parNiveau.GetValueOrDefault("Moyen"), OrangeAlerte),
+                                (parNiveau.GetValueOrDefault("Eleve"), RougeAlerte),
+                            };
+                            c.Item().PaddingTop(6).Row(row =>
+                            {
+                                row.ConstantItem(140).Column(cc =>
+                                {
+                                    cc.Item().AlignCenter().Text("Niveau initial").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(90).Height(90).Svg(AnneauMultiSegments(SegmentsNiveau(initiaux), initiaux.Values.Sum().ToString())).FitWidth();
+                                });
+                                row.ConstantItem(140).Column(cc =>
+                                {
+                                    cc.Item().AlignCenter().Text("Niveau residuel").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(90).Height(90).Svg(AnneauMultiSegments(SegmentsNiveau(residuels), residuels.Values.Sum().ToString())).FitWidth();
+                                });
+                                row.ConstantItem(110).Column(cc =>
+                                {
+                                    cc.Item().Row(r => Legende(r, VertConforme, "Faible"));
+                                    cc.Item().PaddingTop(3).Row(r => Legende(r, OrangeAlerte, "Moyen"));
+                                    cc.Item().PaddingTop(3).Row(r => Legende(r, RougeAlerte, "Eleve"));
+                                });
+                            });
+                            c.Item().PaddingTop(10).Table(table =>
                             {
                                 table.ColumnsDefinition(cd =>
                                 {
@@ -168,10 +248,16 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         }
                         else
                         {
+                            var termine = data.AvancementPlanParStatut.GetValueOrDefault("Termine", 0);
+                            var pctTermine = 100.0 * termine / data.Mesures.Count;
                             c.Item().PaddingTop(6).Row(row =>
                             {
-                                foreach (var statut in new[] { "ALancer", "EnCours", "Termine" })
-                                    Chiffre(row, data.AvancementPlanParStatut.GetValueOrDefault(statut, 0), LibelleStatut(statut));
+                                row.ConstantItem(90).Height(90).Svg(AnneauSimple(pctTermine, VertConforme, pctTermine.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
+                                row.RelativeItem().PaddingLeft(16).AlignMiddle().Row(rr =>
+                                {
+                                    foreach (var statut in new[] { "ALancer", "EnCours", "Termine" })
+                                        Chiffre(rr, data.AvancementPlanParStatut.GetValueOrDefault(statut, 0), LibelleStatut(statut));
+                                });
                             });
                         }
                     });
@@ -251,6 +337,67 @@ public sealed class RapportSyntheseGlobalePdfGenerator
         "Inacceptable" => "Inacceptable",
         _ => "--",
     };
+
+    /// <summary>
+    /// Anneau de progression a un seul segment (ex: pourcentage de conformite
+    /// globale, pourcentage de mesures terminees). Rendu en SVG -- QuestPDF
+    /// n'a pas de composant "gauge" natif, mais supporte l'embarquement SVG.
+    /// </summary>
+    private static string AnneauSimple(double pourcentage, string couleur, string labelCentre)
+    {
+        return AnneauMultiSegments(new List<(double, string)> { (pourcentage, couleur), (100 - pourcentage, "#EDEDED") }, labelCentre);
+    }
+
+    /// <summary>
+    /// Anneau de repartition a plusieurs segments (ex: Conforme/Non conforme/
+    /// Non applicable, ou Faible/Moyen/Eleve). Chaque segment est un arc de
+    /// cercle SVG construit via stroke-dasharray/stroke-dashoffset -- technique
+    /// standard pour un donut chart sans dependance a une lib de graphiques.
+    /// </summary>
+    private static string AnneauMultiSegments(List<(double Part, string Couleur)> segments, string labelCentre)
+    {
+        const double rayon = 50;
+        const double centre = 60;
+        const double epaisseur = 15;
+        var circonference = 2 * Math.PI * rayon;
+        var total = segments.Sum(s => s.Part);
+
+        var sb = new StringBuilder();
+        sb.Append("<svg viewBox=\"0 0 120 120\" xmlns=\"http://www.w3.org/2000/svg\">");
+        sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"none\" stroke=\"#EDEDED\" stroke-width=\"{epaisseur}\" />"));
+
+        if (total > 0)
+        {
+            var cumule = 0.0;
+            foreach (var (part, couleur) in segments)
+            {
+                if (part <= 0) continue;
+                var fraction = part / total;
+                var longueurArc = fraction * circonference;
+                var vide = circonference - longueurArc;
+                var decalage = -(cumule / total) * circonference;
+                sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"none\" stroke=\"{couleur}\" stroke-width=\"{epaisseur}\" stroke-dasharray=\"{longueurArc.ToString("F2", CultureInfo.InvariantCulture)} {vide.ToString("F2", CultureInfo.InvariantCulture)}\" stroke-dashoffset=\"{decalage.ToString("F2", CultureInfo.InvariantCulture)}\" transform=\"rotate(-90 {centre} {centre})\" />"));
+                cumule += part;
+            }
+        }
+
+        sb.Append(FormattableString.Invariant($"<text x=\"{centre}\" y=\"{centre + 7}\" text-anchor=\"middle\" font-size=\"26\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"#161616\">{System.Security.SecurityElement.Escape(labelCentre)}</text>"));
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
+    private static void Legende(QuestPDF.Fluent.RowDescriptor row, string couleur, string libelle)
+    {
+        row.AutoItem().Column(c =>
+        {
+            c.Item().Row(r =>
+            {
+                r.ConstantItem(8).Height(8).Background(couleur);
+                r.ConstantItem(5);
+                r.AutoItem().Text(libelle).FontSize(7.5f).FontColor(GrisTexte);
+            });
+        });
+    }
 
     private static void SectionTitre(QuestPDF.Fluent.ColumnDescriptor col, string texte)
     {
