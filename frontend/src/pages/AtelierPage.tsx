@@ -390,7 +390,6 @@ export default function AtelierPage() {
             <div className="flex gap-2">{boutonActionAtelier2}</div>
           </div>
 
-          <PartiesPrenantesSection etudeId={etudeId} parties={parties} onChange={charger} />
           <CouplesSrOvSection etudeId={etudeId} couples={couples} onChange={charger} />
         </div>
       )}
@@ -401,6 +400,7 @@ export default function AtelierPage() {
             <div className="font-mono text-[11px] text-steel">STATUT ATELIER 3 : <span className="font-medium text-ink">{etude.statutAtelier3}</span></div>
             <div className="flex gap-2">{boutonActionAtelier3}</div>
           </div>
+          <PartiesPrenantesSection etudeId={etudeId} parties={parties} onChange={charger} />
           <EvaluationDangerositeSection etudeId={etudeId} parties={parties} onChange={charger} />
           <MesuresEcosystemeSection etudeId={etudeId} parties={parties} onChange={charger} />
           <ScenariosStrategiquesSection etudeId={etudeId} couples={couples} scenarios={scenarios} evenements={evenements} valeurs={valeurs} onChange={charger} />
@@ -539,6 +539,13 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
 
+  useEffect(function () {
+    if (props.valeurs.length === 0) return
+    if (!props.valeurs.some(function (v) { return v.id === valeurMetierId })) {
+      setValeurMetierId(props.valeurs[0].id)
+    }
+  }, [props.valeurs])
+
   function soumettre(fermer: () => void) {
     if (!valeurMetierId || !description.trim() || !entite.trim()) {
       setErreur('Valeur metier, description et entite proprietaire obligatoires.')
@@ -647,6 +654,13 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
   var [gravite, setGravite] = useState('1')
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
+
+  useEffect(function () {
+    if (props.valeurs.length === 0) return
+    if (!props.valeurs.some(function (v) { return v.id === valeurMetierId })) {
+      setValeurMetierId(props.valeurs[0].id)
+    }
+  }, [props.valeurs])
 
   function soumettre(fermer: () => void) {
     if (!valeurMetierId || !description.trim()) {
@@ -1036,6 +1050,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
   return (
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PARTIES PRENANTES IMPORTANTES ({props.parties.length})</h2>
+      <p className="mb-4 text-xs text-steel">Identifiez ici les parties prenantes de l ecosysteme, puis evaluez leur niveau de menace (dependance, penetration, maturite cyber, confiance) et proposez des mesures de securite ci-dessous.</p>
       {props.parties.length === 0 ? (
         <p className="text-xs text-steel">Aucune partie prenante renseignee.</p>
       ) : (
@@ -1364,97 +1379,63 @@ function ChampEchelleDangerosite(props: { label: string; critere: string; valeur
 }
 
 function EvaluationDangerositeSection(props: { etudeId: string; parties: PartiePrenante[]; onChange: () => void }) {
-  var [idEnEdition, setIdEnEdition] = useState('')
-  var [dependance, setDependance] = useState('2')
-  var [penetration, setPenetration] = useState('2')
-  var [maturiteCyber, setMaturiteCyber] = useState('2')
-  var [confiance, setConfiance] = useState('2')
-  var [erreur, setErreur] = useState('')
-  var [enCours, setEnCours] = useState(false)
-
-  function ouvrirEvaluation(p: PartiePrenante) {
-    setIdEnEdition(p.id)
-    setDependance(String(p.dependance || 2))
-    setPenetration(String(p.penetration || 2))
-    setMaturiteCyber(String(p.maturiteCyber || 2))
-    setConfiance(String(p.confiance || 2))
-    setErreur('')
-  }
-
-  function soumettre(id: string) {
-    setEnCours(true)
-    setErreur('')
-    evaluerDangerosite(props.etudeId, id, Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))
-      .then(function () { setIdEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
-      .finally(function () { setEnCours(false) })
-  }
 
   var critiques = props.parties.filter(function (p) { return p.zone === 'Danger' || p.zone === 'Controle' })
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVALUATION DE LA DANGEROSITE PAR PARTIE PRENANTE ({props.parties.length})</h2>
-      <p className="mb-4 text-xs text-steel">Niveau de dangerosite = (Dependance x Penetration) / (Maturite cyber x Confiance). Les parties prenantes en zone de controle ou de danger sont dites <span className="font-medium text-ink">critiques</span> : elles definissent le perimetre reel de l analyse et doivent etre prises en compte dans les scenarios strategiques.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE DE LA DANGEROSITE DE L ECOSYSTEME</h2>
+      <p className="mb-4 text-xs text-steel">Niveau de dangerosite = (Dependance x Penetration) / (Maturite cyber x Confiance) -- formule officielle EBIOS Risk Manager, calculee automatiquement. Les parties prenantes en zone de controle ou de danger sont dites <span className="font-medium text-ink">critiques</span> : elles definissent le perimetre reel de l analyse et doivent etre prises en compte dans les scenarios strategiques.</p>
       {props.parties.length === 0 ? (
-        <p className="text-xs text-steel">Aucune partie prenante renseignee (a ajouter depuis l Atelier 2).</p>
+        <p className="mb-8 text-xs text-steel">Aucune partie prenante renseignee ci-dessus pour l instant.</p>
+      ) : (
+        <div className="mb-8 overflow-x-auto">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-paper-line text-left font-mono text-[9px] tracking-wide text-steel-light">
+                <th className="py-1.5 pr-2 font-medium">PARTIE PRENANTE</th>
+                <th className="py-1.5 pr-2 font-medium">CATEGORIE</th>
+                <th className="py-1.5 pr-2 font-medium">REPRESENTANT</th>
+                <th className="py-1.5 pr-2 text-center font-medium">DEP.</th>
+                <th className="py-1.5 pr-2 text-center font-medium">PEN.</th>
+                <th className="py-1.5 pr-2 text-center font-medium">MAT.</th>
+                <th className="py-1.5 pr-2 text-center font-medium">CONF.</th>
+                <th className="py-1.5 font-medium">NIVEAU / ZONE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {props.parties.map(function (p) {
+                return (
+                  <tr key={p.id} className="border-b border-paper-line/60">
+                    <td className="py-1.5 pr-2 text-ink">{p.nom}</td>
+                    <td className="py-1.5 pr-2 text-steel">{libelleCategoriePP(p)}</td>
+                    <td className="py-1.5 pr-2 text-steel">{p.representant}</td>
+                    <td className="py-1.5 pr-2 text-center font-mono text-steel">{p.dependance ?? '--'}</td>
+                    <td className="py-1.5 pr-2 text-center font-mono text-steel">{p.penetration ?? '--'}</td>
+                    <td className="py-1.5 pr-2 text-center font-mono text-steel">{p.maturiteCyber ?? '--'}</td>
+                    <td className="py-1.5 pr-2 text-center font-mono text-steel">{p.confiance ?? '--'}</td>
+                    <td className="py-1.5">
+                      {p.niveauDangerosite != null && p.zone ? (
+                        <span className={'font-mono font-medium ' + couleurZone(p.zone)}>{libelleZone(p.zone)} ({p.niveauDangerosite})</span>
+                      ) : (
+                        <span className="font-mono text-steel-light">Non evaluee</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <h3 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVALUATION PAR PARTIE PRENANTE ({props.parties.length})</h3>
+      {props.parties.length === 0 ? (
+        <p className="text-xs text-steel">Aucune partie prenante renseignee ci-dessus pour l instant.</p>
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.parties.map(function (p) {
-            if (idEnEdition === p.id) {
-              return (
-                <div key={p.id} className="space-y-2 py-3">
-                  <div className="text-sm text-ink">{p.nom}</div>
-                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                    <ChampEchelleDangerosite label="DEPENDANCE" critere="dependance" valeur={dependance} onChange={setDependance} />
-                    <ChampEchelleDangerosite label="PENETRATION" critere="penetration" valeur={penetration} onChange={setPenetration} />
-                    <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
-                    <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
-                  </div>
-                  <div className="font-mono text-[11px] text-steel-light">
-                    Apercu : <span className={'font-medium ' + couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))}>
-                      {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
-                    </span>
-                  </div>
-                  {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
-                  <div className="flex gap-3">
-                    <button onClick={function () { soumettre(p.id) }} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Enregistrement...' : 'OK'}</button>
-                    <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
-                  </div>
-                </div>
-              )
-            }
-            return (
-              <div key={p.id} className="py-2.5">
-                <div className="flex items-center justify-between gap-6">
-                  <div>
-                    <div className="text-sm text-ink">{p.nom}</div>
-                    <div className="mt-0.5 font-mono text-[10px] tracking-wide text-steel-light">{p.categorie === 'Autre' ? p.descriptionCategorie : p.categorie} -- {p.representant}</div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {p.niveauDangerosite != null && p.zone ? (
-                      <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone)}>{libelleZone(p.zone)} ({p.niveauDangerosite})</span>
-                    ) : (
-                      <span className="font-mono text-[11px] text-steel-light">Non evaluee</span>
-                    )}
-                    <button onClick={function () { ouvrirEvaluation(p) }} className="text-[11px] text-steel-light hover:text-signature">{p.niveauDangerosite != null ? 'Reevaluer' : 'Evaluer'}</button>
-                  </div>
-                </div>
-                {p.niveauDangerositeCalcule != null && (
-                  <div className="mt-1.5">
-                    <OverrideJugementExpert
-                      valeurCalculee={String(p.niveauDangerositeCalcule)}
-                      valeurRetenue={p.niveauDangerositeRetenu != null ? String(p.niveauDangerositeRetenu) : null}
-                      justification={p.justificationDangerosite}
-                      options={[]}
-                      onDefinir={function (v, j) { return definirDangerositeRetenue(props.etudeId, p.id, Number(v), j).then(props.onChange) }}
-                      onReinitialiser={function () { return reinitialiserDangerosite(props.etudeId, p.id).then(props.onChange) }}
-                      valeurLibre
-                    />
-                  </div>
-                )}
-              </div>
-            )
+            return <LigneEvaluationDangerosite key={p.id} etudeId={props.etudeId} partie={p} onChange={props.onChange} />
           })}
         </div>
       )}
@@ -1464,6 +1445,89 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
         </p>
       )}
     </section>
+  )
+}
+
+function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePrenante; onChange: () => void }) {
+  var p = props.partie
+  var jamaisEvaluee = p.niveauDangerosite == null
+  var [edition, setEdition] = useState(false)
+  var [dependance, setDependance] = useState(String(p.dependance || 2))
+  var [penetration, setPenetration] = useState(String(p.penetration || 2))
+  var [maturiteCyber, setMaturiteCyber] = useState(String(p.maturiteCyber || 2))
+  var [confiance, setConfiance] = useState(String(p.confiance || 2))
+  var [erreur, setErreur] = useState('')
+  var [enCours, setEnCours] = useState(false)
+
+  function ouvrirEvaluation() {
+    setDependance(String(p.dependance || 2))
+    setPenetration(String(p.penetration || 2))
+    setMaturiteCyber(String(p.maturiteCyber || 2))
+    setConfiance(String(p.confiance || 2))
+    setErreur('')
+    setEdition(true)
+  }
+
+  function soumettre() {
+    setEnCours(true)
+    setErreur('')
+    evaluerDangerosite(props.etudeId, p.id, Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))
+      .then(function () { setEdition(false); props.onChange() })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .finally(function () { setEnCours(false) })
+  }
+
+  if (edition || jamaisEvaluee) {
+    return (
+      <div className="space-y-2 py-3">
+        <div className="text-sm text-ink">{p.nom}</div>
+        <div className="font-mono text-[9px] tracking-wide text-steel-light">EVALUER LA DANGEROSITE</div>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <ChampEchelleDangerosite label="DEPENDANCE" critere="dependance" valeur={dependance} onChange={setDependance} />
+          <ChampEchelleDangerosite label="PENETRATION" critere="penetration" valeur={penetration} onChange={setPenetration} />
+          <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
+          <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
+        </div>
+        <div className="font-mono text-[11px] text-steel-light">
+          Apercu : <span className={'font-medium ' + couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))}>
+            {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
+          </span>
+        </div>
+        {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
+        <div className="flex gap-3">
+          <button onClick={soumettre} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Enregistrement...' : 'Enregistrer l evaluation'}</button>
+          {!jamaisEvaluee && <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="py-2.5">
+      <div className="flex items-center justify-between gap-6">
+        <div>
+          <div className="text-sm text-ink">{p.nom}</div>
+          <div className="mt-0.5 font-mono text-[10px] tracking-wide text-steel-light">{p.categorie === 'Autre' ? p.descriptionCategorie : p.categorie} -- {p.representant}</div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone || '')}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</span>
+          <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>
+        </div>
+      </div>
+      {p.niveauDangerositeCalcule != null && (
+        <div className="mt-1.5">
+          <OverrideJugementExpert
+            valeurCalculee={String(p.niveauDangerositeCalcule)}
+            valeurRetenue={p.niveauDangerositeRetenu != null ? String(p.niveauDangerositeRetenu) : null}
+            justification={p.justificationDangerosite}
+            options={[]}
+            onDefinir={function (v, j) { return definirDangerositeRetenue(props.etudeId, p.id, Number(v), j).then(props.onChange) }}
+            onReinitialiser={function () { return reinitialiserDangerosite(props.etudeId, p.id).then(props.onChange) }}
+            valeurLibre
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1596,7 +1660,7 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
 
-      {ajoutMesure ? (
+      {ajoutMesure && (
         <div className="mb-3 space-y-1.5">
           <textarea placeholder="Description de la mesure (ex: reduire la dependance a ce sous-traitant)" value={descMesure} onChange={function (e) { setDescMesure(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
           <div className="flex gap-3">
@@ -1604,11 +1668,16 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
             <button onClick={function () { setAjoutMesure(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
           </div>
         </div>
-      ) : (
-        <button onClick={function () { setAjoutMesure(true) }} className="mb-3 font-mono text-[10px] font-medium text-signature hover:underline">+ Ajouter une mesure</button>
       )}
 
-      {reevaluation ? (
+      {!ajoutMesure && !reevaluation && (
+        <div className="mb-3 flex flex-wrap gap-4">
+          <button onClick={function () { setAjoutMesure(true) }} className="font-mono text-[10px] font-medium text-signature hover:underline">+ Ajouter une mesure</button>
+          <button onClick={function () { setReevaluation(true) }} className="font-mono text-[10px] font-medium text-signature hover:underline">{p.niveauDangerositeResiduel != null ? 'Reevaluer la dangerosite residuelle' : 'Evaluer la dangerosite residuelle'}</button>
+        </div>
+      )}
+
+      {reevaluation && (
         <div className="space-y-2 border-t border-paper-line pt-3">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <ChampEchelleDangerosite label="DEPENDANCE" critere="dependance" valeur={dependance} onChange={setDependance} />
@@ -1626,8 +1695,6 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
             <button onClick={function () { setReevaluation(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
           </div>
         </div>
-      ) : (
-        <button onClick={function () { setReevaluation(true) }} className="font-mono text-[10px] font-medium text-signature hover:underline">{p.niveauDangerositeResiduel != null ? 'Reevaluer la dangerosite residuelle' : 'Evaluer la dangerosite residuelle'}</button>
       )}
     </div>
   )
@@ -1680,6 +1747,9 @@ function ScenariosStrategiquesSection(props: {
   var idsAvecScenario: { [key: string]: boolean } = {}
   props.scenarios.forEach(function (s) { idsAvecScenario[s.coupleSourceRisqueObjectifViseId] = true })
   var couplesSansScenario = couplesRetenus.filter(function (c) { return !idsAvecScenario[c.id] })
+  var couplesNonRetenus = props.couples.filter(function (c) {
+    return c.pertinence !== 'TresPertinent' && c.pertinence !== 'PlutotPertinent'
+  })
 
   function ouvrirCreation(coupleId: string) {
     setCoupleEnCreation(coupleId)
@@ -1773,7 +1843,23 @@ function ScenariosStrategiquesSection(props: {
       <h3 className="mb-3 font-mono text-[10px] tracking-wide text-steel-light">COUPLES RETENUS EN ATTENTE DE SCENARIO ({couplesSansScenario.length})</h3>
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
       {couplesSansScenario.length === 0 ? (
-        <p className="text-xs text-steel">Aucun couple retenu (Atelier 2) en attente -- soit tous ont deja un scenario, soit aucun couple n est encore retenu.</p>
+        couplesNonRetenus.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs text-steel">Ces couples existent mais ne sont pas retenus (pertinence insuffisante) : un scenario stratégique ne peut etre cree qu a partir d un couple juge "Plutot pertinent" ou "Tres pertinent". Retournez a l Atelier 2 pour ajuster la motivation/ressources de la source de risque, ou forcez la pertinence via le jugement d expert sur le couple concerne.</p>
+            <ul className="space-y-1">
+              {couplesNonRetenus.map(function (c) {
+                return (
+                  <li key={c.id} className="flex items-center justify-between gap-4 font-mono text-[11px] text-steel">
+                    <span>{libelleCouple(c)}</span>
+                    <span className={couleurPertinence(c.pertinence)}>{OPTIONS_PERTINENCE.filter(function (o) { return o.value === c.pertinence })[0]?.label || c.pertinence}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-steel">Aucun couple retenu (Atelier 2) en attente -- tous ont deja un scenario.</p>
+        )
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {couplesSansScenario.map(function (c) {
@@ -1915,6 +2001,13 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
   var [descEiEdit, setDescEiEdit] = useState('')
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
+
+  useEffect(function () {
+    if (props.parties.length === 0) return
+    if (!props.parties.some(function (p) { return p.id === ppId })) {
+      setPpId(props.parties[0].id)
+    }
+  }, [props.parties])
 
   function supprimerChemin() {
     if (!window.confirm('Supprimer ce chemin d attaque et ses evenements intermediaires ?')) return

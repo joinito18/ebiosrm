@@ -42,9 +42,6 @@ export default function Header() {
             {libelleStatut}
           </span>
         )}
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-signature font-mono text-[10px] text-white">
-          AR
-        </div>
       </div>
     </header>
   )
