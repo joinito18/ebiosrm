@@ -169,7 +169,7 @@ public sealed class RapportAtelier5PdfGenerator
                         }
                         else
                         {
-                            c.Item().PaddingTop(4).ShowEntire().Table(table =>
+                            c.Item().PaddingTop(4).Table(table =>
                             {
                                 table.ColumnsDefinition(cd =>
                                 {
