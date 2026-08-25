@@ -7,22 +7,23 @@ namespace EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 /// Domain Service : assemble l'état courant de l'Atelier 2 et le fige dans un
 /// nouveau SnapshotAtelier (P13). Appelé juste après Etude.ValiderAtelier2()
 /// et sa persistance. Même patron que ServiceCreationSnapshotAtelier1.
+/// Ne couvre que les couples SR/OV -- les parties prenantes appartiennent à
+/// la cartographie de l'écosystème de l'Atelier 3 (cf. SnapshotAtelier3Content),
+/// conformément au livrable officiel ANSSI de l'Atelier 2 qui ne mentionne
+/// aucune partie prenante.
 /// </summary>
 public sealed class ServiceCreationSnapshotAtelier2
 {
     private readonly IEtudeRepository _etudeRepository;
-    private readonly IPartiePrenanteRepository _partiePrenanteRepository;
     private readonly ICoupleSourceRisqueObjectifViseRepository _coupleRepository;
     private readonly ISnapshotAtelierRepository _snapshotRepository;
 
     public ServiceCreationSnapshotAtelier2(
         IEtudeRepository etudeRepository,
-        IPartiePrenanteRepository partiePrenanteRepository,
         ICoupleSourceRisqueObjectifViseRepository coupleRepository,
         ISnapshotAtelierRepository snapshotRepository)
     {
         _etudeRepository = etudeRepository;
-        _partiePrenanteRepository = partiePrenanteRepository;
         _coupleRepository = coupleRepository;
         _snapshotRepository = snapshotRepository;
     }
@@ -37,12 +38,7 @@ public sealed class ServiceCreationSnapshotAtelier2
             throw new InvalidOperationException(
                 $"Impossible de créer un snapshot : l'atelier 2 doit être 'Validee' (statut actuel : '{etude.StatutAtelier2}').");
 
-        var parties = await _partiePrenanteRepository.ListerParEtudeAsync(etudeId, cancellationToken);
         var couples = await _coupleRepository.ListerParEtudeAsync(etudeId, cancellationToken);
-
-        var partiesSnapshot = parties
-            .Select(p => new PartiePrenanteSnapshot(p.Nom, p.RolesEtAttentes, p.Representant))
-            .ToList();
 
         var couplesSnapshot = couples
             .Select(c => new CoupleSrOvSnapshot(
@@ -67,7 +63,6 @@ public sealed class ServiceCreationSnapshotAtelier2
             nouvelleVersion,
             etude.Nom,
             DateTime.UtcNow,
-            partiesSnapshot,
             couplesSnapshot);
 
         var contenuJson = JsonSerializer.Serialize(contenu);

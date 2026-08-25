@@ -7,15 +7,14 @@ namespace EbiosRM.Api.Tests.Domain.SourcesRisque;
 
 public class ServiceCreationSnapshotAtelier2Tests
 {
-    private static (ServiceCreationSnapshotAtelier2 Service, FakeEtudeRepository Etudes, FakePartiePrenanteRepository Parties,
+    private static (ServiceCreationSnapshotAtelier2 Service, FakeEtudeRepository Etudes,
         FakeCoupleSourceRisqueObjectifViseRepository Couples, FakeSnapshotAtelierRepository Snapshots) CreerService()
     {
         var etudes = new FakeEtudeRepository();
-        var parties = new FakePartiePrenanteRepository();
         var couples = new FakeCoupleSourceRisqueObjectifViseRepository();
         var snapshots = new FakeSnapshotAtelierRepository();
-        var service = new ServiceCreationSnapshotAtelier2(etudes, parties, couples, snapshots);
-        return (service, etudes, parties, couples, snapshots);
+        var service = new ServiceCreationSnapshotAtelier2(etudes, couples, snapshots);
+        return (service, etudes, couples, snapshots);
     }
 
     private static Etude CreerEtudeAvecAtelier2Valide()
@@ -31,7 +30,7 @@ public class ServiceCreationSnapshotAtelier2Tests
     [Fact]
     public async Task CreerAsync_refuse_si_atelier_2_non_valide()
     {
-        var (service, etudes, _, _, _) = CreerService();
+        var (service, etudes, _, _) = CreerService();
         var etude = Etude.Creer("Etude test", "Perimetre", "Mission");
         etude.DemarrerAtelier1();
         etude.ValiderAtelier1(); // StatutAtelier2 reste Brouillon
@@ -43,10 +42,9 @@ public class ServiceCreationSnapshotAtelier2Tests
     [Fact]
     public async Task CreerAsync_fige_le_contenu_y_compris_le_jugement_d_expert()
     {
-        var (service, etudes, parties, couples, _) = CreerService();
+        var (service, etudes, couples, _) = CreerService();
         var etude = CreerEtudeAvecAtelier2Valide();
         etudes.Etudes.Add(etude);
-        parties.Items.Add(PartiePrenante.Creer(etude.Id, "Prestataire IT", "Maintenance", "M. Dupont", CategoriePartiePrenante.Prestataire));
         var couple = CoupleSourceRisqueObjectifVise.Creer(
             etude.Id, CategorieSourceRisque.Etatique, "Description SR", CategorieObjectifVise.Lucratif, "Description OV",
             "Contexte", "Technologique", 4, 4, ServiceCalculPertinence.Calculer(4, 4));
@@ -57,8 +55,7 @@ public class ServiceCreationSnapshotAtelier2Tests
 
         var contenu = JsonSerializer.Deserialize<SnapshotAtelier2Content>(snapshot.ContenuJson);
         Assert.NotNull(contenu);
-        Assert.Single(contenu!.PartiesPrenantes);
-        var coupleSnapshot = Assert.Single(contenu.Couples);
+        var coupleSnapshot = Assert.Single(contenu!.Couples);
         Assert.Equal("PeuPertinent", coupleSnapshot.Pertinence);
         Assert.True(coupleSnapshot.PertinenceEstJugementExpert);
         Assert.Equal("Jugement d'expert de test.", coupleSnapshot.JustificationPertinence);

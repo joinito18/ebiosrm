@@ -43,10 +43,11 @@ public sealed class RapportAtelier5Service
             contenu1.ValeursMetier.Count,
             contenu1.BiensSupport.Count,
             contenu1.EvenementsRedoutes.Count,
-            contenu2.PartiesPrenantes.Count,
+            contenu3.PartiesPrenantes.Count,
             contenu3.PartiesPrenantes.Count(p => p.Zone == "Controle" || p.Zone == "Danger"),
             contenu3.ScenariosStrategiques.Count,
-            contenu4.ScenariosOperationnels.Count);
+            contenu4.ScenariosOperationnels.Count,
+            contenu3.PartiesPrenantes.Where(p => p.Zone == "Controle" || p.Zone == "Danger").Select(p => p.Nom).ToList());
 
         var referentiels = contenu1.SocleSecurite?.Referentiels ?? new List<ReferentielApplicableSnapshot>();
         var conformiteSocle = ConformiteSocleData.DepuisReferentiels(referentiels);

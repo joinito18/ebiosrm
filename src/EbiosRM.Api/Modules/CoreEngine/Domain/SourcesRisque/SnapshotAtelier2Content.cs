@@ -7,11 +7,8 @@ public record SnapshotAtelier2Content(
     int Version,
     string NomEtude,
     DateTime DateValidationUtc,
-    List<PartiePrenanteSnapshot> PartiesPrenantes,
     List<CoupleSrOvSnapshot> Couples
 );
-
-public record PartiePrenanteSnapshot(string Nom, string RolesEtAttentes, string Representant);
 
 public record CoupleSrOvSnapshot(
     string SourceRisque,

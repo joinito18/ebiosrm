@@ -1,4 +1,4 @@
-var API_BASE = 'http://localhost:5197/api/v1'
+var API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5197/api/v1'
 
 export interface Etude {
   id: string

@@ -60,4 +60,5 @@ public sealed record ChiffresClesData(
     int NombrePartiesPrenantes,
     int NombrePartiesPrenantesCritiques,
     int NombreScenariosStrategiques,
-    int NombreScenariosOperationnels);
+    int NombreScenariosOperationnels,
+    List<string> NomsPartiesPrenantesCritiques);

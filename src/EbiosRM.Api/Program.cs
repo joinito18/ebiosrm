@@ -10,6 +10,13 @@ using System.Text.Json.Serialization;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
+var dossierPolices = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
+if (Directory.Exists(dossierPolices))
+{
+    foreach (var fichierPolice in Directory.GetFiles(dossierPolices, "*.ttf"))
+        QuestPDF.Drawing.FontManager.RegisterFont(File.OpenRead(fichierPolice));
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -25,7 +32,7 @@ builder.Services.AddDbContext<EbiosDbContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("http://localhost:5174", "http://localhost:5175")
+        policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader());
 });

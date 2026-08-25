@@ -4,17 +4,11 @@ namespace EbiosRM.Api.Modules.Reporting;
 
 public sealed record RapportAtelier2Data(
     string NomEtude,
-    List<PartiePrenanteData> PartiesPrenantes,
     List<CoupleSrOvData> CouplesTechnologique,
     List<CoupleSrOvData> CouplesOrganisationnel,
     List<CoupleSrOvData> CouplesPersonnes,
     List<CoupleSrOvData> CouplesPhysique,
     RepartitionPertinenceData Repartition);
-
-public sealed record PartiePrenanteData(
-    string Nom,
-    string RolesEtAttentes,
-    string Representant);
 
 public sealed record CoupleSrOvData(
     string SourceRisque,

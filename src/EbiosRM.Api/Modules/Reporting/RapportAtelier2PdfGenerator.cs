@@ -53,33 +53,6 @@ public sealed class RapportAtelier2PdfGenerator
 
                     col.Item().Text("Ce document identifie les couples Source de Risque / Objectif Vise pertinents pour l'objet de l'etude. Les couples \"Tres pertinent\" seront traites en priorite dans l'Atelier 3, les couples \"Plutot pertinent\" seront mis sous surveillance.").FontSize(9.5f);
 
-                    col.Item().Column(c =>
-                    {
-                        SectionTitre(c, "Parties prenantes importantes");
-                        c.Item().PaddingTop(6).Table(table =>
-                        {
-                            table.ColumnsDefinition(cd => { cd.RelativeColumn(2); cd.RelativeColumn(3); cd.RelativeColumn(2); });
-                            EnteteCellule(table.Cell(), "Partie prenante");
-                            EnteteCellule(table.Cell(), "Roles et attentes");
-                            EnteteCellule(table.Cell(), "Representant");
-                            if (data.PartiesPrenantes.Count == 0)
-                            {
-                                table.Cell().ColumnSpan(3).PaddingVertical(6).Text("Aucune partie prenante renseignee.").FontSize(8.5f).Italic().FontColor(GrisTexte);
-                            }
-                            else
-                            {
-                                for (var i = 0; i < data.PartiesPrenantes.Count; i++)
-                                {
-                                    var p = data.PartiesPrenantes[i];
-                                    var alt = i % 2 == 1;
-                                    CelluleZebra(table.Cell(), p.Nom, alt, police: SansSemiBold);
-                                    CelluleZebra(table.Cell(), p.RolesEtAttentes, alt);
-                                    CelluleZebra(table.Cell(), p.Representant, alt);
-                                }
-                            }
-                        });
-                    });
-
                     col.Item().Column(c => ConstruireSectionMethodologie(c));
 
                     col.Item().Column(c =>

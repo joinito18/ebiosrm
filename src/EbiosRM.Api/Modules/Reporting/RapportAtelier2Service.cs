@@ -28,10 +28,6 @@ public sealed class RapportAtelier2Service
         if (contenu is null)
             return null;
 
-        var partiesData = contenu.PartiesPrenantes
-            .Select(p => new PartiePrenanteData(p.Nom, p.RolesEtAttentes, p.Representant))
-            .ToList();
-
         List<CoupleSrOvData> ParThemeVers(string theme) =>
             contenu.Couples
                 .Where(c => c.Theme == theme)
@@ -63,7 +59,6 @@ public sealed class RapportAtelier2Service
 
         return new RapportAtelier2Data(
             contenu.NomEtude,
-            partiesData,
             ParThemeVers("Technologique"),
             ParThemeVers("Organisationnel"),
             ParThemeVers("Personnes"),

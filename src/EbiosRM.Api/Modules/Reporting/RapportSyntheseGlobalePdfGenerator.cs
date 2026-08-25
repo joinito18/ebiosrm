@@ -36,6 +36,43 @@ public sealed class RapportSyntheseGlobalePdfGenerator
 
                     col.Item().Column(c =>
                     {
+                        SectionTitre(c, "Synthese executive");
+
+                        var totalControlesExec = data.ConformiteSocle.NombreConforme + data.ConformiteSocle.NombreNonConforme + data.ConformiteSocle.NombreNonApplicable;
+                        double? pctConformiteExec = totalControlesExec == 0 ? null : 100.0 * data.ConformiteSocle.NombreConforme / totalControlesExec;
+                        var termineExec = data.AvancementPlanParStatut.GetValueOrDefault("Termine", 0);
+                        double? pctPlanExec = data.Mesures.Count == 0 ? null : 100.0 * termineExec / data.Mesures.Count;
+                        int RangNiveau(string? n) => n switch { "Eleve" => 3, "Moyen" => 2, "Faible" => 1, _ => 0 };
+                        var pireNiveauExec = data.ScenariosDeRisque.Count == 0 ? null : data.ScenariosDeRisque.Select(s => s.NiveauRisqueResiduel).OrderByDescending(RangNiveau).First();
+                        var nbElevesExec = data.ScenariosDeRisque.Count(s => s.NiveauRisqueResiduel == "Eleve");
+
+                        c.Item().PaddingTop(6).Row(row =>
+                        {
+                            row.RelativeItem().Column(cc =>
+                            {
+                                cc.Item().Text(pireNiveauExec ?? "--").FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(CouleurNiveau(pireNiveauExec));
+                                cc.Item().Text("Posture globale (pire risque residuel)").FontSize(7.5f).FontColor(GrisTexte);
+                            });
+                            row.RelativeItem().Column(cc =>
+                            {
+                                cc.Item().Text(pctConformiteExec.HasValue ? pctConformiteExec.Value.ToString("F0", CultureInfo.InvariantCulture) + "%" : "N/A").FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(BleuFrance);
+                                cc.Item().Text("Conformite du socle de securite").FontSize(7.5f).FontColor(GrisTexte);
+                            });
+                            row.RelativeItem().Column(cc =>
+                            {
+                                cc.Item().Text(pctPlanExec.HasValue ? pctPlanExec.Value.ToString("F0", CultureInfo.InvariantCulture) + "%" : "N/A").FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(BleuFrance);
+                                cc.Item().Text("Plan de traitement termine").FontSize(7.5f).FontColor(GrisTexte);
+                            });
+                            row.RelativeItem().Column(cc =>
+                            {
+                                cc.Item().Text(nbElevesExec.ToString()).FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(nbElevesExec > 0 ? RougeAlerte : VertConforme);
+                                cc.Item().Text("Risque(s) residuel(s) eleve(s)").FontSize(7.5f).FontColor(GrisTexte);
+                            });
+                        });
+                    });
+
+                    col.Item().Column(c =>
+                    {
                         SectionTitre(c, "Identite de l'etude");
                         c.Item().PaddingTop(4).Text(t =>
                         {
@@ -65,6 +102,14 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             Chiffre(row, data.ChiffresCles.NombreScenariosStrategiques, "Scenarios strategiques");
                             Chiffre(row, data.ChiffresCles.NombreScenariosOperationnels, "Scenarios operationnels");
                         });
+                        if (data.ChiffresCles.NomsPartiesPrenantesCritiques.Count > 0)
+                        {
+                            c.Item().PaddingTop(6).Text(t =>
+                            {
+                                t.Span("Parties prenantes critiques (zones controle / danger) : ").FontFamily(SansSemiBold).FontSize(7.5f).FontColor(GrisTexte);
+                                t.Span(string.Join(", ", data.ChiffresCles.NomsPartiesPrenantesCritiques)).FontSize(7.5f).FontColor(GrisTexte);
+                            });
+                        }
                     });
 
                     col.Item().Column(c =>
@@ -250,6 +295,27 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                         Chiffre(rr, data.AvancementPlanParStatut.GetValueOrDefault(statut, 0), LibelleStatutMesure(statut));
                                 });
                             });
+
+                            var parAxe = new[] { "Gouvernance", "Protection", "Defense", "Resilience" }
+                                .Select(axe =>
+                                {
+                                    var mesuresAxe = data.Mesures.Where(m => m.Axe == axe).ToList();
+                                    var termineAxe = mesuresAxe.Count(m => m.Statut == "Termine");
+                                    var pct = mesuresAxe.Count == 0 ? 0.0 : 100.0 * termineAxe / mesuresAxe.Count;
+                                    return (Axe: axe, Total: mesuresAxe.Count, Pct: pct);
+                                })
+                                .Where(x => x.Total > 0)
+                                .ToList();
+                            if (parAxe.Count > 0)
+                            {
+                                c.Item().PaddingTop(14).ShowEntire().Column(cc =>
+                                {
+                                    cc.Item().AlignCenter().Text("Avancement du plan par axe de traitement").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(280).Svg(GraphiqueBarres(
+                                        parAxe.Select(a => (a.Axe + " (" + a.Total + ")", a.Pct, VertConforme)).ToList(),
+                                        100, "%")).FitWidth();
+                                });
+                            }
                         }
                     });
 
