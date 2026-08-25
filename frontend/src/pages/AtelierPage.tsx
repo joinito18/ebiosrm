@@ -2150,10 +2150,10 @@ var PROBABILITE_LABELS: { [key: string]: string } = {
   '4': '4 -- Quasi-certaine (> 90%)',
 }
 var DIFFICULTE_LABELS: { [key: string]: string } = {
-  '1': '1 -- Faible',
-  '2': '2 -- Moderee',
-  '3': '3 -- Elevee',
-  '4': '4 -- Tres elevee',
+  '1': '1 -- Faible (ressources engagees par l attaquant faibles)',
+  '2': '2 -- Moderee (ressources significatives)',
+  '3': '3 -- Elevee (ressources importantes)',
+  '4': '4 -- Tres elevee (ressources tres importantes)',
 }
 
 function ScenariosOperationnelsSection(props: {
@@ -2330,6 +2330,7 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
       <div className="border-l-2 border-signature space-y-1.5 pl-3">
         <input type="text" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
         <ActionElementaireListEditor actions={actions} biens={props.biens} onChange={setActions} />
+        <p className="text-[11px] leading-snug text-steel">Probabilite de succes : chance que cette action reussisse une fois tentee (defense/resilience). Difficulte technique : effort que l attaquant doit fournir pour la tenter (protection) -- plus elle est elevee, plus la vraisemblance baisse.</p>
         <div className="grid grid-cols-2 gap-2">
           <select value={probabiliteSucces} onChange={function (e) { setProbabiliteSucces(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
             {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{PROBABILITE_LABELS[v]}</option> })}
@@ -2437,6 +2438,7 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
     <div className="mt-3 space-y-1.5 border-l-2 border-signature pl-3">
       <input type="text" placeholder="Description du mode operatoire" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
       <ActionElementaireListEditor actions={actions} biens={props.biens} onChange={setActions} />
+      <p className="text-[11px] leading-snug text-steel">Probabilite de succes : chance que cette action reussisse une fois tentee (defense/resilience). Difficulte technique : effort que l attaquant doit fournir pour la tenter (protection) -- plus elle est elevee, plus la vraisemblance baisse.</p>
       <div className="grid grid-cols-2 gap-2">
         <select value={probabiliteSucces} onChange={function (e) { setProbabiliteSucces(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
           {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{PROBABILITE_LABELS[v]}</option> })}
