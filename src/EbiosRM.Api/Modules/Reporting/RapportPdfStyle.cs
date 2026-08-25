@@ -160,6 +160,94 @@ public static class RapportPdfStyle
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Graphique en barres verticales (ex: taux de conformite par theme).
+    /// echelleMax fixe la hauteur representant 100% de la barre -- passer 100
+    /// pour des pourcentages, ou le plus grand effectif pour des comptages.
+    /// </summary>
+    public static string GraphiqueBarres(List<(string Label, double Valeur, string Couleur)> barres, double echelleMax, string suffixeValeur)
+    {
+        const double largeurTotale = 340, hauteurTotale = 150, hauteurZone = 100, largeurBarre = 46;
+        var n = barres.Count;
+        var espacement = n == 0 ? 0 : (largeurTotale - n * largeurBarre) / (n + 1);
+        var sb = new StringBuilder();
+        sb.Append(FormattableString.Invariant($"<svg viewBox=\"0 0 {largeurTotale} {hauteurTotale}\" xmlns=\"http://www.w3.org/2000/svg\">"));
+        sb.Append(FormattableString.Invariant($"<line x1=\"0\" y1=\"{hauteurZone}\" x2=\"{largeurTotale}\" y2=\"{hauteurZone}\" stroke=\"{GrisLigne}\" stroke-width=\"1\" />"));
+        for (var i = 0; i < n; i++)
+        {
+            var (label, valeur, couleur) = barres[i];
+            var x = espacement + i * (largeurBarre + espacement);
+            var fraction = echelleMax <= 0 ? 0 : Math.Clamp(valeur / echelleMax, 0, 1);
+            var hauteurBarre = fraction * hauteurZone;
+            var y = hauteurZone - hauteurBarre;
+            sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{y:F1}\" width=\"{largeurBarre}\" height=\"{hauteurBarre:F1}\" fill=\"{couleur}\" rx=\"2\" />"));
+            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{Math.Max(y - 5, 10):F1}\" text-anchor=\"middle\" font-size=\"11\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"{Encre}\">{valeur.ToString("F0", CultureInfo.InvariantCulture)}{suffixeValeur}</text>"));
+            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{hauteurZone + 16:F1}\" text-anchor=\"middle\" font-size=\"8.5\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(label)}</text>"));
+        }
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Graphique radar/toile d'araignee (ex: cartographie de conformite par
+    /// theme). Chaque axe est une valeur 0-100%, les axes sont repartis
+    /// uniformement autour du cercle en commencant en haut.
+    /// </summary>
+    public static string GraphiqueRadar(List<(string Label, double ValeurPct)> axes, string couleur)
+    {
+        const double cx = 110, cy = 105, rayonMax = 68;
+        var n = axes.Count;
+        var sb = new StringBuilder();
+        sb.Append("<svg viewBox=\"0 0 220 220\" xmlns=\"http://www.w3.org/2000/svg\">");
+
+        double AngleDe(int i) => -Math.PI / 2 + 2 * Math.PI * i / n;
+
+        foreach (var frac in new[] { 0.25, 0.5, 0.75, 1.0 })
+        {
+            var points = Enumerable.Range(0, n).Select(i =>
+            {
+                var angle = AngleDe(i);
+                var x = cx + rayonMax * frac * Math.Cos(angle);
+                var y = cy + rayonMax * frac * Math.Sin(angle);
+                return FormattableString.Invariant($"{x:F1},{y:F1}");
+            });
+            sb.Append(FormattableString.Invariant($"<polygon points=\"{string.Join(" ", points)}\" fill=\"none\" stroke=\"{GrisLigne}\" stroke-width=\"0.7\" />"));
+        }
+
+        for (var i = 0; i < n; i++)
+        {
+            var angle = AngleDe(i);
+            var x = cx + rayonMax * Math.Cos(angle);
+            var y = cy + rayonMax * Math.Sin(angle);
+            sb.Append(FormattableString.Invariant($"<line x1=\"{cx}\" y1=\"{cy}\" x2=\"{x:F1}\" y2=\"{y:F1}\" stroke=\"{GrisLigne}\" stroke-width=\"0.7\" />"));
+        }
+
+        var pointsDonnees = new List<(double X, double Y)>();
+        for (var i = 0; i < n; i++)
+        {
+            var angle = AngleDe(i);
+            var fraction = Math.Clamp(axes[i].ValeurPct / 100.0, 0, 1);
+            pointsDonnees.Add((cx + rayonMax * fraction * Math.Cos(angle), cy + rayonMax * fraction * Math.Sin(angle)));
+        }
+        var polygonDonnees = string.Join(" ", pointsDonnees.Select(p => FormattableString.Invariant($"{p.X:F1},{p.Y:F1}")));
+        sb.Append(FormattableString.Invariant($"<polygon points=\"{polygonDonnees}\" fill=\"{couleur}\" fill-opacity=\"0.3\" stroke=\"{couleur}\" stroke-width=\"1.8\" />"));
+        foreach (var p in pointsDonnees)
+            sb.Append(FormattableString.Invariant($"<circle cx=\"{p.X:F1}\" cy=\"{p.Y:F1}\" r=\"2.6\" fill=\"{couleur}\" />"));
+
+        for (var i = 0; i < n; i++)
+        {
+            var angle = AngleDe(i);
+            var cosA = Math.Cos(angle);
+            var lx = cx + (rayonMax + 18) * cosA;
+            var ly = cy + (rayonMax + 18) * Math.Sin(angle);
+            var ancre = cosA > 0.3 ? "start" : cosA < -0.3 ? "end" : "middle";
+            sb.Append(FormattableString.Invariant($"<text x=\"{lx:F1}\" y=\"{ly:F1}\" text-anchor=\"{ancre}\" font-size=\"9\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(axes[i].Label)} ({axes[i].ValeurPct.ToString("F0", CultureInfo.InvariantCulture)}%)</text>"));
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
     // Grille officielle Gravite x Vraisemblance (identique a ServiceCalculNiveauRisque.cs).
     // MatriceNiveaux[gravite-1][vraisemblance-1].
     public static readonly string[][] MatriceNiveaux =

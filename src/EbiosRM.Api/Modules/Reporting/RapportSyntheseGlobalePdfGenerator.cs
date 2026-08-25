@@ -97,6 +97,38 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                     cc.Item().PaddingTop(3).Text(totalControles + " controle(s) evalue(s) au total.").FontSize(7.5f).FontColor(GrisTexte);
                                 });
                             });
+                            if (socle.ParTheme.Count > 0)
+                            {
+                                c.Item().PaddingTop(14).ShowEntire().Row(row =>
+                                {
+                                    row.RelativeItem().Column(cc =>
+                                    {
+                                        cc.Item().AlignCenter().Text("Taux de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                        cc.Item().PaddingTop(4).Svg(GraphiqueBarres(
+                                            socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct, BleuFrance)).ToList(),
+                                            100, "%")).FitWidth();
+                                    });
+                                    row.RelativeItem().Column(cc =>
+                                    {
+                                        cc.Item().AlignCenter().Text("Cartographie de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                        cc.Item().PaddingTop(4).Svg(GraphiqueRadar(
+                                            socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct)).ToList(),
+                                            BleuFrance)).FitWidth();
+                                    });
+                                });
+                                c.Item().PaddingTop(10).ShowEntire().Column(cc =>
+                                {
+                                    cc.Item().AlignCenter().Text("Repartition des controles par etat").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(220).Svg(GraphiqueBarres(
+                                        new List<(string, double, string)>
+                                        {
+                                            ("Conforme", socle.NombreConforme, VertConforme),
+                                            ("Non conforme", socle.NombreNonConforme, RougeAlerte),
+                                            ("Non applicable", socle.NombreNonApplicable, GrisTexte),
+                                        },
+                                        Math.Max(totalControles, 1), "")).FitWidth();
+                                });
+                            }
                             if (socle.ControlesNonConformes.Count > 0)
                             {
                                 c.Item().PaddingTop(10).Text("Controles non conformes a traiter en priorite :").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);

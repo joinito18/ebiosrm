@@ -49,13 +49,7 @@ public sealed class RapportAtelier5Service
             contenu4.ScenariosOperationnels.Count);
 
         var referentiels = contenu1.SocleSecurite?.Referentiels ?? new List<ReferentielApplicableSnapshot>();
-        var conformiteSocle = new ConformiteSocleData(
-            referentiels.Count(r => r.EtatConformite == "Conforme"),
-            referentiels.Count(r => r.EtatConformite == "NonConforme"),
-            referentiels.Count(r => r.EtatConformite == "NonApplicable"),
-            referentiels.Where(r => r.EtatConformite == "NonConforme")
-                .Select(r => new ControleNonConformeData(r.CodeControle, r.Nom, r.EtatActuel))
-                .ToList());
+        var conformiteSocle = ConformiteSocleData.DepuisReferentiels(referentiels);
 
         var libellesParScenario = contenu5.ScenariosDeRisque.ToDictionary(s => s.Id, s => s.LibelleCouple + " -- " + s.LibelleChemin);
 

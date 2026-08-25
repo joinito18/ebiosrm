@@ -69,13 +69,7 @@ public sealed class RapportSyntheseGlobaleService
             .ToDictionary(g => g.Key, g => g.Count());
 
         var referentiels = contenu1.SocleSecurite?.Referentiels ?? new List<ReferentielApplicableSnapshot>();
-        var conformiteSocle = new ConformiteSocleData(
-            referentiels.Count(r => r.EtatConformite == "Conforme"),
-            referentiels.Count(r => r.EtatConformite == "NonConforme"),
-            referentiels.Count(r => r.EtatConformite == "NonApplicable"),
-            referentiels.Where(r => r.EtatConformite == "NonConforme")
-                .Select(r => new ControleNonConformeData(r.CodeControle, r.Nom, r.EtatActuel))
-                .ToList());
+        var conformiteSocle = ConformiteSocleData.DepuisReferentiels(referentiels);
 
         return new RapportSyntheseGlobaleData(
             contenu1.NomEtude, contenu1.Perimetre, contenu1.Mission, DateTime.UtcNow,
