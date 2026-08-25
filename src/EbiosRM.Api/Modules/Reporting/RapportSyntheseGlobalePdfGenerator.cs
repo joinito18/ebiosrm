@@ -1,8 +1,8 @@
 using System.Globalization;
-using System.Text;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using static EbiosRM.Api.Modules.Reporting.RapportPdfStyle;
 
 namespace EbiosRM.Api.Modules.Reporting;
 
@@ -12,22 +12,6 @@ namespace EbiosRM.Api.Modules.Reporting;
 /// </summary>
 public sealed class RapportSyntheseGlobalePdfGenerator
 {
-    private static readonly string BleuFrance = "#000091";
-    private static readonly string BleuFranceClair = "#E3E3FD";
-    private static readonly string Encre = "#161616";
-    private static readonly string GrisTexte = "#3A3A3A";
-    private static readonly string GrisLigne = "#DDDDDD";
-    private static readonly string GrisFond = "#F6F6F6";
-    private static readonly string RougeAlerte = "#B34000";
-    private static readonly string OrangeAlerte = "#BA7517";
-    private static readonly string VertConforme = "#18753C";
-
-    private const string SerifTitreSemiBold = "Fraunces 72pt SemiBold";
-    private const string Sans = "IBM Plex Sans";
-    private const string SansSemiBold = "IBM Plex Sans SemiBold";
-    private const string Mono = "IBM Plex Mono";
-    private const string MonoMedium = "IBM Plex Mono Medium";
-
     public byte[] Generer(RapportSyntheseGlobaleData data)
     {
         var document = Document.Create(container =>
@@ -171,28 +155,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         }
                         else
                         {
-                            var codes = data.ScenariosDeRisque.Select((s, i) => (Scenario: s, Code: "R" + (i + 1))).ToList();
-
-                            c.Item().PaddingTop(8).ShowEntire().Row(row =>
-                            {
-                                row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque initial", codes,
-                                    x => x.Gravite, x => VraisemblanceVersIndex(x.VraisemblanceInitiale)));
-                                row.ConstantItem(36).AlignMiddle().AlignCenter().Text("->").FontFamily(SerifTitreSemiBold).FontSize(20).FontColor(BleuFrance);
-                                row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque residuel", codes,
-                                    x => x.GraviteResiduelle ?? 0, x => VraisemblanceVersIndex(x.VraisemblanceResiduelle)));
-                            });
-
-                            c.Item().PaddingTop(10).Column(cc =>
-                            {
-                                foreach (var (scenario, code) in codes)
-                                {
-                                    cc.Item().PaddingTop(1.5f).Text(t =>
-                                    {
-                                        t.Span(code + " -- ").FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance);
-                                        t.Span(scenario.LibelleCouple + " -- " + scenario.LibelleChemin).FontSize(7.5f).FontColor(GrisTexte);
-                                    });
-                                }
-                            });
+                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque);
 
                             c.Item().PaddingTop(10).Table(table =>
                             {
@@ -252,7 +215,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                 row.RelativeItem().PaddingLeft(16).AlignMiddle().Row(rr =>
                                 {
                                     foreach (var statut in new[] { "ALancer", "EnCours", "Termine" })
-                                        Chiffre(rr, data.AvancementPlanParStatut.GetValueOrDefault(statut, 0), LibelleStatut(statut));
+                                        Chiffre(rr, data.AvancementPlanParStatut.GetValueOrDefault(statut, 0), LibelleStatutMesure(statut));
                                 });
                             });
                         }
@@ -299,175 +262,5 @@ public sealed class RapportSyntheseGlobalePdfGenerator
         });
 
         return document.GeneratePdf();
-    }
-
-    private static void Chiffre(QuestPDF.Fluent.RowDescriptor row, int valeur, string libelle)
-    {
-        row.RelativeItem().Column(c =>
-        {
-            c.Item().Text(valeur.ToString()).FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(BleuFrance);
-            c.Item().Text(libelle).FontSize(7.5f).FontColor(GrisTexte);
-        });
-    }
-
-    private static string LibelleStatut(string statut) => statut switch
-    {
-        "ALancer" => "A lancer",
-        "EnCours" => "En cours",
-        "Termine" => "Termine",
-        _ => statut,
-    };
-
-    private static string CouleurNiveau(string? niveau) => niveau switch
-    {
-        "Eleve" => RougeAlerte,
-        "Moyen" => OrangeAlerte,
-        "Faible" => VertConforme,
-        _ => GrisTexte,
-    };
-
-    // Grille officielle Gravite x Vraisemblance (identique a ServiceCalculNiveauRisque.cs
-    // et a la table "Grille de determination du niveau de risque" ci-dessus).
-    // MatriceNiveaux[gravite-1][vraisemblance-1].
-    private static readonly string[][] MatriceNiveaux =
-    {
-        new[] { "Faible", "Faible", "Moyen", "Moyen" },
-        new[] { "Faible", "Faible", "Moyen", "Eleve" },
-        new[] { "Faible", "Moyen", "Eleve", "Eleve" },
-        new[] { "Faible", "Moyen", "Eleve", "Eleve" },
-    };
-
-    private static int VraisemblanceVersIndex(string? v) => v switch { "V1" => 1, "V2" => 2, "V3" => 3, "V4" => 4, _ => 0 };
-
-    /// <summary>
-    /// Reproduit la cartographie officielle EBIOS RM (cf. Atelier 5, "Gerer les
-    /// risques residuels") : une grille Gravite x Vraisemblance a 4x4 cases
-    /// colorees, chaque scenario etant place dans la case correspondant a ses
-    /// coordonnees reelles -- pas un graphique generique, la representation
-    /// exacte que la methode recommande.
-    /// </summary>
-    private static void GrilleCartographie(IContainer container, string titre, List<(ScenarioDeRisqueData Scenario, string Code)> codes, Func<ScenarioDeRisqueData, int> graviteFn, Func<ScenarioDeRisqueData, int> vraisemblanceIndexFn)
-    {
-        container.Column(col =>
-        {
-            col.Item().AlignCenter().Text(titre).FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-            col.Item().PaddingTop(6).Row(row =>
-            {
-                row.ConstantItem(14).Column(cc =>
-                {
-                    cc.Item().Height(16);
-                    for (var gravite = 4; gravite >= 1; gravite--)
-                        cc.Item().Height(34).AlignMiddle().AlignCenter().Text(gravite.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
-                });
-                row.AutoItem().Column(cc =>
-                {
-                    cc.Item().Height(16).AlignCenter().Text("GRAVITE").FontFamily(MonoMedium).FontSize(6).FontColor(BleuFrance).LetterSpacing(0.03f);
-                    for (var gravite = 4; gravite >= 1; gravite--)
-                    {
-                        var g = gravite;
-                        cc.Item().Row(ligne =>
-                        {
-                            for (var vrai = 1; vrai <= 4; vrai++)
-                            {
-                                var v = vrai;
-                                var niveau = MatriceNiveaux[g - 1][v - 1];
-                                var codesCellule = codes.Where(x => graviteFn(x.Scenario) == g && vraisemblanceIndexFn(x.Scenario) == v).Select(x => x.Code).ToList();
-                                ligne.ConstantItem(34).Height(34).Border(0.7f).BorderColor(Colors.White).Background(CouleurNiveau(niveau))
-                                    .AlignMiddle().AlignCenter().Text(string.Join(" ", codesCellule)).FontFamily(SansSemiBold).FontSize(6.5f).FontColor(Colors.White);
-                            }
-                        });
-                    }
-                    cc.Item().Row(ligne =>
-                    {
-                        for (var vrai = 1; vrai <= 4; vrai++)
-                            ligne.ConstantItem(34).AlignCenter().PaddingTop(2).Text(vrai.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
-                    });
-                    cc.Item().AlignCenter().Text("VRAISEMBLANCE").FontFamily(MonoMedium).FontSize(6).FontColor(BleuFrance).LetterSpacing(0.03f);
-                });
-            });
-        });
-    }
-
-    private static string LibelleClasse(string? classe) => classe switch
-    {
-        "AcceptableEnLEtat" => "Acceptable en l'etat",
-        "TolerableSousControle" => "Tolerable sous controle",
-        "Inacceptable" => "Inacceptable",
-        _ => "--",
-    };
-
-    /// <summary>
-    /// Anneau de progression a un seul segment (ex: pourcentage de conformite
-    /// globale, pourcentage de mesures terminees). Rendu en SVG -- QuestPDF
-    /// n'a pas de composant "gauge" natif, mais supporte l'embarquement SVG.
-    /// </summary>
-    private static string AnneauSimple(double pourcentage, string couleur, string labelCentre)
-    {
-        return AnneauMultiSegments(new List<(double, string)> { (pourcentage, couleur), (100 - pourcentage, "#EDEDED") }, labelCentre);
-    }
-
-    /// <summary>
-    /// Anneau de repartition a plusieurs segments (ex: Conforme/Non conforme/
-    /// Non applicable, ou Faible/Moyen/Eleve). Chaque segment est un arc de
-    /// cercle SVG construit via stroke-dasharray/stroke-dashoffset -- technique
-    /// standard pour un donut chart sans dependance a une lib de graphiques.
-    /// </summary>
-    private static string AnneauMultiSegments(List<(double Part, string Couleur)> segments, string labelCentre)
-    {
-        const double rayon = 50;
-        const double centre = 60;
-        const double epaisseur = 15;
-        var circonference = 2 * Math.PI * rayon;
-        var total = segments.Sum(s => s.Part);
-
-        var sb = new StringBuilder();
-        sb.Append("<svg viewBox=\"0 0 120 120\" xmlns=\"http://www.w3.org/2000/svg\">");
-        sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"none\" stroke=\"#EDEDED\" stroke-width=\"{epaisseur}\" />"));
-
-        if (total > 0)
-        {
-            var cumule = 0.0;
-            foreach (var (part, couleur) in segments)
-            {
-                if (part <= 0) continue;
-                var fraction = part / total;
-                var longueurArc = fraction * circonference;
-                var vide = circonference - longueurArc;
-                var decalage = -(cumule / total) * circonference;
-                sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"none\" stroke=\"{couleur}\" stroke-width=\"{epaisseur}\" stroke-dasharray=\"{longueurArc.ToString("F2", CultureInfo.InvariantCulture)} {vide.ToString("F2", CultureInfo.InvariantCulture)}\" stroke-dashoffset=\"{decalage.ToString("F2", CultureInfo.InvariantCulture)}\" transform=\"rotate(-90 {centre} {centre})\" />"));
-                cumule += part;
-            }
-        }
-
-        sb.Append(FormattableString.Invariant($"<text x=\"{centre}\" y=\"{centre + 7}\" text-anchor=\"middle\" font-size=\"26\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"#161616\">{System.Security.SecurityElement.Escape(labelCentre)}</text>"));
-        sb.Append("</svg>");
-        return sb.ToString();
-    }
-
-    private static void Legende(QuestPDF.Fluent.RowDescriptor row, string couleur, string libelle)
-    {
-        row.AutoItem().Column(c =>
-        {
-            c.Item().Row(r =>
-            {
-                r.ConstantItem(8).Height(8).Background(couleur);
-                r.ConstantItem(5);
-                r.AutoItem().Text(libelle).FontSize(7.5f).FontColor(GrisTexte);
-            });
-        });
-    }
-
-    private static void SectionTitre(QuestPDF.Fluent.ColumnDescriptor col, string texte)
-    {
-        col.Item().Row(row =>
-        {
-            row.ConstantItem(3).Height(16).Background(BleuFrance);
-            row.RelativeItem().PaddingLeft(8).Text(texte).FontFamily(SerifTitreSemiBold).FontSize(13).FontColor(Encre);
-        });
-    }
-
-    private static void EnteteCellule(QuestPDF.Infrastructure.IContainer cell, string texte)
-    {
-        cell.Background(BleuFranceClair).Padding(5).Text(texte).FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance).LetterSpacing(0.02f);
     }
 }

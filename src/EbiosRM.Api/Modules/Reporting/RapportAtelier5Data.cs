@@ -2,6 +2,10 @@ namespace EbiosRM.Api.Modules.Reporting;
 
 public sealed record RapportAtelier5Data(
     string NomEtude,
+    string Perimetre,
+    string Mission,
+    ChiffresClesData ChiffresCles,
+    ConformiteSocleData ConformiteSocle,
     List<ScenarioDeRisqueData> ScenariosDeRisque,
     List<MesureTraitementRisqueData> Mesures);
 

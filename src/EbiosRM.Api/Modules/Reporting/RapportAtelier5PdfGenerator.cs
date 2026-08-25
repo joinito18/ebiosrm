@@ -1,27 +1,13 @@
+using System.Globalization;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using static EbiosRM.Api.Modules.Reporting.RapportPdfStyle;
 
 namespace EbiosRM.Api.Modules.Reporting;
 
 public sealed class RapportAtelier5PdfGenerator
 {
-    private static readonly string BleuFrance = "#000091";
-    private static readonly string BleuFranceClair = "#E3E3FD";
-    private static readonly string Encre = "#161616";
-    private static readonly string GrisTexte = "#3A3A3A";
-    private static readonly string GrisLigne = "#DDDDDD";
-    private static readonly string GrisFond = "#F6F6F6";
-    private static readonly string RougeAlerte = "#B34000";
-    private static readonly string OrangeAlerte = "#BA7517";
-    private static readonly string VertConforme = "#18753C";
-
-    private const string SerifTitreSemiBold = "Fraunces 72pt SemiBold";
-    private const string Sans = "IBM Plex Sans";
-    private const string SansSemiBold = "IBM Plex Sans SemiBold";
-    private const string Mono = "IBM Plex Mono";
-    private const string MonoMedium = "IBM Plex Mono Medium";
-
     public byte[] Generer(RapportAtelier5Data data)
     {
         var document = Document.Create(container =>
@@ -45,6 +31,56 @@ public sealed class RapportAtelier5PdfGenerator
                     col.Spacing(20);
 
                     col.Item().Text("Ce document decrit le niveau de risque initial et residuel de chaque scenario de risque, le plan de traitement du risque associe, et le registre d'acceptation formelle des risques residuels par la Direction.").FontSize(9.5f);
+
+                    col.Item().Column(c =>
+                    {
+                        SectionTitre(c, "Resume des ateliers precedents");
+                        c.Item().PaddingTop(4).Text(t =>
+                        {
+                            t.Span("Perimetre : ").FontFamily(SansSemiBold).FontSize(8.5f);
+                            t.Span(data.Perimetre).FontSize(8.5f);
+                        });
+                        c.Item().Text(t =>
+                        {
+                            t.Span("Mission : ").FontFamily(SansSemiBold).FontSize(8.5f);
+                            t.Span(data.Mission).FontSize(8.5f);
+                        });
+                        c.Item().PaddingTop(8).Row(row =>
+                        {
+                            Chiffre(row, data.ChiffresCles.NombreValeursMetier, "Valeurs metier (A1)");
+                            Chiffre(row, data.ChiffresCles.NombreBiensSupport, "Biens support (A1)");
+                            Chiffre(row, data.ChiffresCles.NombreEvenementsRedoutes, "Evenements redoutes (A1)");
+                        });
+                        c.Item().PaddingTop(8).Row(row =>
+                        {
+                            Chiffre(row, data.ChiffresCles.NombrePartiesPrenantesCritiques, "Parties prenantes critiques (A3) / " + data.ChiffresCles.NombrePartiesPrenantes);
+                            Chiffre(row, data.ChiffresCles.NombreScenariosStrategiques, "Scenarios strategiques (A3)");
+                            Chiffre(row, data.ChiffresCles.NombreScenariosOperationnels, "Scenarios operationnels (A4)");
+                        });
+
+                        var totalControles = data.ConformiteSocle.NombreConforme + data.ConformiteSocle.NombreNonConforme + data.ConformiteSocle.NombreNonApplicable;
+                        if (totalControles > 0)
+                        {
+                            var pctConforme = 100.0 * data.ConformiteSocle.NombreConforme / totalControles;
+                            c.Item().PaddingTop(10).ShowEntire().Row(row =>
+                            {
+                                row.ConstantItem(80).Height(80).Svg(AnneauMultiSegments(
+                                    new List<(double, string)>
+                                    {
+                                        (data.ConformiteSocle.NombreConforme, VertConforme),
+                                        (data.ConformiteSocle.NombreNonConforme, RougeAlerte),
+                                        (data.ConformiteSocle.NombreNonApplicable, GrisLigne),
+                                    },
+                                    pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
+                                row.RelativeItem().PaddingLeft(16).AlignMiddle().Column(cc =>
+                                {
+                                    cc.Item().Text("Conformite du socle de securite (A1)").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(2).Row(r => Legende(r, VertConforme, data.ConformiteSocle.NombreConforme + " conforme(s)"));
+                                    cc.Item().PaddingTop(2).Row(r => Legende(r, RougeAlerte, data.ConformiteSocle.NombreNonConforme + " non conforme(s)"));
+                                });
+                            });
+                        }
+                    });
 
                     col.Item().Column(c =>
                     {
@@ -77,8 +113,9 @@ public sealed class RapportAtelier5PdfGenerator
                         }
                         else
                         {
-                            c.Item().PaddingTop(4).Text("Chaque colonne \"initial\"/\"residuel\" indique le calcul exact (Gravite x Vraisemblance) qui produit le niveau affiche en dessous -- a comparer avec la grille ci-dessus.").FontSize(7.5f).Italic().FontColor(GrisTexte);
-                            c.Item().PaddingTop(6).Table(table =>
+                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque);
+
+                            c.Item().PaddingTop(10).Table(table =>
                             {
                                 table.ColumnsDefinition(cd =>
                                 {
@@ -132,42 +169,43 @@ public sealed class RapportAtelier5PdfGenerator
                         }
                         else
                         {
-                            foreach (var axe in new[] { "Gouvernance", "Protection", "Defense", "Resilience" })
+                            c.Item().PaddingTop(4).ShowEntire().Table(table =>
                             {
-                                var mesuresAxe = data.Mesures.Where(m => m.Axe == axe).ToList();
-                                if (mesuresAxe.Count == 0)
-                                    continue;
-
-                                c.Item().PaddingTop(10).Text(axe.ToUpperInvariant()).FontFamily(MonoMedium).FontSize(9).FontColor(BleuFrance).LetterSpacing(0.03f);
-                                c.Item().PaddingTop(4).Table(table =>
+                                table.ColumnsDefinition(cd =>
                                 {
-                                    table.ColumnsDefinition(cd =>
-                                    {
-                                        cd.RelativeColumn(2.6f); cd.RelativeColumn(1.6f); cd.RelativeColumn(0.9f); cd.RelativeColumn(0.9f); cd.RelativeColumn(1); cd.RelativeColumn(1);
-                                    });
-                                    EnteteCellule(table.Cell(), "Mesure");
-                                    EnteteCellule(table.Cell(), "Responsable");
-                                    EnteteCellule(table.Cell(), "Cout");
-                                    EnteteCellule(table.Cell(), "Echeance");
-                                    EnteteCellule(table.Cell(), "Statut");
-                                    EnteteCellule(table.Cell(), "Scenarios");
+                                    cd.RelativeColumn(2.3f); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.3f); cd.RelativeColumn(1.3f); cd.RelativeColumn(1.0f); cd.RelativeColumn(0.9f); cd.RelativeColumn(1.0f);
+                                });
+                                EnteteCellule(table.Cell(), "Mesure de securite");
+                                EnteteCellule(table.Cell(), "Scenarios associes");
+                                EnteteCellule(table.Cell(), "Responsable");
+                                EnteteCellule(table.Cell(), "Freins et difficultes");
+                                EnteteCellule(table.Cell(), "Cout");
+                                EnteteCellule(table.Cell(), "Echeance");
+                                EnteteCellule(table.Cell(), "Statut");
 
+                                foreach (var axe in new[] { "Gouvernance", "Protection", "Defense", "Resilience" })
+                                {
+                                    var mesuresAxe = data.Mesures.Where(m => m.Axe == axe).ToList();
+                                    if (mesuresAxe.Count == 0)
+                                        continue;
+
+                                    BandeAxe(table, 7, axe);
+
+                                    var alterne = false;
                                     foreach (var m in mesuresAxe)
                                     {
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
-                                        {
-                                            cc.Item().Text(m.Description).FontSize(7.8f);
-                                            if (m.FreinsEtDifficultes is not null)
-                                                cc.Item().Text("Freins : " + m.FreinsEtDifficultes).FontSize(6.8f).Italic().FontColor(GrisTexte);
-                                        });
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Responsable).FontSize(7.5f);
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(m.CoutComplexite).FontFamily(MonoMedium).FontSize(8);
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Echeance ?? "--").FontSize(7.5f);
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Statut).FontSize(7.5f);
-                                        table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(string.Join("; ", m.LibellesScenariosDeRisque)).FontSize(6.8f).FontColor(GrisTexte);
+                                        var fond = alterne ? GrisFond : "#FFFFFF";
+                                        alterne = !alterne;
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Description).FontSize(7.8f);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(string.Join("; ", m.LibellesScenariosDeRisque)).FontSize(6.8f).FontColor(GrisTexte);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Responsable).FontSize(7.5f);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.FreinsEtDifficultes ?? "--").FontSize(7).FontColor(GrisTexte);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(m.CoutComplexite).FontFamily(MonoMedium).FontSize(7.5f);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Echeance ?? "--").FontSize(7.5f);
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Element(e => PastilleStatutMesure(e, m.Statut));
                                     }
-                                });
-                            }
+                                }
+                            });
                         }
                     });
 
@@ -219,40 +257,10 @@ public sealed class RapportAtelier5PdfGenerator
         return document.GeneratePdf();
     }
 
-    private static void LigneRisque(QuestPDF.Fluent.TableDescriptor table, string label, string v1, string v2, string v3, string v4)
+    private static void LigneRisque(TableDescriptor table, string label, string v1, string v2, string v3, string v4)
     {
         table.Cell().Background(BleuFranceClair).Padding(5).Text(label).FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance);
         foreach (var v in new[] { v1, v2, v3, v4 })
             table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).PaddingVertical(5).AlignCenter().Text(v).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(v));
-    }
-
-    private static string CouleurNiveau(string? niveau) => niveau switch
-    {
-        "Eleve" => RougeAlerte,
-        "Moyen" => OrangeAlerte,
-        "Faible" => VertConforme,
-        _ => GrisTexte,
-    };
-
-    private static string LibelleClasse(string? classe) => classe switch
-    {
-        "AcceptableEnLEtat" => "Acceptable en l'etat",
-        "TolerableSousControle" => "Tolerable sous controle",
-        "Inacceptable" => "Inacceptable",
-        _ => "--",
-    };
-
-    private static void SectionTitre(QuestPDF.Fluent.ColumnDescriptor col, string texte)
-    {
-        col.Item().Row(row =>
-        {
-            row.ConstantItem(3).Height(16).Background(BleuFrance);
-            row.RelativeItem().PaddingLeft(8).Text(texte).FontFamily(SerifTitreSemiBold).FontSize(13).FontColor(Encre);
-        });
-    }
-
-    private static void EnteteCellule(QuestPDF.Infrastructure.IContainer cell, string texte)
-    {
-        cell.Background(BleuFranceClair).Padding(5).Text(texte).FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance).LetterSpacing(0.02f);
     }
 }

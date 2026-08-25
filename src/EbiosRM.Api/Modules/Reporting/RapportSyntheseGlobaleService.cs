@@ -48,7 +48,7 @@ public sealed class RapportSyntheseGlobaleService
             contenu3.ScenariosStrategiques.Count,
             contenu4.ScenariosOperationnels.Count);
 
-        var libellesParScenario = contenu5.ScenariosDeRisque.ToDictionary(s => s.Id, s => s.LibelleChemin + " -- " + s.LibelleCouple);
+        var libellesParScenario = contenu5.ScenariosDeRisque.ToDictionary(s => s.Id, s => s.LibelleCouple + " -- " + s.LibelleChemin);
 
         var scenarios = contenu5.ScenariosDeRisque.Select(s => new ScenarioDeRisqueData(
             s.LibelleChemin, s.LibelleCouple, s.Gravite, s.VraisemblanceInitiale?.ToString(),
