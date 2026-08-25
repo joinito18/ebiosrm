@@ -76,20 +76,20 @@ export function AtelierChainExpanded(props: { ateliers: AtelierNode[]; etudeId: 
   var ateliers = props.ateliers
   var etudeId = props.etudeId
   return (
-    <div className="flex items-stretch gap-0 overflow-hidden rounded-lg border border-paper-line">
+    <div className="flex snap-x snap-mandatory items-stretch gap-0 overflow-x-auto rounded-lg border border-paper-line lg:overflow-hidden">
       {ateliers.map(function (atelier, i) {
         var linkTarget = '/etudes/' + etudeId + '/ateliers/' + atelier.numero
         var isLast = i === ateliers.length - 1
         var isCurrent = atelier.statut === 'current'
         var isDone = atelier.statut === 'done'
 
-        var colClass = 'relative flex flex-col justify-between p-5 transition-all '
+        var colClass = 'relative flex w-[180px] shrink-0 snap-start flex-col justify-between p-5 transition-all lg:w-auto lg:shrink '
         if (isCurrent) {
-          colClass = colClass + 'flex-[2.2] bg-white'
+          colClass = colClass + 'lg:flex-[2.2] bg-white'
         } else if (isDone) {
-          colClass = colClass + 'flex-1 bg-paper'
+          colClass = colClass + 'lg:flex-1 bg-paper'
         } else {
-          colClass = colClass + 'flex-[0.85] bg-paper-dim'
+          colClass = colClass + 'lg:flex-[0.85] bg-paper-dim'
         }
         if (!isLast) {
           colClass = colClass + ' border-r border-paper-line'

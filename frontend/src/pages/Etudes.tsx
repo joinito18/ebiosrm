@@ -135,34 +135,36 @@ export default function Etudes() {
       )}
 
       {!chargement && !erreurListe && etudes.length > 0 && (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-paper-line text-left">
-              <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ETUDE</th>
-              <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">PERIMETRE</th>
-              <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">STATUT</th>
-              <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">CREEE LE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {etudes.map(function (etude) {
-              return (
-                <tr
-                  key={etude.id}
-                  onClick={function () { navigate('/etudes/' + etude.id) }}
-                  className="cursor-pointer border-b border-paper-line transition hover:bg-paper-dim/50"
-                >
-                  <td className="py-3.5 text-sm font-medium text-ink">{etude.nom}</td>
-                  <td className="py-3.5 text-xs text-steel">{etude.perimetre}</td>
-                  <td className="py-3.5 text-xs text-steel">{etude.statut}</td>
-                  <td className="py-3.5 text-right font-mono text-[11px] text-steel-light">
-                    {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[480px] border-collapse">
+            <thead>
+              <tr className="border-b border-paper-line text-left">
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ETUDE</th>
+                <th className="hidden pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light sm:table-cell">PERIMETRE</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">STATUT</th>
+                <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">CREEE LE</th>
+              </tr>
+            </thead>
+            <tbody>
+              {etudes.map(function (etude) {
+                return (
+                  <tr
+                    key={etude.id}
+                    onClick={function () { navigate('/etudes/' + etude.id) }}
+                    className="cursor-pointer border-b border-paper-line transition hover:bg-paper-dim/50"
+                  >
+                    <td className="py-3.5 text-sm font-medium text-ink">{etude.nom}</td>
+                    <td className="hidden py-3.5 text-xs text-steel sm:table-cell">{etude.perimetre}</td>
+                    <td className="py-3.5 text-xs text-steel">{etude.statut}</td>
+                    <td className="py-3.5 text-right font-mono text-[11px] text-steel-light">
+                      {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   )

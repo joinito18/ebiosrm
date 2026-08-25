@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, FileText, Settings } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, FileText, Settings, X } from 'lucide-react'
 import { AtelierChainCompact } from '../methodology/AtelierChain'
 import type { AtelierNode } from '../methodology/AtelierChain'
 import { getEtude } from '../../lib/api'
 import type { Etude } from '../../lib/api'
 
-function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean }) {
+function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean; onNavigate?: () => void }) {
   var Icon = props.icon
   return (
     <NavLink
       to={props.to}
       end={props.end !== undefined ? props.end : props.to === '/etudes'}
+      onClick={props.onNavigate}
       className={function (state) {
         var base = 'flex items-center gap-3 rounded-md px-2.5 py-2 text-xs font-medium transition-colors '
         return base + (state.isActive
@@ -49,7 +50,7 @@ function ateliersDepuisEtude(etude: Etude | null): AtelierNode[] {
   ]
 }
 
-export default function Sidebar() {
+export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }) {
   var params = useParams()
   var etudeId = params.etudeId
   var [etude, setEtude] = useState<Etude | null>(null)
@@ -63,39 +64,61 @@ export default function Sidebar() {
   }, [etudeId])
 
   return (
-    <aside className="hidden w-[264px] shrink-0 flex-col bg-ink text-white lg:flex">
-      <div className="flex h-16 items-center gap-2.5 border-b border-ink-line px-5">
-        <div className="font-display text-[19px] leading-none text-white">
-          EBIOS<span className="text-signature">&middot;</span>RM
+    <>
+      {props.ouvert && (
+        <div
+          className="fixed inset-0 z-40 bg-ink/50 lg:hidden"
+          onClick={props.onFermer}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={
+          'fixed inset-y-0 left-0 z-50 flex w-[264px] shrink-0 flex-col bg-ink text-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:flex lg:translate-x-0 ' +
+          (props.ouvert ? 'translate-x-0' : '-translate-x-full')
+        }
+      >
+        <div className="flex h-16 items-center justify-between gap-2.5 border-b border-ink-line px-5">
+          <div className="font-display text-[19px] leading-none text-white">
+            EBIOS<span className="text-signature">&middot;</span>RM
+          </div>
+          <button
+            onClick={props.onFermer}
+            aria-label="Fermer le menu"
+            className="text-steel-light hover:text-white lg:hidden"
+          >
+            <X size={20} strokeWidth={1.75} />
+          </button>
         </div>
-      </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-6">
-        <nav className="space-y-0.5">
-          <NavItem to={etudeId ? '/etudes/' + etudeId : '/etudes'} icon={LayoutDashboard} end>Tableau de bord</NavItem>
-          <NavItem to="/etudes" icon={FolderOpen}>Etudes</NavItem>
-        </nav>
+        <div className="flex-1 overflow-y-auto px-5 py-6">
+          <nav className="space-y-0.5">
+            <NavItem to={etudeId ? '/etudes/' + etudeId : '/etudes'} icon={LayoutDashboard} end onNavigate={props.onFermer}>Tableau de bord</NavItem>
+            <NavItem to="/etudes" icon={FolderOpen} onNavigate={props.onFermer}>Etudes</NavItem>
+          </nav>
 
-        {etudeId && (
-          <>
-            <div className="mb-4 mt-9 font-mono text-[10px] tracking-wide text-steel-light">
-              ETUDE EN COURS
-            </div>
-            <div className="mb-5 truncate font-display text-sm text-white">
-              {etude ? etude.nom : 'Chargement...'}
-            </div>
+          {etudeId && (
+            <>
+              <div className="mb-4 mt-9 font-mono text-[10px] tracking-wide text-steel-light">
+                ETUDE EN COURS
+              </div>
+              <div className="mb-5 truncate font-display text-sm text-white">
+                {etude ? etude.nom : 'Chargement...'}
+              </div>
 
-            <AtelierChainCompact ateliers={ateliersDepuisEtude(etude)} etudeId={etudeId} />
-          </>
-        )}
+              <AtelierChainCompact ateliers={ateliersDepuisEtude(etude)} etudeId={etudeId} />
+            </>
+          )}
 
-        <div className="my-7 border-t border-ink-line" />
+          <div className="my-7 border-t border-ink-line" />
 
-        <nav className="space-y-0.5">
-          <NavItem to="/rapports" icon={FileText}>Rapports</NavItem>
-          <NavItem to="/parametres" icon={Settings}>Parametres</NavItem>
-        </nav>
-      </div>
-    </aside>
+          <nav className="space-y-0.5">
+            <NavItem to="/rapports" icon={FileText} onNavigate={props.onFermer}>Rapports</NavItem>
+            <NavItem to="/parametres" icon={Settings} onNavigate={props.onFermer}>Parametres</NavItem>
+          </nav>
+        </div>
+      </aside>
+    </>
   )
 }

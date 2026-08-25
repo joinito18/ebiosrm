@@ -38,11 +38,11 @@ export default function Dashboard() {
   }, [etudeId])
 
   if (chargement) {
-    return <div className="px-10 py-14 text-sm text-steel">Chargement de l etude...</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">Chargement de l etude...</div>
   }
 
   if (!etude) {
-    return <div className="px-10 py-14 text-sm text-risk-critical">Etude introuvable.</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">Etude introuvable.</div>
   }
 
   function statutDe(s: string): 'done' | 'current' | 'todo' {
@@ -83,24 +83,24 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="mb-12 flex flex-wrap divide-x divide-paper-line border-y border-paper-line">
-        <div className="flex-1 px-6 py-5 first:pl-0">
+      <div className="mb-12 grid grid-cols-2 gap-px border-y border-paper-line bg-paper-line sm:grid-cols-3 lg:grid-cols-5">
+        <div className="bg-paper px-6 py-5">
           <div className="mt-1"><BadgeStatutAtelier statut={etude.statut} /></div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">STATUT ATELIER 1</div>
         </div>
-        <div className="flex-1 px-6 py-5">
+        <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbValeursMetier}</div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">VALEURS METIER</div>
         </div>
-        <div className="flex-1 px-6 py-5">
+        <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbEvenementsRedoutes}</div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">EVENEMENTS REDOUTES</div>
         </div>
-        <div className="flex-1 px-6 py-5">
+        <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbCouplesRetenus}</div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">COUPLES SR/OV RETENUS</div>
         </div>
-        <div className="flex-1 px-6 py-5 last:pr-0">
+        <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbScenariosDeRisque}</div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">SCENARIOS DE RISQUE</div>
         </div>

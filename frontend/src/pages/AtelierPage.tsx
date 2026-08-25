@@ -267,11 +267,11 @@ export default function AtelierPage() {
   }
 
   if (chargement) {
-    return <div className="px-10 py-14 text-sm text-steel">Chargement...</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">Chargement...</div>
   }
 
   if (!etude) {
-    return <div className="px-10 py-14 text-sm text-risk-critical">Etude introuvable.</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">Etude introuvable.</div>
   }
 
   var nom = NOMS_ATELIERS[numero] || 'Atelier'
@@ -2820,7 +2820,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
     return (
       <div className="space-y-1.5 border-l-2 border-signature pl-3">
         <input type="text" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <select value={axe} onChange={function (e) { setAxe(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
             {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{a}</option> })}
           </select>
@@ -2901,7 +2901,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
         return (
           <div className="space-y-1.5">
             <input type="text" placeholder="Description de la mesure" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <select value={axe} onChange={function (e) { setAxe(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
                 {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{a}</option> })}
               </select>
