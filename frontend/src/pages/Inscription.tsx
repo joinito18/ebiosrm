@@ -17,14 +17,14 @@ export default function Inscription() {
       return
     }
     if (motDePasse.length < 8) {
-      setErreur('Le mot de passe doit contenir au moins 8 caractères.')
+      setErreur('Le mot de passe doit contenir au moins 8 caracteres.')
       return
     }
     setErreur('')
     setEnCours(true)
     inscription(email.trim(), motDePasse, nomAffiche.trim())
       .then(function () { navigate('/etudes') })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur lors de la création du compte.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur lors de la creation du compte.') })
       .finally(function () { setEnCours(false) })
   }
 
@@ -36,9 +36,9 @@ export default function Inscription() {
         </div>
 
         <form onSubmit={soumettre} className="border border-paper-line p-6">
-          <h1 className="mb-5 font-mono text-[11px] tracking-wide text-steel-light">CRÉER UN COMPTE</h1>
+          <h1 className="mb-5 font-mono text-[11px] tracking-wide text-steel-light">CREER UN COMPTE</h1>
 
-          <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">NOM AFFICHÉ</label>
+          <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">NOM AFFICHE</label>
           <input
             type="text"
             value={nomAffiche}
@@ -62,7 +62,7 @@ export default function Inscription() {
             onChange={function (e) { setMotDePasse(e.target.value) }}
             className="mb-1 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none"
           />
-          <p className="mb-4 text-[10px] text-steel-light">8 caractères minimum.</p>
+          <p className="mb-4 text-[10px] text-steel-light">8 caracteres minimum.</p>
 
           {erreur && <p className="mb-4 text-xs text-risk-critical">{erreur}</p>}
 
@@ -71,11 +71,11 @@ export default function Inscription() {
             disabled={enCours}
             className="w-full rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50"
           >
-            {enCours ? 'Création...' : 'Créer le compte'}
+            {enCours ? 'Creation...' : 'Creer le compte'}
           </button>
 
           <p className="mt-5 text-center text-xs text-steel">
-            Déjà un compte ? <Link to="/connexion" className="text-signature hover:underline">Se connecter</Link>
+            Deja un compte ? <Link to="/connexion" className="text-signature hover:underline">Se connecter</Link>
           </p>
         </form>
       </div>

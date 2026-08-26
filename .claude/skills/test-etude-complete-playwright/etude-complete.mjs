@@ -49,6 +49,22 @@ async function clicBouton(texte, exact) {
   await page.waitForTimeout(500)
 }
 
+// ============ AUTHENTIFICATION ============
+// Depuis le chantier auth, TOUS les endpoints exigent un jeton (FallbackPolicy
+// cote API) -- toute navigation vers /etudes sans etre connecte redirige vers
+// /connexion (RouteProtegee). Un compte jetable est cree a chaque execution
+// (email unique via Date.now()) plutot que de reutiliser un compte fixe, pour
+// que le script reste rejouable sans etat partage entre executions.
+await page.goto(BASE + '/inscription', { waitUntil: 'load' })
+await page.waitForTimeout(500)
+await page.locator('input[type=text]').fill('Playwright Test')
+await page.locator('input[type=email]').fill('playwright-' + Date.now() + '@ebiosrm.local')
+await page.locator('input[type=password]').fill('MotDePasseTest123')
+await clicBouton('Creer le compte', false)
+await page.waitForTimeout(700)
+if (!page.url().includes('/etudes')) fail('inscription/connexion automatique a echoue, url=' + page.url())
+log('authentifie')
+
 // ============ CREATION ETUDE ============
 await aller('/etudes')
 await clicAjout('Nouvelle etude')

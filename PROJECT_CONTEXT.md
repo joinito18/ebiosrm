@@ -2031,5 +2031,54 @@ Conformément à la décision actée avant codage : le document présenté à la
 
 Couverture des 5 ateliers EBIOS RM désormais complète (domaine, EF Core, endpoints, snapshot P13/P16 uniforme, reporting PDF par atelier + synthèse globale, frontend, tests unitaires et d'intégration).
 
+## Mise à jour — Déploiement public gratuit (Neon + Render + Vercel)
+
+Demande explicite : rendre l'application testable à distance par un tiers, sans coût. Pile retenue après plusieurs impasses : **Fly.io écarté** (exige une carte bancaire même pour son quota gratuit) ; **Neon** (Postgres serverless, gratuit sans carte) + **Render** (API, service Docker gratuit sans carte) + **Vercel** (frontend statique, gratuit) retenus.
+
+**Points techniques notables** :
+- `CORS` passé en `AllowAnyOrigin()` (le split frontend/API sur deux origines différentes ne tolère pas la liste blanche `localhost` de dev).
+- **Bug de portabilité corrigé avant déploiement** : les polices QuestPDF (Fraunces, IBM Plex) n'étaient jamais enregistrées par code, l'app comptait implicitement sur des polices système installées sur le poste de dev — invisible en local, aurait cassé silencieusement le rendu des PDF une fois conteneurisé. Corrigé par `QuestPDF.Drawing.FontManager.RegisterFont` sur les `.ttf` de `Assets/Fonts` au démarrage (`Program.cs`), rendant l'app auto-suffisante.
+- `Dockerfile` multi-stage (`mcr.microsoft.com/dotnet/sdk:8.0` build → `mcr.microsoft.com/dotnet/aspnet:8.0` runtime), image poussée sur **GitHub Container Registry** (dépôt `github.com/joinito18/ebiosrm`, public par choix explicite de l'utilisateur) car Render exige soit un dépôt Git connecté via leur dashboard (pas automatisable par API), soit une image de registre — GHCR + un jeton classique `write:packages` (le token OAuth par défaut de `gh auth login` n'a pas ce scope) était la voie la plus scriptable.
+- Service Render créé et administré entièrement via leur **API REST** (`api.render.com`, distincte de `dashboard.render.com`) : création du service, des identifiants de registre, des variables d'environnement (`Jwt__Secret`, `ConnectionStrings__EbiosDb`), déclenchement de déploiements — tout scriptable sans jamais ouvrir le dashboard.
+- **Panne Render prolongée rencontrée** : `dashboard.render.com` et tous les `*.onrender.com` hébergés sont devenus injoignables (`connection reset` TLS) pendant plusieurs heures, confirmé indépendamment depuis deux réseaux différents (le sandbox et le poste de l'utilisateur), alors que `api.render.com` restait fonctionnel — panne d'infrastructure côté Render non reconnue sur leur page de statut publique, pas un problème côté projet.
+
+Étude de démonstration entièrement peuplée par script (`build_etude.py`, réutilisable) pour valider le rendu en conditions réelles : 15 valeurs métier, 10 biens support, 5 ateliers validés de bout en bout.
+
+## Mise à jour — Responsivité mobile
+
+Audit déclenché par un retour utilisateur ("le côté gauche n'est pas visible sur mobile"). Deux bugs bloquants trouvés par lecture de code puis confirmés par Playwright à 375px (pas seulement supposés) :
+- **Menu latéral totalement invisible sous 1024px** (`Sidebar.tsx` utilisait `hidden ... lg:flex` sans aucun repli mobile, ni bouton pour le faire réapparaître) — corrigé par un tiroir coulissant (bouton hamburger dans `Header.tsx`, fond semi-transparent cliquable pour fermer, fermeture automatique à la navigation).
+- **Parcours méthodologique horizontal tronqué à 3 ateliers sur 5** (`AtelierChainExpanded` utilisait `overflow-hidden` sans point de rupture responsive, les colonnes en trop étaient rognées silencieusement) — corrigé en défilement horizontal avec `snap-x` sous `lg`.
+
+Corrections mineures associées : grille de chiffres clés du tableau de bord (`flex-wrap` + `divide-x` produisait des bordures parasites au retour à la ligne, remplacé par une grille CSS avec `gap-px`), tableau des études (colonne périmètre masquée sur mobile plutôt que de déborder), formulaires de mesure de traitement (`grid-cols-3` illisible sur petit écran).
+
+## Mise à jour — Authentification
+
+Nécessité posée par le déploiement public : sans mur d'entrée, n'importe qui avec le lien pouvait lire/modifier/supprimer n'importe quelle étude. Décisions actées avec l'utilisateur avant codage : **comptes individuels** (pas un compte unique partagé, cohérent avec les rôles ANSSI Métiers/RSSI/Direction déjà mentionnés dans la méthodologie sans y être encore rattachés) ; **inscription libre** (self-service, pas de création manuelle par un admin) ; **un seul niveau d'accès** (mur d'entrée uniquement, pas de permissions différenciées — une fois connecté, un utilisateur peut tout faire comme avant, et **toutes les études restent visibles par tous les comptes**, espace de travail partagé sans notion de propriétaire).
+
+**Choix technique** : jeton JWT porté en en-tête `Authorization`, pas de cookies de session — le frontend (Vercel) et l'API (Render) étant sur deux origines différentes, un cookie cross-origin exigerait `SameSite=None`/`Secure` + configuration CORS `credentials`, plus fragile qu'un en-tête explicite.
+
+**Modèle de domaine** : nouveau module `Modules/Identity/` (`Utilisateur.cs`, hors du `CoreEngine` car ce n'est pas un concept métier EBIOS RM). Hachage du mot de passe via `Microsoft.AspNetCore.Identity.PasswordHasher<object>` — le paramètre générique `object` plutôt que `Utilisateur` contourne un problème d'œuf-et-la-poule (l'API `PasswordHasher<TUser>.HashPassword` exige une instance de `TUser`, mais `Utilisateur` ne peut exister avant d'avoir son hash puisque son constructeur est privé et `Creer` l'exige) ; l'implémentation par défaut n'utilise de toute façon jamais l'instance passée. `ServiceAuthentification` orchestre inscription/connexion et émission du JWT (expiration 7 jours, pas de refresh token).
+
+**Protection globale plutôt que endpoint par endpoint** : `AddAuthorization(options => options.FallbackPolicy = ...RequireAuthenticatedUser())` protège tous les endpoints existants par défaut sans toucher aux dizaines de `app.Map*` déjà en place — seuls `/auth/inscription`, `/auth/connexion` et `/api/v1/health` sont explicitement exemptés via `.AllowAnonymous()`.
+
+**Deux pièges .NET rencontrés** :
+1. Lire `builder.Configuration["Jwt:Secret"]` **avant** `builder.Build()` (au moment de configurer `AddJwtBearer`) semblait correct mais échouait dans les tests d'intégration (`WebApplicationFactory`) : son injection de configuration in-memory ne fusionne dans `builder.Configuration` que juste avant `Build()`, donc toute lecture eager antérieure voit encore la config de base. Corrigé en déplaçant la lecture **à l'intérieur** du lambda `options =>` de `AddJwtBearer` (exécuté paresseusement, à la première requête entrante) — même raisonnement que `builder.Configuration.GetConnectionString("EbiosDb")` déjà lu paresseusement dans `AddDbContext`.
+2. Le handler JWT d'ASP.NET Core **renomme silencieusement le claim `sub`** vers l'URI XML historique (`ClaimTypes.NameIdentifier`) par défaut — un `principal.FindFirst("sub")` renvoyait toujours `null` côté `/auth/moi` malgré un jeton valide. Corrigé par `JwtSecurityTokenHandler.DefaultMapInboundClaims = false` en tout début de `Program.cs`.
+
+**Régression découverte après coup** (cf. section Cadre de suivi ci-dessous) : les 6 liens de téléchargement de rapport PDF étaient de simples `<a href>`, qui ne portent pas l'en-tête `Authorization` — cassés silencieusement par le `FallbackPolicy`. Corrigés par téléchargement `fetch` + blob local (`BoutonTelechargerRapport.tsx`), vérifié par un téléchargement réel via Playwright (fichier sur disque, pas seulement un code 200).
+
+Frontend : pages `Connexion.tsx`/`Inscription.tsx` (publiques, hors `AppLayout`), garde de route `RouteProtegee.tsx`, jeton en `localStorage` injecté automatiquement par `apiFetch`, bouton de déconnexion + nom de l'utilisateur courant dans `Sidebar.tsx`.
+
+Limitations assumées, hors périmètre de cette itération : pas de réinitialisation de mot de passe, pas de vérification d'email, pas de cloisonnement des études par organisation/équipe.
+
+## Mise à jour — Suppression d'étude
+
+Manque identifié : aucun `DELETE /etudes/{id}` n'existait, seulement des suppressions de sous-éléments — une étude créée par erreur restait coincée indéfiniment. `ServiceSuppressionEtude` (`Domain/Cadrage/`) purge **table par table** par `EtudeId` (`ExecuteDeleteAsync` d'EF Core 8, dans une transaction) plutôt que de rejouer la cascade fine des endpoints unitaires (ex. `couples-sr-ov`) : chaque agrégat porte déjà `EtudeId` directement, et les entités owned (`Referentiels`, `Mesures`, `EvenementsIntermediaires`, `ModesOperatoires`...) ont une vraie contrainte `ON DELETE CASCADE` en base — comportement par défaut d'EF Core pour les relations `OwnsMany`, vérifié dans les migrations avant de s'y fier. Bouton corbeille sur la liste des études (`Etudes.tsx`), `e.stopPropagation()` pour ne pas déclencher la navigation de la ligne.
+
+## Mise à jour — Cadre de suivi (4e livrable officiel)
+
+Dernier livrable officiel EBIOS RM manquant. Différence structurante avec tous les autres rapports : **il lit l'état courant, pas un `SnapshotAtelier` figé** — sa raison d'être est de suivre une progression qui continue après la validation de l'Atelier 5 (mesures qui passent à "Terminé" au fil des mois, risques résiduels réévalués), un document figé au moment de la validation n'aurait ici aucun sens. `RapportCadreDeSuiviService` réutilise `ServiceAssemblageScenariosDeRisque` (déjà conçu pour lire des agrégats vivants) et `IPlanTraitementRisqueRepository` directement, sans passer par les snapshots. Disponible dès l'Atelier 5 **démarré** (pas besoin d'attendre sa validation complète, contrairement à la synthèse globale) — vérifié par un test d'intégration dédié qui matérialise ce contraste explicitement (la synthèse refuse, le cadre de suivi répond) et qui change le statut d'une mesure entre deux appels pour prouver que le contenu suit sans nouvelle validation.
+
 *Fin du contexte.*
 

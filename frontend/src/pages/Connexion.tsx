@@ -64,7 +64,7 @@ export default function Connexion() {
           </button>
 
           <p className="mt-5 text-center text-xs text-steel">
-            Pas encore de compte ? <Link to="/inscription" className="text-signature hover:underline">Créer un compte</Link>
+            Pas encore de compte ? <Link to="/inscription" className="text-signature hover:underline">Creer un compte</Link>
           </p>
         </form>
       </div>
