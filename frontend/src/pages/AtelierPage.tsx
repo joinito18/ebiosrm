@@ -6,6 +6,12 @@ import InlineForm from '../components/shared/InlineForm'
 import GrilleMatrice from '../components/shared/GrilleMatrice'
 import OverrideJugementExpert from '../components/shared/OverrideJugementExpert'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
+import Button from '../components/shared/Button'
+import Badge from '../components/shared/Badge'
+import type { CouleurBadge } from '../components/shared/Badge'
+import Card from '../components/shared/Card'
+import EmptyState from '../components/shared/EmptyState'
+import RowActions from '../components/shared/RowActions'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
   getEtude, listValeursMetier, listBiensSupport, listEvenementsRedoutes, getSocleSecurite,
@@ -57,6 +63,23 @@ var TYPES_BIEN_SUPPORT = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 
 var LIBELLE_TYPE_BIEN_SUPPORT: { [key: string]: string } = { SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local' }
 var ETATS_CONFORMITE = ['Conforme', 'NonConforme', 'NonApplicable']
 var LIBELLE_ETAT_CONFORMITE: { [key: string]: string } = { Conforme: 'Conforme', NonConforme: 'Non conforme', NonApplicable: 'Non applicable' }
+
+// Convertit une classe de couleur texte brute (couleurZone, couleurPertinence,
+// couleurGravite, couleurVraisemblance, couleurNiveauRisque -- toutes encore
+// utilisees telles quelles par GrilleMatrice.couleurCellule, qui a besoin
+// d'une classe Tailwind litterale) vers une cle Badge, pour les usages ou la
+// meme valeur est affichee comme pastille plutot que comme texte colore brut.
+var COULEUR_BADGE_DEPUIS_CLASSE: { [key: string]: CouleurBadge } = {
+  'text-risk-critical': 'risk-critical',
+  'text-risk-high': 'risk-high',
+  'text-risk-moderate': 'risk-moderate',
+  'text-risk-low': 'risk-low',
+  'text-steel': 'steel',
+  'text-steel-light': 'steel',
+}
+function badgeCouleur(classeTexte: string): CouleurBadge {
+  return COULEUR_BADGE_DEPUIS_CLASSE[classeTexte] || 'steel'
+}
 
 export default function AtelierPage() {
   var params = useParams()
@@ -284,79 +307,81 @@ export default function AtelierPage() {
   var estVerrouille = !estAtelier1 && !estAtelier2 && !estAtelier3 && !estAtelier4 && !estAtelier5
   var lienRetour = '/etudes/' + etudeId
 
+  var CLASSE_TELECHARGEMENT = 'inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition duration-200 ease-premium hover:border-signature hover:text-signature'
+
   var boutonAction = null
   if (estAtelier1 && etude.statut === 'Brouillon') {
-    boutonAction = <button onClick={handleDemarrer} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
+    boutonAction = <Button variante="primary" taille="md" onClick={handleDemarrer} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
   } else if (estAtelier1 && etude.statut === 'EnCours') {
-    boutonAction = <button onClick={handleValider} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+    boutonAction = <Button variante="primary" taille="md" onClick={handleValider} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
   } else if (estAtelier1 && etude.statut === 'Validee') {
     boutonAction = (
       <>
-        <button onClick={handleRouvrir} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier1'} nomFichier={'rapport-atelier1-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrir} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier1'} nomFichier={'rapport-atelier1-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier2 = null
   if (etude.statutAtelier2 === 'Brouillon') {
-    boutonActionAtelier2 = <button onClick={handleDemarrerAtelier2} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
+    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier2} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
   } else if (etude.statutAtelier2 === 'EnCours') {
-    boutonActionAtelier2 = <button onClick={handleValiderAtelier2} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleValiderAtelier2} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
   } else if (etude.statutAtelier2 === 'Validee') {
     boutonActionAtelier2 = (
       <>
-        <button onClick={handleRouvrirAtelier2} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier2'} nomFichier={'rapport-atelier2-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier2} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier2'} nomFichier={'rapport-atelier2-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier3 = null
   if (etude.statutAtelier3 === 'Brouillon') {
-    boutonActionAtelier3 = <button onClick={handleDemarrerAtelier3} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
+    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier3} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
   } else if (etude.statutAtelier3 === 'EnCours') {
-    boutonActionAtelier3 = <button onClick={handleValiderAtelier3} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleValiderAtelier3} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
   } else if (etude.statutAtelier3 === 'Validee') {
     boutonActionAtelier3 = (
       <>
-        <button onClick={handleRouvrirAtelier3} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier3'} nomFichier={'rapport-atelier3-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier3} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier3'} nomFichier={'rapport-atelier3-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier4 = null
   if (etude.statutAtelier4 === 'Brouillon') {
-    boutonActionAtelier4 = <button onClick={handleDemarrerAtelier4} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
+    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier4} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
   } else if (etude.statutAtelier4 === 'EnCours') {
-    boutonActionAtelier4 = <button onClick={handleValiderAtelier4} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleValiderAtelier4} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
   } else if (etude.statutAtelier4 === 'Validee') {
     boutonActionAtelier4 = (
       <>
-        <button onClick={handleRouvrirAtelier4} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier4'} nomFichier={'rapport-atelier4-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier4} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier4'} nomFichier={'rapport-atelier4-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier5 = null
   if (etude.statutAtelier5 === 'Brouillon') {
-    boutonActionAtelier5 = <button onClick={handleDemarrerAtelier5} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
+    boutonActionAtelier5 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier5} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
   } else if (etude.statutAtelier5 === 'EnCours') {
     boutonActionAtelier5 = (
       <>
-        <button onClick={handleValiderAtelier5} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le cadre de suivi</BoutonTelechargerRapport>
+        <Button variante="primary" taille="md" onClick={handleValiderAtelier5} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le cadre de suivi</BoutonTelechargerRapport>
       </>
     )
   } else if (etude.statutAtelier5 === 'Validee') {
     boutonActionAtelier5 = (
       <>
-        <button onClick={handleRouvrirAtelier5} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier5'} nomFichier={'rapport-atelier5-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger la synthese globale</BoutonTelechargerRapport>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le cadre de suivi</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier5} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier5'} nomFichier={'rapport-atelier5-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger la synthese globale</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le cadre de suivi</BoutonTelechargerRapport>
       </>
     )
   }
@@ -491,13 +516,13 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">VALEURS METIER ({props.valeurs.length})</h2>
       {props.valeurs.length === 0 ? (
-        <p className="text-xs text-steel">Aucune valeur metier renseignee.</p>
+        <EmptyState message="Aucune valeur metier renseignee." />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.valeurs.map(function (v) {
             if (idEnEdition === v.id) {
               return (
-                <div key={v.id} className="flex items-center gap-2 py-2">
+                <div key={v.id} className="flex items-center gap-2 border-l-2 border-signature py-2 pl-3">
                   <input type="text" value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <input type="text" value={entiteEdit} onChange={function (e) { setEntiteEdit(e.target.value) }} className="w-40 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <button onClick={function () { sauvegarderEdition(v.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
@@ -510,8 +535,7 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
                 <span className="text-sm text-ink">{v.description}</span>
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[11px] text-steel-light">{v.entiteProprietaire}</span>
-                  <button onClick={function () { ouvrirEdition(v) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                  <button onClick={function () { supprimer(v.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                  <RowActions onModifier={function () { ouvrirEdition(v) }} onSupprimer={function () { supprimer(v.id) }} />
                 </div>
               </div>
             )
@@ -526,7 +550,7 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
               <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
             </div>
           )
         }}
@@ -598,13 +622,13 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">BIENS SUPPORT ({props.biens.length})</h2>
       {props.biens.length === 0 ? (
-        <p className="text-xs text-steel">Aucun bien support renseigne.</p>
+        <EmptyState message="Aucun bien support renseigne." />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.biens.map(function (b) {
             if (idEnEdition === b.id) {
               return (
-                <div key={b.id} className="flex items-center gap-2 py-2">
+                <div key={b.id} className="flex items-center gap-2 border-l-2 border-signature py-2 pl-3">
                   <input type="text" value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <select value={typeEdit} onChange={function (e) { setTypeEdit(e.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
                     {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BIEN_SUPPORT[t]}</option> })}
@@ -620,8 +644,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
                 <span className="text-sm text-ink">{b.description}</span>
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[11px] text-steel-light">{LIBELLE_TYPE_BIEN_SUPPORT[b.type] || b.type} - {b.entiteProprietaire}</span>
-                  <button onClick={function () { ouvrirEdition(b) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                  <button onClick={function () { supprimer(b.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                  <RowActions onModifier={function () { ouvrirEdition(b) }} onSupprimer={function () { supprimer(b.id) }} />
                 </div>
               </div>
             )
@@ -643,7 +666,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
               </select>
               <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
             </div>
           )
         }}
@@ -711,13 +734,13 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
     <section>
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVENEMENTS REDOUTES ({props.evenements.length})</h2>
       {props.evenements.length === 0 ? (
-        <p className="text-xs text-steel">Aucun evenement redoute renseigne.</p>
+        <EmptyState message="Aucun evenement redoute renseigne." />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.evenements.map(function (e) {
             if (idEnEdition === e.id) {
               return (
-                <div key={e.id} className="flex items-center gap-2 py-2">
+                <div key={e.id} className="flex items-center gap-2 border-l-2 border-signature py-2 pl-3">
                   <input type="text" value={descEdit} onChange={function (ev) { setDescEdit(ev.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <select value={graviteEdit} onChange={function (ev) { setGraviteEdit(ev.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
                     <option value="1">Gravite 1</option><option value="2">Gravite 2</option><option value="3">Gravite 3</option><option value="4">Gravite 4</option>
@@ -731,9 +754,8 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
               <div key={e.id} className="flex items-start justify-between gap-6 py-3">
                 <span className="text-sm text-ink">{e.description}</span>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="font-mono text-[11px] font-medium text-risk-high">GRAVITE {e.gravite}</span>
-                  <button onClick={function () { ouvrirEdition(e) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                  <button onClick={function () { supprimer(e.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                  <Badge couleur="risk-high">GRAVITE {e.gravite}</Badge>
+                  <RowActions onModifier={function () { ouvrirEdition(e) }} onSupprimer={function () { supprimer(e.id) }} />
                 </div>
               </div>
             )
@@ -757,7 +779,7 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
                 <option value="4">Gravite 4</option>
               </select>
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
             </div>
           )
         }}
@@ -887,14 +909,16 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
 
       {!props.socle ? (
         <div>
-          <p className="mb-3 text-xs text-steel">Aucun socle de securite cree pour cette etude.</p>
-          {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-          <button onClick={creerSocle} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Creation...' : 'Creer le socle de securite'}</button>
+          <EmptyState message="Aucun socle de securite cree pour cette etude." />
+          {erreur && <p className="mb-2 mt-3 text-xs text-risk-critical">{erreur}</p>}
+          <div className="mt-3">
+            <Button variante="primary" onClick={creerSocle} disabled={enCours}>{enCours ? 'Creation...' : 'Creer le socle de securite'}</Button>
+          </div>
         </div>
       ) : (
         <div>
           {groupes.length === 0 ? (
-            <p className="text-xs text-steel">Aucun controle renseigne.</p>
+            <EmptyState message="Aucun controle renseigne." />
           ) : (
             <div className="space-y-6">
               {groupes.map(function (groupe) {
@@ -903,10 +927,10 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                     <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{groupe.theme.toUpperCase()} ({groupe.items.length})</div>
                     <div className="divide-y divide-paper-line border-y border-paper-line">
                       {groupe.items.map(function (r: any) {
-                        var couleur = r.etat === 'Conforme' ? 'text-risk-low' : r.etat === 'NonApplicable' ? 'text-steel-light' : 'text-risk-high'
+                        var couleur: CouleurBadge = r.etat === 'Conforme' ? 'risk-low' : r.etat === 'NonApplicable' ? 'steel' : 'risk-high'
                         if (idRefEnEdition === r.id) {
                           return (
-                            <div key={r.id} className="space-y-1.5 py-2.5">
+                            <div key={r.id} className="space-y-1.5 border-l-2 border-signature py-2.5 pl-3">
                               <input type="text" value={nomRefEdit} onChange={function (ev) { setNomRefEdit(ev.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                               <div className="flex items-center gap-2">
                                 <select value={etatRefEdit} onChange={function (ev) { setEtatRefEdit(ev.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
@@ -927,9 +951,8 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                                 {r.nom}
                               </span>
                               <div className="flex shrink-0 items-center gap-3">
-                                <span className={'font-mono text-[11px] font-medium ' + couleur}>{(LIBELLE_ETAT_CONFORMITE[r.etat] || r.etat).toUpperCase()}</span>
-                                <button onClick={function () { ouvrirEditionRef(r) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                                <button onClick={function () { supprimerRef(r.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                                <Badge couleur={couleur}>{(LIBELLE_ETAT_CONFORMITE[r.etat] || r.etat).toUpperCase()}</Badge>
+                                <RowActions onModifier={function () { ouvrirEditionRef(r) }} onSupprimer={function () { supprimerRef(r.id) }} />
                               </div>
                             </div>
                             {r.etatActuel && (
@@ -984,7 +1007,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                   <textarea placeholder="Etat actuel observe (ex: Supports amovibles non chiffres)" value={etatActuel} onChange={function (e) { setEtatActuel(e.target.value) }} rows={2} className="mb-3 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
 
                   {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-                  <button onClick={function () { ajouterReferentiel(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+                  <Button variante="primary" onClick={function () { ajouterReferentiel(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
                 </div>
               )
             }}
@@ -1066,13 +1089,13 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PARTIES PRENANTES IMPORTANTES ({props.parties.length})</h2>
       <p className="mb-4 text-xs text-steel">Identifiez les parties prenantes de l ecosysteme ; leur niveau de menace s evalue juste en dessous.</p>
       {props.parties.length === 0 ? (
-        <p className="text-xs text-steel">Aucune partie prenante renseignee.</p>
+        <EmptyState message="Aucune partie prenante renseignee." />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.parties.map(function (p) {
             if (idEdit === p.id) {
               return (
-                <div key={p.id} className="space-y-1.5 py-2.5">
+                <div key={p.id} className="space-y-1.5 border-l-2 border-signature py-2.5 pl-3">
                   <input type="text" value={nomEdit} onChange={function (e) { setNomEdit(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <input type="text" value={rolesEdit} onChange={function (e) { setRolesEdit(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
                   <div className="flex items-center gap-2">
@@ -1098,8 +1121,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="font-mono text-[10px] tracking-wide text-steel-light">{libelleCategoriePP(p).toUpperCase()}</span>
                     <span className="font-mono text-[11px] text-steel-light">{p.representant}</span>
-                    <button onClick={function () { ouvrirEdition(p) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                    <button onClick={function () { supprimer(p.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                    <RowActions onModifier={function () { ouvrirEdition(p) }} onSupprimer={function () { supprimer(p.id) }} />
                   </div>
                 </div>
                 <div className="mt-1 text-xs text-steel">{p.rolesEtAttentes}</div>
@@ -1122,7 +1144,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
                 <input type="text" placeholder="Precisez la categorie" value={descCategorie} onChange={function (e) { setDescCategorie(e.target.value) }} className="mb-2 w-full border-b border-signature bg-transparent py-1.5 text-sm text-ink focus:outline-none" />
               )}
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
             </div>
           )
         }}
@@ -1226,9 +1248,8 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
       <div className="flex items-center justify-between gap-6">
         <span className="text-sm text-ink">{libelleCouple(c)}</span>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={'font-mono text-[11px] font-medium ' + couleurPertinence(c.pertinence)}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</span>
-          <button onClick={function () { setEdition(true) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-          <button onClick={supprimer} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+          <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</Badge>
+          <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
       <div className="mt-1 text-xs text-steel">{c.contexteVulnerabilite}</div>
@@ -1281,7 +1302,7 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">COUPLES SOURCE DE RISQUE / OBJECTIF VISE ({props.couples.length})</h2>
 
       {props.couples.length === 0 ? (
-        <p className="text-xs text-steel">Aucun couple SR/OV renseigne.</p>
+        <EmptyState message="Aucun couple SR/OV renseigne." />
       ) : (
         <div className="space-y-6">
           {groupesTheme.map(function (g) {
@@ -1289,7 +1310,7 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
               return (
                 <div key={g.theme}>
                   <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{g.theme.toUpperCase()} (0)</div>
-                  <p className="text-xs text-steel">Aucun couple renseigne pour ce theme.</p>
+                  <EmptyState message="Aucun couple renseigne pour ce theme." />
                 </div>
               )
             }
@@ -1333,7 +1354,9 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
               </div>
               <GrilleMatrice matrice={MATRICE_PERTINENCE} ligneLabels={['1 -- Tres peu motive', '2 -- Significatif', '3 -- Motive', '4 -- Fortement motive']} colonneLabels={['1 -- Limitees', '2 -- Moderees', '3 -- Importantes', '4 -- Illimitees']} ligneTitre="Motivation" colonneTitre="Ressources" ligneSelectionnee={Number(motivation) - 1} colonneSelectionnee={Number(ressources) - 1} couleurCellule={couleurPertinence} />
               {erreur && <p className="mb-2 mt-2 text-xs text-risk-critical">{erreur}</p>}
-              <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="mt-2 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+              <div className="mt-2">
+                <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+              </div>
             </div>
           )
         }}
@@ -1402,7 +1425,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE DE LA DANGEROSITE DE L ECOSYSTEME</h2>
       <p className="mb-4 text-xs text-steel">Niveau = (Dependance x Penetration) / (Maturite cyber x Confiance), calcule automatiquement. En zone de controle ou de danger, une partie est dite <span className="font-medium text-ink">critique</span>.</p>
       {props.parties.length === 0 ? (
-        <p className="mb-8 text-xs text-steel">Aucune partie prenante renseignee ci-dessus pour l instant.</p>
+        <div className="mb-8"><EmptyState message="Aucune partie prenante renseignee ci-dessus pour l instant." /></div>
       ) : (
         <div className="mb-8 overflow-x-auto">
           <table className="w-full border-collapse text-xs">
@@ -1431,7 +1454,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
                     <td className="py-1.5 pr-2 text-center font-mono text-steel">{p.confiance ?? '--'}</td>
                     <td className="py-1.5">
                       {p.niveauDangerosite != null && p.zone ? (
-                        <span className={'font-mono font-medium ' + couleurZone(p.zone)}>{libelleZone(p.zone)} ({p.niveauDangerosite})</span>
+                        <Badge couleur={badgeCouleur(couleurZone(p.zone))}>{libelleZone(p.zone)} ({p.niveauDangerosite})</Badge>
                       ) : (
                         <span className="font-mono text-steel-light">Non evaluee</span>
                       )}
@@ -1446,7 +1469,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
 
       <h3 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVALUATION PAR PARTIE PRENANTE ({props.parties.length})</h3>
       {props.parties.length === 0 ? (
-        <p className="text-xs text-steel">Aucune partie prenante renseignee ci-dessus pour l instant.</p>
+        <EmptyState message="Aucune partie prenante renseignee ci-dessus pour l instant." />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.parties.map(function (p) {
@@ -1503,14 +1526,15 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
           <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
           <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
         </div>
-        <div className="font-mono text-[11px] text-steel-light">
-          Apercu : <span className={'font-medium ' + couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))}>
+        <div className="flex items-center gap-2 font-mono text-[11px] text-steel-light">
+          Apercu :
+          <Badge couleur={badgeCouleur(couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance)))))}>
             {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
-          </span>
+          </Badge>
         </div>
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
-          <button onClick={soumettre} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Enregistrement...' : 'Enregistrer l evaluation'}</button>
+          <Button variante="primary" onClick={soumettre} disabled={enCours}>{enCours ? 'Enregistrement...' : 'Enregistrer l evaluation'}</Button>
           {!jamaisEvaluee && <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>}
         </div>
       </div>
@@ -1522,7 +1546,7 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
       <div className="flex items-center justify-between gap-6">
         <div className="text-sm text-ink">{p.nom}</div>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone || '')}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</span>
+          <Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</Badge>
           <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>
         </div>
       </div>
@@ -1551,7 +1575,7 @@ function MesuresEcosystemeSection(props: { etudeId: string; parties: PartiePrena
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">MESURES DE SECURITE SUR L ECOSYSTEME</h2>
       <p className="mb-4 text-xs text-steel">Proposez des mesures pour chaque partie critique, puis reevaluez sa dangerosite residuelle.</p>
       {critiques.length === 0 ? (
-        <p className="text-xs text-steel">Aucune partie prenante critique (zone de controle ou de danger) -- rien a traiter ici pour l instant.</p>
+        <EmptyState message="Aucune partie prenante critique (zone de controle ou de danger) -- rien a traiter ici pour l instant." />
       ) : (
         <div className="space-y-6">
           {critiques.map(function (p) {
@@ -1604,22 +1628,22 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
   }
 
   return (
-    <div className="border border-paper-line p-4">
+    <Card variant="elevated" className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{p.nom}</span>
-        <span className={'font-mono text-[11px] font-medium ' + couleurZone(p.zone || '')}>{libelleZone(p.zone || '')}</span>
+        <Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{libelleZone(p.zone || '')}</Badge>
       </div>
 
       <div className="mb-3 flex items-center gap-4 border-y border-paper-line py-2">
         <div>
           <div className="font-mono text-[9px] text-steel-light">DANGEROSITE INITIALE</div>
-          <div className={'font-mono text-sm font-medium ' + couleurZone(p.zone || '')}>{p.niveauDangerosite} -- {libelleZone(p.zone || '')}</div>
+          <div className="mt-1"><Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{p.niveauDangerosite} -- {libelleZone(p.zone || '')}</Badge></div>
         </div>
         <div className="text-steel-light">&#8594;</div>
         <div>
           <div className="font-mono text-[9px] text-steel-light">DANGEROSITE RESIDUELLE</div>
           {p.niveauDangerositeResiduel != null && p.zoneResiduelle ? (
-            <div className={'font-mono text-sm font-medium ' + couleurZone(p.zoneResiduelle)}>{p.niveauDangerositeResiduel} -- {libelleZone(p.zoneResiduelle)}</div>
+            <div className="mt-1"><Badge couleur={badgeCouleur(couleurZone(p.zoneResiduelle))}>{p.niveauDangerositeResiduel} -- {libelleZone(p.zoneResiduelle)}</Badge></div>
           ) : (
             <div className="font-mono text-sm text-steel-light">Non reevaluee</div>
           )}
@@ -1653,16 +1677,16 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
         </div>
       )}
 
-      <h3 className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">MESURES PROPOSEES ({p.mesures.length})</h3>
+      <h3 className="mb-2 font-display text-sm text-ink">MESURES PROPOSEES ({p.mesures.length})</h3>
       {p.mesures.length === 0 ? (
-        <p className="mb-2 text-xs text-steel">Aucune mesure proposee.</p>
+        <div className="mb-2"><EmptyState message="Aucune mesure proposee." /></div>
       ) : (
         <ul className="mb-2 space-y-1.5">
           {p.mesures.map(function (m) {
             return (
               <li key={m.id} className="flex items-start justify-between gap-4">
                 <span className="text-xs text-steel">{m.description}</span>
-                <button onClick={function () { supprimerMesure(m.id) }} className="shrink-0 text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                <RowActions onSupprimer={function () { supprimerMesure(m.id) }} />
               </li>
             )
           })}
@@ -1683,8 +1707,8 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
       {!ajoutMesure && !reevaluation && (
         <div className="mb-3 flex flex-wrap gap-4">
-          <button onClick={function () { setAjoutMesure(true) }} className="font-mono text-[10px] font-medium text-signature hover:underline">+ Ajouter une mesure</button>
-          <button onClick={function () { setReevaluation(true) }} className="font-mono text-[10px] font-medium text-signature hover:underline">{p.niveauDangerositeResiduel != null ? 'Reevaluer la dangerosite residuelle' : 'Evaluer la dangerosite residuelle'}</button>
+          <Button variante="ghost" onClick={function () { setAjoutMesure(true) }}>+ Ajouter une mesure</Button>
+          <Button variante="ghost" onClick={function () { setReevaluation(true) }}>{p.niveauDangerositeResiduel != null ? 'Reevaluer la dangerosite residuelle' : 'Evaluer la dangerosite residuelle'}</Button>
         </div>
       )}
 
@@ -1696,10 +1720,11 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
             <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
             <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
           </div>
-          <div className="font-mono text-[11px] text-steel-light">
-            Apercu : <span className={'font-medium ' + couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))}>
+          <div className="flex items-center gap-2 font-mono text-[11px] text-steel-light">
+            Apercu :
+            <Badge couleur={badgeCouleur(couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance)))))}>
               {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
-            </span>
+            </Badge>
           </div>
           <div className="flex gap-3">
             <button onClick={soumettreReevaluation} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Enregistrement...' : 'OK'}</button>
@@ -1707,7 +1732,7 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
           </div>
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -1808,7 +1833,7 @@ function ScenariosStrategiquesSection(props: {
       <p className="mb-4 text-xs text-steel">Chaque couple retenu donne un scenario stratégique, cible sur un evenement redoute dont il herite la gravite.</p>
 
       {props.scenarios.length === 0 ? (
-        <p className="text-xs text-steel">Aucun scenario strategique cree.</p>
+        <EmptyState message="Aucun scenario strategique cree." />
       ) : (
         <div className="mb-6 divide-y divide-paper-line border-y border-paper-line">
           {props.scenarios.map(function (s) {
@@ -1816,7 +1841,7 @@ function ScenariosStrategiquesSection(props: {
             var er = props.evenements.filter(function (e) { return e.id === s.evenementRedouteId })[0]
             if (idEnEdition === s.id) {
               return (
-                <div key={s.id} className="space-y-1.5 py-2.5">
+                <div key={s.id} className="space-y-1.5 border-l-2 border-signature py-2.5 pl-3">
                   {couple && <div className="font-mono text-[11px] text-steel-light">{libelleCouple(couple)}</div>}
                   <select value={erEdit} onChange={function (e) { setErEdit(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
                     {props.evenements.map(function (e) { return <option key={e.id} value={e.id}>{libelleEr(e.id)}</option> })}
@@ -1838,9 +1863,8 @@ function ScenariosStrategiquesSection(props: {
                     <span className="text-sm text-steel-light">Couple introuvable</span>
                   )}
                   <div className="flex shrink-0 items-center gap-3">
-                    {er && <span className={'font-mono text-[11px] font-medium ' + couleurGravite(er.gravite)}>Gravite {er.gravite}</span>}
-                    <button onClick={function () { ouvrirEdition(s) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-                    <button onClick={function () { supprimer(s.id) }} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+                    {er && <Badge couleur={badgeCouleur(couleurGravite(er.gravite))}>Gravite {er.gravite}</Badge>}
+                    <RowActions onModifier={function () { ouvrirEdition(s) }} onSupprimer={function () { supprimer(s.id) }} />
                   </div>
                 </div>
                 <div className="mt-1 text-xs text-steel">{s.description}</div>
@@ -1862,21 +1886,21 @@ function ScenariosStrategiquesSection(props: {
                 return (
                   <li key={c.id} className="flex items-center justify-between gap-4 font-mono text-[11px] text-steel">
                     <span>{libelleCouple(c)}</span>
-                    <span className={couleurPertinence(c.pertinence)}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</span>
+                    <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</Badge>
                   </li>
                 )
               })}
             </ul>
           </div>
         ) : (
-          <p className="text-xs text-steel">Aucun couple retenu (Atelier 2) en attente -- tous ont deja un scenario.</p>
+          <EmptyState message="Aucun couple retenu (Atelier 2) en attente -- tous ont deja un scenario." />
         )
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {couplesSansScenario.map(function (c) {
             if (coupleEnCreation === c.id) {
               return (
-                <div key={c.id} className="space-y-1.5 py-2.5">
+                <div key={c.id} className="space-y-1.5 border-l-2 border-signature py-2.5 pl-3">
                   <div className="font-mono text-[11px] text-steel-light">{libelleCouple(c)}</div>
                   {props.evenements.length === 0 ? (
                     <p className="text-xs text-risk-critical">Aucun evenement redoute disponible (Atelier 1) -- impossible de creer un scenario.</p>
@@ -1896,7 +1920,7 @@ function ScenariosStrategiquesSection(props: {
             return (
               <div key={c.id} className="flex items-center justify-between gap-6 py-2.5">
                 <span className="text-sm text-ink">{libelleCouple(c)}</span>
-                <button onClick={function () { ouvrirCreation(c.id) }} className="text-[11px] font-medium text-signature hover:underline">Creer un scenario</button>
+                <Button variante="ghost" onClick={function () { ouvrirCreation(c.id) }}>Creer un scenario</Button>
               </div>
             )
           })}
@@ -1919,7 +1943,7 @@ function CheminsAttaqueSection(props: {
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CHEMINS D ATTAQUE ({props.chemins.length})</h2>
       <p className="mb-4 text-xs text-steel">Un chemin d attaque decrit comment la source de risque atteint son objectif -- direct, ou via une ou plusieurs parties prenantes de l ecosysteme.</p>
       {props.scenarios.length === 0 ? (
-        <p className="text-xs text-steel">Aucun scenario stratégique -- creez-en un ci-dessus avant d ajouter des chemins d attaque.</p>
+        <EmptyState message="Aucun scenario stratégique -- creez-en un ci-dessus avant d ajouter des chemins d attaque." />
       ) : (
         <div className="space-y-6">
           {props.scenarios.map(function (scenario) {
@@ -1970,14 +1994,14 @@ function CheminsParScenario(props: {
   }
 
   return (
-    <div className="border border-paper-line p-4">
+    <Card variant="elevated" className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{props.libelleScenario}</span>
         <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.chemins.length} CHEMIN{props.chemins.length > 1 ? 'S' : ''}</span>
       </div>
 
       {props.chemins.length === 0 ? (
-        <p className="mb-3 text-xs text-steel">Aucun chemin d attaque pour ce scenario.</p>
+        <div className="mb-3"><EmptyState message="Aucun chemin d attaque pour ce scenario." /></div>
       ) : (
         <div className="mb-3 space-y-4">
           {props.chemins.map(function (chemin) {
@@ -1996,9 +2020,9 @@ function CheminsParScenario(props: {
           </div>
         </div>
       ) : (
-        <button onClick={function () { setEnCreation(true) }} className="flex items-center gap-1.5 font-mono text-[11px] font-medium text-signature hover:underline">+ Ajouter un chemin d attaque</button>
+        <Button variante="ghost" onClick={function () { setEnCreation(true) }}>+ Ajouter un chemin d attaque</Button>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -2082,10 +2106,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
       ) : (
         <div className="flex items-center justify-between gap-4">
           <span className="text-sm text-ink">{props.chemin.description}</span>
-          <div className="flex shrink-0 items-center gap-3">
-            <button onClick={function () { setDescCheminEdit(props.chemin.description); setEditionChemin(true) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-            <button onClick={supprimerChemin} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
-          </div>
+          <RowActions onModifier={function () { setDescCheminEdit(props.chemin.description); setEditionChemin(true) }} onSupprimer={supprimerChemin} />
         </div>
       )}
 
@@ -2107,10 +2128,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
             return (
               <li key={ei.id} className="flex items-center justify-between gap-4 font-mono text-[11px] text-steel">
                 <span>{i + 1}. <span className="font-medium text-ink">{libellePartie(ei.partiePrenanteId)}</span> -- {ei.description}</span>
-                <div className="flex shrink-0 items-center gap-2">
-                  <button onClick={function () { ouvrirEditionEi(ei.id, ei.description) }} className="text-steel-light hover:text-signature">Modifier</button>
-                  <button onClick={function () { supprimerEi(ei.id) }} className="text-steel-light hover:text-risk-critical">Suppr.</button>
-                </div>
+                <RowActions onModifier={function () { ouvrirEditionEi(ei.id, ei.description) }} onSupprimer={function () { supprimerEi(ei.id) }} />
               </li>
             )
           })}
@@ -2131,7 +2149,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
           </div>
         </div>
       ) : (
-        <button onClick={function () { setAjoutEi(true) }} disabled={props.parties.length === 0} className="mt-2 font-mono text-[10px] font-medium text-signature hover:underline disabled:opacity-40">+ Ajouter une partie prenante traversee</button>
+        <Button variante="ghost" onClick={function () { setAjoutEi(true) }} disabled={props.parties.length === 0}>+ Ajouter une partie prenante traversee</Button>
       )}
     </div>
   )
@@ -2171,7 +2189,7 @@ function ScenariosOperationnelsSection(props: {
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS OPERATIONNELS ({props.scenariosOperationnels.length})</h2>
       <p className="mb-4 text-xs text-steel">Chaque chemin d attaque a un scenario operationnel, decrit par un ou plusieurs modes operatoires (Connaitre / Rentrer / Trouver / Exploiter).</p>
       {props.scenarios.length === 0 ? (
-        <p className="text-xs text-steel">Aucun scenario stratégique -- rien a traiter ici pour l instant.</p>
+        <EmptyState message="Aucun scenario stratégique -- rien a traiter ici pour l instant." />
       ) : (
         <div className="space-y-8">
           {props.scenarios.map(function (scenario) {
@@ -2217,23 +2235,23 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
   }
 
   return (
-    <div className="border border-paper-line p-4">
+    <Card variant="elevated" className="p-4">
       <div className="mb-2 flex items-center justify-between gap-4">
         <span className="text-sm text-ink">{props.chemin.description}</span>
         {props.scenarioOperationnel && props.scenarioOperationnel.vraisemblanceGlobale && (
-          <span className={'shrink-0 font-mono text-[11px] font-medium ' + couleurVraisemblance(props.scenarioOperationnel.vraisemblanceGlobale)}>Vraisemblance {props.scenarioOperationnel.vraisemblanceGlobale}</span>
+          <Badge couleur={badgeCouleur(couleurVraisemblance(props.scenarioOperationnel.vraisemblanceGlobale))}>Vraisemblance {props.scenarioOperationnel.vraisemblanceGlobale}</Badge>
         )}
       </div>
 
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
 
       {!props.scenarioOperationnel ? (
-        <button onClick={creer} disabled={enCours} className="font-mono text-[11px] font-medium text-signature hover:underline">{enCours ? 'Creation...' : '+ Creer le scenario operationnel'}</button>
+        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le scenario operationnel'}</Button>
       ) : (
         <div>
           <div className="mb-2 flex items-center justify-between">
             <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.scenarioOperationnel.modesOperatoires.length} MODE(S) OPERATOIRE(S)</span>
-            <button onClick={supprimer} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr. le scenario</button>
+            <RowActions onSupprimer={supprimer} labelSupprimer="Suppr. le scenario" />
           </div>
           <div className="space-y-3">
             {props.scenarioOperationnel.modesOperatoires.map(function (mode) {
@@ -2243,7 +2261,7 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
           <AjoutModeOperatoire etudeId={props.etudeId} scenarioOperationnelId={props.scenarioOperationnel.id} biens={props.biens} onChange={props.onChange} />
         </div>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -2292,7 +2310,7 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
           </div>
         )
       })}
-      <button type="button" onClick={ajouterLigne} className="font-mono text-[10px] font-medium text-signature hover:underline">+ Action elementaire</button>
+      <Button variante="ghost" type="button" onClick={ajouterLigne}>+ Action elementaire</Button>
     </div>
   )
 }
@@ -2359,9 +2377,8 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-ink">{m.description}</span>
         <div className="flex shrink-0 items-center gap-3">
-          <span className={'font-mono text-[11px] font-medium ' + couleurVraisemblance(m.vraisemblance)}>{m.vraisemblance}</span>
-          <button onClick={function () { setEdition(true) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-          <button onClick={supprimer} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+          <Badge couleur={badgeCouleur(couleurVraisemblance(m.vraisemblance))}>{m.vraisemblance}</Badge>
+          <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
       <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-steel-light lg:grid-cols-4">
@@ -2432,7 +2449,7 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
   }
 
   if (!ouvert) {
-    return <button onClick={ouvrir} className="mt-3 font-mono text-[10px] font-medium text-signature hover:underline">+ Ajouter un mode operatoire</button>
+    return <div className="mt-3"><Button variante="ghost" onClick={ouvrir}>+ Ajouter un mode operatoire</Button></div>
   }
 
   return (
@@ -2496,7 +2513,7 @@ export function ScenariosDeRisqueSection(props: {
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS DE RISQUE ({props.scenariosDeRisque.length})</h2>
       <p className="mb-4 text-xs text-steel">Le niveau initial se deduit automatiquement (Gravite x Vraisemblance) ; le residuel s evalue apres application du plan de traitement.</p>
       {props.scenarios.length === 0 ? (
-        <p className="text-xs text-steel">Aucun scenario stratégique -- rien a traiter ici pour l instant.</p>
+        <EmptyState message="Aucun scenario stratégique -- rien a traiter ici pour l instant." />
       ) : (
         <div className="space-y-8">
           {props.scenarios.map(function (scenario) {
@@ -2539,11 +2556,11 @@ export function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque;
 
   if (!props.scenarioDeRisque) {
     return (
-      <div className="border border-paper-line p-4">
+      <Card variant="elevated" className="p-4">
         <div className="mb-2 text-sm text-ink">{props.chemin.description}</div>
         {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-        <button onClick={creer} disabled={enCours} className="font-mono text-[11px] font-medium text-signature hover:underline">{enCours ? 'Materialisation...' : '+ Materialiser le scenario de risque'}</button>
-      </div>
+        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? 'Materialisation...' : '+ Materialiser le scenario de risque'}</Button>
+      </Card>
     )
   }
 
@@ -2569,13 +2586,13 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
   }
 
   return (
-    <div className="border border-paper-line p-4">
+    <Card variant="elevated" className="p-4">
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>
           <div className="text-sm text-ink">{props.description}</div>
           <div className="font-mono text-[10px] text-steel-light">{s.libelleCouple}</div>
         </div>
-        <button onClick={supprimer} className="shrink-0 text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+        <RowActions onSupprimer={supprimer} />
       </div>
 
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
@@ -2584,7 +2601,8 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="font-mono text-[10px] tracking-wide text-steel-light">NIVEAU INITIAL (derive : gravite {s.gravite} x vraisemblance {s.vraisemblanceInitiale || '?'})</span>
-            <span className={'font-mono text-xs font-medium ' + couleurNiveauRisque(s.niveauRisqueInitial)}>{s.niveauRisqueInitial || '--'}</span>
+            {s.niveauRisqueInitial && <Badge couleur={badgeCouleur(couleurNiveauRisque(s.niveauRisqueInitial))}>{s.niveauRisqueInitial}</Badge>}
+            {!s.niveauRisqueInitial && <span className="font-mono text-xs text-steel-light">--</span>}
           </div>
           <OverrideJugementExpert
             valeurCalculee={s.niveauRisqueInitialCalcule || ''}
@@ -2599,7 +2617,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <span className="font-mono text-[10px] tracking-wide text-steel-light">RISQUE RESIDUEL (apres plan de traitement)</span>
-            {s.niveauRisqueResiduel && <span className={'font-mono text-xs font-medium ' + couleurNiveauRisque(s.niveauRisqueResiduel)}>{s.niveauRisqueResiduel}</span>}
+            {s.niveauRisqueResiduel && <Badge couleur={badgeCouleur(couleurNiveauRisque(s.niveauRisqueResiduel))}>{s.niveauRisqueResiduel}</Badge>}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <select value={graviteResiduelle} onChange={function (e) { setGraviteResiduelle(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
@@ -2612,7 +2630,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
           <div className="mt-1.5">
             <GrilleMatrice matrice={MATRICE_RISQUE} ligneLabels={['1', '2', '3', '4']} colonneLabels={['V1', 'V2', 'V3', 'V4']} ligneTitre="Gravite" colonneTitre="Vraisemblance" ligneSelectionnee={Number(graviteResiduelle) - 1} colonneSelectionnee={indexVraisemblanceResiduelle} couleurCellule={couleurNiveauRisque} />
           </div>
-          <button onClick={evaluerResiduel} className="mt-1.5 font-mono text-[10px] font-medium text-signature hover:underline">Evaluer le risque residuel</button>
+          <Button variante="ghost" onClick={evaluerResiduel} className="mt-1.5">Evaluer le risque residuel</Button>
 
           {s.niveauRisqueResiduel && (
             <>
@@ -2633,7 +2651,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
       </div>
 
       {s.niveauRisqueResiduel && <AcceptationFormelleSection etudeId={props.etudeId} scenario={s} onChange={props.onChange} />}
-    </div>
+    </Card>
   )
 }
 
@@ -2695,7 +2713,7 @@ export function AcceptationFormelleSection(props: { etudeId: string; scenario: S
             </>
           )}
           {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
-          <button onClick={accepter} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Enregistrement...' : 'Accepter formellement'}</button>
+          <Button variante="primary" onClick={accepter} disabled={enCours}>{enCours ? 'Enregistrement...' : 'Accepter formellement'}</Button>
         </div>
       )}
     </div>
@@ -2725,7 +2743,7 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PLAN DE TRAITEMENT DU RISQUE {props.plan ? '(' + props.plan.mesures.length + ' MESURE(S))' : ''}</h2>
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
       {!props.plan ? (
-        <button onClick={creerPlan} disabled={enCours} className="font-mono text-[11px] font-medium text-signature hover:underline">{enCours ? 'Creation...' : '+ Creer le plan de traitement du risque'}</button>
+        <Button variante="ghost" onClick={creerPlan} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le plan de traitement du risque'}</Button>
       ) : (
         <div className="space-y-6">
           {AXES_MESURE.map(function (axe) {
@@ -2734,7 +2752,7 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
               <div key={axe}>
                 <h3 className="mb-2 font-mono text-[10px] tracking-wide text-steel">{axe.toUpperCase()}</h3>
                 {mesuresAxe.length === 0 ? (
-                  <p className="text-xs text-steel">Aucune mesure.</p>
+                  <EmptyState message="Aucune mesure." />
                 ) : (
                   <div className="space-y-2">
                     {mesuresAxe.map(function (m) {
@@ -2769,7 +2787,7 @@ export function SelectionScenariosDeRisque(props: { scenariosDeRisque: ScenarioD
   }
 
   if (props.scenariosDeRisque.length === 0) {
-    return <p className="text-xs text-steel">Aucun scenario de risque materialise pour l instant.</p>
+    return <EmptyState message="Aucun scenario de risque materialise pour l instant." />
   }
 
   return (
@@ -2853,8 +2871,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
         <span className="text-sm text-ink">{m.description}</span>
         <div className="flex shrink-0 items-center gap-3">
           <span className="font-mono text-[11px] text-steel-light">{LIBELLE_STATUT_MESURE[m.statut]}</span>
-          <button onClick={function () { setEdition(true) }} className="text-[11px] text-steel-light hover:text-signature">Modifier</button>
-          <button onClick={supprimer} className="text-[11px] text-steel-light hover:text-risk-critical">Suppr.</button>
+          <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
       <div className="mt-1 font-mono text-[10px] text-steel-light">Responsable {m.responsable} -- Cout {LIBELLE_COUT_COMPLEXITE[m.coutComplexite]} -- Echeance {m.echeance || '--'}</div>
@@ -2920,7 +2937,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
             <input type="text" placeholder="Freins et difficultes (optionnel)" value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             <SelectionScenariosDeRisque scenariosDeRisque={props.scenariosDeRisque} selection={scenariosIds} onChange={setScenariosIds} />
             {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
-            <button onClick={function () { soumettre(fermer) }} disabled={enCours} className="rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90 disabled:opacity-50">{enCours ? 'Ajout...' : 'Ajouter'}</button>
+            <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
           </div>
         )
       }}

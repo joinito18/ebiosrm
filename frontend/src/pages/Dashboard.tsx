@@ -4,10 +4,12 @@ import { AtelierChainExpanded } from '../components/methodology/AtelierChain'
 import type { AtelierNode } from '../components/methodology/AtelierChain'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
+import Card from '../components/shared/Card'
+import RiskMatrix from '../components/dashboard/RiskMatrix'
 import {
   getEtude, listValeursMetier, listEvenementsRedoutes, listCouplesSrOv, listScenariosDeRisque,
 } from '../lib/api'
-import type { Etude } from '../lib/api'
+import type { Etude, ScenarioDeRisque } from '../lib/api'
 
 export default function Dashboard() {
   var params = useParams()
@@ -16,7 +18,7 @@ export default function Dashboard() {
   var [nbValeursMetier, setNbValeursMetier] = useState(0)
   var [nbEvenementsRedoutes, setNbEvenementsRedoutes] = useState(0)
   var [nbCouplesRetenus, setNbCouplesRetenus] = useState(0)
-  var [nbScenariosDeRisque, setNbScenariosDeRisque] = useState(0)
+  var [scenariosDeRisque, setScenariosDeRisque] = useState<ScenarioDeRisque[]>([])
   var [chargement, setChargement] = useState(true)
 
   useEffect(function () {
@@ -33,7 +35,7 @@ export default function Dashboard() {
       setNbEvenementsRedoutes(results[2] ? results[2].length : 0)
       var couples = results[3] || []
       setNbCouplesRetenus(couples.filter(function (c) { return c.pertinence === 'TresPertinent' || c.pertinence === 'PlutotPertinent' }).length)
-      setNbScenariosDeRisque(results[4] ? results[4].length : 0)
+      setScenariosDeRisque(results[4] || [])
     }).finally(function () { setChargement(false) })
   }, [etudeId])
 
@@ -83,7 +85,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="mb-12 grid grid-cols-2 gap-px border-y border-paper-line bg-paper-line sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-12 grid grid-cols-1 gap-px border-y border-paper-line bg-paper-line sm:grid-cols-3 lg:grid-cols-5">
         <div className="bg-paper px-6 py-5">
           <div className="mt-1"><BadgeStatutAtelier statut={etude.statut} /></div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">STATUT ATELIER 1</div>
@@ -101,26 +103,39 @@ export default function Dashboard() {
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">COUPLES SR/OV RETENUS</div>
         </div>
         <div className="bg-paper px-6 py-5">
-          <div className="font-display text-[28px] leading-none text-ink">{nbScenariosDeRisque}</div>
+          <div className="font-display text-[28px] leading-none text-ink">{scenariosDeRisque.length}</div>
           <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">SCENARIOS DE RISQUE</div>
         </div>
       </div>
 
-      <section>
-        <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
-          PARCOURS METHODOLOGIQUE
-        </h2>
-        <AtelierChainExpanded ateliers={ateliers} etudeId={etudeId} />
-      </section>
+      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        <section>
+          <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
+            PARCOURS METHODOLOGIQUE
+          </h2>
+          <AtelierChainExpanded ateliers={ateliers} etudeId={etudeId} />
 
-      {statutAtelier5 === 'done' && (
-        <section className="mt-12 border border-paper-line px-5 py-6">
-          <div className="flex items-center justify-between gap-4">
-            <p className="text-xs text-steel">Les 5 ateliers sont valides. La synthese globale consolide les points cles pour presentation a la Direction.</p>
-            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90">Telecharger la synthese</BoutonTelechargerRapport>
-          </div>
+          {statutAtelier5 === 'done' && (
+            <Card variant="elevated" className="mt-8 px-5 py-6">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-steel">Les 5 ateliers sont valides. La synthese globale consolide les points cles pour presentation a la Direction.</p>
+                <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white transition duration-200 ease-premium hover:bg-signature/90">Telecharger la synthese</BoutonTelechargerRapport>
+              </div>
+            </Card>
+          )}
         </section>
-      )}
+
+        {scenariosDeRisque.length > 0 && (
+          <section>
+            <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
+              CARTOGRAPHIE DES RISQUES
+            </h2>
+            <Card variant="elevated" className="p-5">
+              <RiskMatrix scenarios={scenariosDeRisque} />
+            </Card>
+          </section>
+        )}
+      </div>
     </div>
   )
 }

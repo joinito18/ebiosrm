@@ -9,28 +9,41 @@ function niveauColor(gravite: number, vraisemblance: number): string {
   return 'bg-risk-low'
 }
 
-var MATRICE: number[][] = [
-  [0, 1, 2, 1],
-  [1, 2, 3, 2],
-  [2, 4, 5, 3],
-  [3, 4, 1, 0],
-]
+export interface ScenarioPourMatrice {
+  gravite: number
+  vraisemblanceInitiale?: string | null
+}
 
-export default function RiskMatrix() {
+function construireMatrice(scenarios: ScenarioPourMatrice[]): number[][] {
+  var matrice = GRAVITES.map(function () { return VRAISEMBLANCES.map(function () { return 0 }) })
+  scenarios.forEach(function (s) {
+    if (!s.vraisemblanceInitiale) return
+    var vraisemblance = Number(s.vraisemblanceInitiale.replace('V', ''))
+    var ligne = GRAVITES.indexOf(s.gravite)
+    var colonne = VRAISEMBLANCES.indexOf(vraisemblance)
+    if (ligne === -1 || colonne === -1) return
+    matrice[ligne][colonne] = matrice[ligne][colonne] + 1
+  })
+  return matrice
+}
+
+export default function RiskMatrix(props: { scenarios: ScenarioPourMatrice[] }) {
+  var matrice = construireMatrice(props.scenarios)
+
   return (
     <div>
-      <div className="flex">
-        <div className="flex w-6 flex-col items-center justify-center">
+      <div className="flex min-w-0">
+        <div className="flex w-6 shrink-0 flex-col items-center justify-center">
           <span className="rotate-180 font-mono text-[9px] tracking-wide text-steel-light" style={{ writingMode: 'vertical-rl' }}>
             GRAVITE
           </span>
         </div>
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div className="grid grid-cols-4 gap-1.5">
             {GRAVITES.map(function (gravite, rowIndex) {
               return VRAISEMBLANCES.map(function (vraisemblance, colIndex) {
-                var count = MATRICE[rowIndex][colIndex]
+                var count = matrice[rowIndex][colIndex]
                 var size = count === 0 ? 0 : 10 + Math.min(count, 5) * 3
                 return (
                   <div

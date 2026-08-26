@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Menu } from 'lucide-react'
+import Badge from '../shared/Badge'
+import { COULEUR_STATUT_ATELIER } from '../shared/BadgeStatutAtelier'
 import { getEtude } from '../../lib/api'
 import type { Etude } from '../../lib/api'
 
@@ -48,9 +50,9 @@ export default function Header(props: { onOuvrirMenu: () => void }) {
 
       <div className="flex items-center gap-4">
         {etude && (
-          <span className="rounded-sm border border-paper-line bg-white px-2 py-1 font-mono text-[10px] tracking-wide text-steel">
+          <Badge couleur={COULEUR_STATUT_ATELIER[etude.statut] || 'steel'}>
             {libelleStatut}
-          </span>
+          </Badge>
         )}
       </div>
     </header>

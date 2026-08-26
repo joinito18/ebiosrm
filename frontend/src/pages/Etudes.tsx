@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
+import Button from '../components/shared/Button'
+import Card from '../components/shared/Card'
+import EmptyState from '../components/shared/EmptyState'
+import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import { listEtudes, createEtude, supprimerEtude, ApiError } from '../lib/api'
 import type { Etude } from '../lib/api'
 
@@ -76,17 +80,14 @@ export default function Etudes() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <div />
-        <button
-          onClick={function () { setCreationOuverte(!creationOuverte) }}
-          className="flex items-center gap-2 rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90"
-        >
+        <Button variante="primary" taille="md" onClick={function () { setCreationOuverte(!creationOuverte) }}>
           <Plus size={14} />
           Nouvelle etude
-        </button>
+        </Button>
       </div>
 
       {creationOuverte && (
-        <div className="mb-8 border border-paper-line p-5">
+        <Card variant="elevated" className="mb-8 p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">NOM</label>
@@ -123,14 +124,10 @@ export default function Etudes() {
             </div>
           )}
 
-          <button
-            onClick={handleCreer}
-            disabled={creationEnCours}
-            className="mt-4 rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50"
-          >
+          <Button variante="primary" taille="md" disabled={creationEnCours} onClick={handleCreer} className="mt-4">
             {creationEnCours ? 'Creation...' : 'Creer l etude'}
-          </button>
-        </div>
+          </Button>
+        </Card>
       )}
 
       {chargement && <p className="text-sm text-steel">Chargement...</p>}
@@ -142,7 +139,7 @@ export default function Etudes() {
       )}
 
       {!chargement && !erreurListe && etudes.length === 0 && (
-        <p className="text-sm text-steel">Aucune etude pour le moment.</p>
+        <EmptyState message="Aucune etude pour le moment -- creez la premiere avec le bouton ci-dessus." />
       )}
 
       {!chargement && !erreurListe && etudes.length > 0 && (
@@ -163,11 +160,11 @@ export default function Etudes() {
                   <tr
                     key={etude.id}
                     onClick={function () { navigate('/etudes/' + etude.id) }}
-                    className="cursor-pointer border-b border-paper-line transition hover:bg-paper-dim/50"
+                    className="cursor-pointer border-b border-paper-line transition duration-200 ease-premium hover:bg-paper-dim/50"
                   >
                     <td className="py-3.5 text-sm font-medium text-ink">{etude.nom}</td>
                     <td className="hidden py-3.5 text-xs text-steel sm:table-cell">{etude.perimetre}</td>
-                    <td className="py-3.5 text-xs text-steel">{etude.statut}</td>
+                    <td className="py-3.5"><BadgeStatutAtelier statut={etude.statut} /></td>
                     <td className="py-3.5 text-right font-mono text-[11px] text-steel-light">
                       {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
                     </td>
@@ -175,7 +172,7 @@ export default function Etudes() {
                       <button
                         onClick={function (e) { handleSupprimer(e, etude) }}
                         aria-label={'Supprimer ' + etude.nom}
-                        className="text-steel-light hover:text-risk-critical"
+                        className="text-steel-light transition hover:text-risk-critical"
                       >
                         <Trash2 size={14} />
                       </button>
