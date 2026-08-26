@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ebiosrm
+          POSTGRES_PASSWORD: ebiosrm_dev
+          POSTGRES_DB: ebiosrm_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U ebiosrm -d ebiosrm_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restaurer les dependances
+        run: dotnet restore EbiosRM.sln
+
+      - name: Compiler
+        run: dotnet build EbiosRM.sln --no-restore --configuration Release
+
+      - name: Installer dotnet-ef
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.10
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # La base "ebiosrm_test" (service Postgres ci-dessus) doit avoir le meme
+      # schema que la base de dev -- EbiosApiFactory.cs (tests d'integration)
+      # pointe dessus directement, aucune migration automatique au demarrage.
+      - name: Appliquer les migrations sur la base de test
+        run: >
+          dotnet ef database update
+          --project src/EbiosRM.Api/EbiosRM.Api.csproj
+          --connection "Host=localhost;Port=5433;Database=ebiosrm_test;Username=ebiosrm;Password=ebiosrm_dev"
+
+      - name: Tests
+        run: dotnet test EbiosRM.sln --no-build --configuration Release --verbosity normal
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Compiler
+        run: npm run build
+
+      - name: Tests
+        run: npx vitest run
