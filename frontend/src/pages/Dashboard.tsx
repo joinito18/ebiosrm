@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom'
 import { AtelierChainExpanded } from '../components/methodology/AtelierChain'
 import type { AtelierNode } from '../components/methodology/AtelierChain'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
+import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import {
   getEtude, listValeursMetier, listEvenementsRedoutes, listCouplesSrOv, listScenariosDeRisque,
-  rapportSyntheseUrl,
 } from '../lib/api'
 import type { Etude } from '../lib/api'
 
@@ -117,7 +117,7 @@ export default function Dashboard() {
         <section className="mt-12 border border-paper-line px-5 py-6">
           <div className="flex items-center justify-between gap-4">
             <p className="text-xs text-steel">Les 5 ateliers sont valides. La synthese globale consolide les points cles pour presentation a la Direction.</p>
-            <a href={rapportSyntheseUrl(etudeId)} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90">Telecharger la synthese</a>
+            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white hover:bg-signature/90">Telecharger la synthese</BoutonTelechargerRapport>
           </div>
         </section>
       )}

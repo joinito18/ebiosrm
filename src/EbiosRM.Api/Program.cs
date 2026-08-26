@@ -120,6 +120,8 @@ builder.Services.AddScoped<RapportAtelier5Service>();
 builder.Services.AddScoped<RapportAtelier5PdfGenerator>();
 builder.Services.AddScoped<RapportSyntheseGlobaleService>();
 builder.Services.AddScoped<RapportSyntheseGlobalePdfGenerator>();
+builder.Services.AddScoped<RapportCadreDeSuiviService>();
+builder.Services.AddScoped<RapportCadreDeSuiviPdfGenerator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -1189,6 +1191,23 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/synthese", async (
 
     var pdfBytes = pdfGenerator.Generer(data);
     return Results.File(pdfBytes, "application/pdf", $"rapport-synthese-{etudeId}.pdf");
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/cadre-de-suivi", async (
+    Guid etudeId, IEtudeRepository etudeRepo, RapportCadreDeSuiviService rapportService, RapportCadreDeSuiviPdfGenerator pdfGenerator, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+    if (etude.StatutAtelier5 == StatutEtude.Brouillon)
+        return Results.BadRequest(new { error = "Le cadre de suivi n'est disponible qu'une fois l'atelier 5 démarré et un plan de traitement créé." });
+
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null)
+        return Results.NotFound(new { error = "Aucun plan de traitement du risque n'existe pour cette étude." });
+
+    var pdfBytes = pdfGenerator.Generer(data);
+    return Results.File(pdfBytes, "application/pdf", $"cadre-de-suivi-{etudeId}.pdf");
 });
 
 // --- Parties Prenantes (Atelier 2) ---

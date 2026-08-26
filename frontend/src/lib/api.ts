@@ -662,28 +662,41 @@ export function reinitialiserVraisemblance(etudeId: string, scenarioOperationnel
   return apiFetch('/etudes/' + etudeId + '/scenarios-operationnels/' + scenarioOperationnelId + '/modes-operatoires/' + modeId + '/vraisemblance-retenue', { method: 'DELETE' })
 }
 
-export function rapportAtelier1Url(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/atelier1'
-}
+// Les rapports sont des PDF proteges par jeton : un <a href> classique ne
+// porte pas l'en-tete Authorization (navigation navigateur, pas fetch), donc
+// on telecharge via fetch (jeton injecte comme apiFetch) puis on declenche
+// le telechargement via un blob local plutot qu'une simple URL.
+export async function telechargerRapport(path: string, nomFichier: string): Promise<void> {
+  var headers: Record<string, string> = {}
+  var token = obtenirToken()
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token
+  }
 
-export function rapportAtelier2Url(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/atelier2'
-}
+  var response = await fetch(API_BASE + path, { headers })
 
-export function rapportAtelier3Url(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/atelier3'
-}
+  if (response.status === 401) {
+    effacerToken()
+  }
 
-export function rapportAtelier4Url(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/atelier4'
-}
+  if (!response.ok) {
+    var message = 'Erreur lors du telechargement (' + response.status + ')'
+    try {
+      var body = JSON.parse(await response.text())
+      if (body && body.error) message = body.error
+    } catch (e) { /* corps non JSON, on garde le message generique */ }
+    throw new ApiError(response.status, message)
+  }
 
-export function rapportAtelier5Url(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/atelier5'
-}
-
-export function rapportSyntheseUrl(etudeId: string): string {
-  return API_BASE + '/etudes/' + etudeId + '/rapports/synthese'
+  var blob = await response.blob()
+  var url = URL.createObjectURL(blob)
+  var lien = document.createElement('a')
+  lien.href = url
+  lien.download = nomFichier
+  document.body.appendChild(lien)
+  lien.click()
+  document.body.removeChild(lien)
+  URL.revokeObjectURL(url)
 }
 
 export interface ScenarioDeRisque {

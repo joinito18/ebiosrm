@@ -5,13 +5,14 @@ import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import InlineForm from '../components/shared/InlineForm'
 import GrilleMatrice from '../components/shared/GrilleMatrice'
 import OverrideJugementExpert from '../components/shared/OverrideJugementExpert'
+import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
   getEtude, listValeursMetier, listBiensSupport, listEvenementsRedoutes, getSocleSecurite,
-  demarrerAtelier1, validerAtelier1, rouvrirAtelier1, rapportAtelier1Url,
-  demarrerAtelier2, validerAtelier2, rouvrirAtelier2, rapportAtelier2Url,
-  demarrerAtelier3, validerAtelier3, rouvrirAtelier3, rapportAtelier3Url,
-  demarrerAtelier4, validerAtelier4, rouvrirAtelier4, rapportAtelier4Url,
+  demarrerAtelier1, validerAtelier1, rouvrirAtelier1,
+  demarrerAtelier2, validerAtelier2, rouvrirAtelier2,
+  demarrerAtelier3, validerAtelier3, rouvrirAtelier3,
+  demarrerAtelier4, validerAtelier4, rouvrirAtelier4,
   createValeurMetier, updateValeurMetier, deleteValeurMetier,
   createBienSupport, updateBienSupport, deleteBienSupport,
   createEvenementRedoute, updateEvenementRedoute, deleteEvenementRedoute,
@@ -26,7 +27,7 @@ import {
   listScenariosOperationnels, createScenarioOperationnel, deleteScenarioOperationnel,
   ajouterModeOperatoire, modifierModeOperatoire, supprimerModeOperatoire,
   definirVraisemblanceRetenue, reinitialiserVraisemblance,
-  demarrerAtelier5, validerAtelier5, rouvrirAtelier5, rapportAtelier5Url, rapportSyntheseUrl,
+  demarrerAtelier5, validerAtelier5, rouvrirAtelier5,
   listScenariosDeRisque, creerScenarioDeRisque, supprimerScenarioDeRisque,
   definirNiveauRisqueInitialRetenue, reinitialiserNiveauRisqueInitial,
   evaluerRisqueResiduel, definirNiveauRisqueResiduelRetenue, reinitialiserNiveauRisqueResiduel,
@@ -281,12 +282,6 @@ export default function AtelierPage() {
   var estAtelier4 = numero === 4
   var estAtelier5 = numero === 5
   var estVerrouille = !estAtelier1 && !estAtelier2 && !estAtelier3 && !estAtelier4 && !estAtelier5
-  var lienRapport = rapportAtelier1Url(etudeId)
-  var lienRapportAtelier2 = rapportAtelier2Url(etudeId)
-  var lienRapportAtelier3 = rapportAtelier3Url(etudeId)
-  var lienRapportAtelier4 = rapportAtelier4Url(etudeId)
-  var lienRapportAtelier5 = rapportAtelier5Url(etudeId)
-  var lienRapportSynthese = rapportSyntheseUrl(etudeId)
   var lienRetour = '/etudes/' + etudeId
 
   var boutonAction = null
@@ -298,7 +293,7 @@ export default function AtelierPage() {
     boutonAction = (
       <>
         <button onClick={handleRouvrir} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <a href={lienRapport} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</a>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier1'} nomFichier={'rapport-atelier1-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
@@ -312,7 +307,7 @@ export default function AtelierPage() {
     boutonActionAtelier2 = (
       <>
         <button onClick={handleRouvrirAtelier2} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <a href={lienRapportAtelier2} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</a>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier2'} nomFichier={'rapport-atelier2-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
@@ -326,7 +321,7 @@ export default function AtelierPage() {
     boutonActionAtelier3 = (
       <>
         <button onClick={handleRouvrirAtelier3} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <a href={lienRapportAtelier3} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</a>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier3'} nomFichier={'rapport-atelier3-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
@@ -340,7 +335,7 @@ export default function AtelierPage() {
     boutonActionAtelier4 = (
       <>
         <button onClick={handleRouvrirAtelier4} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <a href={lienRapportAtelier4} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</a>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier4'} nomFichier={'rapport-atelier4-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
       </>
     )
   }
@@ -349,13 +344,19 @@ export default function AtelierPage() {
   if (etude.statutAtelier5 === 'Brouillon') {
     boutonActionAtelier5 = <button onClick={handleDemarrerAtelier5} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</button>
   } else if (etude.statutAtelier5 === 'EnCours') {
-    boutonActionAtelier5 = <button onClick={handleValiderAtelier5} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+    boutonActionAtelier5 = (
+      <>
+        <button onClick={handleValiderAtelier5} disabled={action !== ''} className="rounded-sm bg-signature px-4 py-2 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50">{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le cadre de suivi</BoutonTelechargerRapport>
+      </>
+    )
   } else if (etude.statutAtelier5 === 'Validee') {
     boutonActionAtelier5 = (
       <>
         <button onClick={handleRouvrirAtelier5} disabled={action !== ''} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-risk-high hover:text-risk-high disabled:opacity-50">{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</button>
-        <a href={lienRapportAtelier5} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</a>
-        <a href={lienRapportSynthese} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger la synthese globale</a>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier5'} nomFichier={'rapport-atelier5-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger la synthese globale</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className="rounded-sm border border-paper-line px-4 py-2 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Telecharger le cadre de suivi</BoutonTelechargerRapport>
       </>
     )
   }
