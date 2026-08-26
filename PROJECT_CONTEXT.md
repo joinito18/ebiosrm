@@ -2080,5 +2080,23 @@ Manque identifié : aucun `DELETE /etudes/{id}` n'existait, seulement des suppre
 
 Dernier livrable officiel EBIOS RM manquant. Différence structurante avec tous les autres rapports : **il lit l'état courant, pas un `SnapshotAtelier` figé** — sa raison d'être est de suivre une progression qui continue après la validation de l'Atelier 5 (mesures qui passent à "Terminé" au fil des mois, risques résiduels réévalués), un document figé au moment de la validation n'aurait ici aucun sens. `RapportCadreDeSuiviService` réutilise `ServiceAssemblageScenariosDeRisque` (déjà conçu pour lire des agrégats vivants) et `IPlanTraitementRisqueRepository` directement, sans passer par les snapshots. Disponible dès l'Atelier 5 **démarré** (pas besoin d'attendre sa validation complète, contrairement à la synthèse globale) — vérifié par un test d'intégration dédié qui matérialise ce contraste explicitement (la synthèse refuse, le cadre de suivi répond) et qui change le statut d'une mesure entre deux appels pour prouver que le contenu suit sans nouvelle validation.
 
+## Mise à jour — CI/CD (GitHub Actions)
+
+Manque documenté de longue date dans ce fichier ("pas de CI/CD, les tests ne s'exécutent que si quelqu'un pense à les lancer") — devenu actionnable une fois le dépôt sur GitHub (`github.com/joinito18/ebiosrm`, cf. section Déploiement). `.github/workflows/ci.yml` : deux jobs indépendants déclenchés sur push/PR vers `master`.
+- **`backend`** : service Postgres 16 en conteneur (`services:`, port `5433` pour matcher exactement la connection string codée en dur dans `EbiosApiFactory.cs`), `dotnet restore`/`build`/puis migrations EF Core appliquées explicitement sur `ebiosrm_test` (`dotnet ef database update --connection ...`, l'outil `dotnet-ef` installé à la volée) **avant** `dotnet test` — sans cette étape les tests d'intégration échoueraient sur une base vide.
+- **`frontend`** : `npm ci` (pas `npm install`, reproductible depuis `package-lock.json`) → `npm run build` → `npx vitest run`.
+
+Chaque commande a été rejouée manuellement en local avant de faire confiance au fichier YAML (`dotnet restore/build/test EbiosRM.sln --configuration Release`, `dotnet ef database update --project ...`), puis le premier run réel sur GitHub Actions vérifié via `gh run view` (pas seulement supposé correct parce que ça marchait en local) : les deux jobs passent (backend 59s avec les 227 tests, frontend 21s avec les 25 tests).
+
+## Mise à jour — Refonte visuelle des pages de connexion
+
+Retour utilisateur : les pages `Connexion`/`Inscription` (simple boîte centrée sur fond uni) étaient jugées trop austères. Refondues en mise en page à deux panneaux (`LayoutAuth.tsx`, partagé par les deux pages) : bandeau de marque sombre (`bg-ink`, wordmark + accroche + mention méthode ANSSI, masqué en grande partie sur mobile pour ne garder qu'un bandeau compact) et formulaire sur carte blanche flottant sur le fond `bg-paper` — mêmes tokens de couleur/police et même style de champ (`border-b`, pas de bordure pleine) que le reste de l'application, pour ne pas introduire un langage visuel concurrent.
+
+**Vérification** : capture d'écran desktop + mobile (375px) via Playwright, puis re-exécution complète du script `test-etude-complete-playwright` (0 erreur) pour confirmer que le nouveau balisage n'a pas cassé les sélecteurs du parcours automatisé.
+
+**Aparté méthodologique** : capturer ces pages a révélé que `fonts.googleapis.com` (chargé via `@import` dans `index.css`, préexistant) est injoignable depuis ce sandbox précisément (timeout DNS), faisant indéfiniment patienter `page.goto` avant `domcontentloaded` -- rien à voir avec l'application (un navigateur réel resolvant normalement ce domaine), corrigé pour les besoins du test en bloquant la route via `page.route(...).abort()`. À charge du diagnostic suivant de ne pas confondre ce genre de blocage sandbox avec un vrai bug applicatif.
+
+**Signalement utilisateur clarifié dans la foulée** : rapport d'un échec de connexion/inscription "sur mobile" — reproduit uniquement sur le déploiement en ligne, jamais en local (vérifié explicitement par un test Playwright mobile bout-en-bout : inscription réussie, 201, redirection correcte). Confirmé comme un symptôme de plus de la panne Render prolongée (cf. section Déploiement), pas un bug de code.
+
 *Fin du contexte.*
 
