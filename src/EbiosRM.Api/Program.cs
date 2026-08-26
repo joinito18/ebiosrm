@@ -3,12 +3,23 @@ using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
 using EbiosRM.Api.Modules.CoreEngine.Infrastructure;
+using EbiosRM.Api.Modules.Identity.Domain;
+using EbiosRM.Api.Modules.Identity.Infrastructure;
 using EbiosRM.Api.Modules.Reporting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using QuestPDF.Infrastructure;
+using System.Text;
 using System.Text.Json.Serialization;
 
 QuestPDF.Settings.License = LicenseType.Community;
+
+// Sans ça, le handler JWT renomme silencieusement le claim "sub" vers l'URI XML
+// historique (ClaimTypes.NameIdentifier) -- surprise classique .NET, garde les
+// noms de claims tels qu'émis par ServiceAuthentification.GenererJeton.
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
 var dossierPolices = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
 if (Directory.Exists(dossierPolices))
@@ -37,7 +48,43 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
+// Authentification par jeton JWT (pas de cookies de session) : le frontend
+// (Vercel) et l'API (Render) sont sur deux origines différentes, un cookie
+// cross-origin exigerait SameSite=None/Secure + credentials CORS, plus
+// fragile qu'un en-tête Authorization porté explicitement par le client.
+// Mur d'entrée uniquement (FallbackPolicy) : un seul niveau d'accès, pas de
+// rôles/permissions différenciées (décision actée).
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Lecture différée (pas au moment de la construction du builder) :
+        // AddJwtBearer(configureOptions) n'exécute ce lambda qu'à la
+        // résolution de JwtBearerOptions (première requête entrante), bien
+        // après que WebApplicationFactory (tests d'intégration) ait fusionné
+        // sa configuration in-memory dans builder.Configuration -- même
+        // raisonnement que builder.Configuration.GetConnectionString("EbiosDb")
+        // lu paresseusement dans AddDbContext.
+        var jwtSecret = builder.Configuration["Jwt:Secret"]
+            ?? throw new InvalidOperationException("Jwt:Secret doit être configuré (appsettings ou variable d'environnement Jwt__Secret).");
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser().Build();
+});
+
+builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
+builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
+builder.Services.AddScoped<ServiceSuppressionEtude>();
 builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
 builder.Services.AddScoped<IBienSupportRepository, BienSupportRepository>();
 builder.Services.AddScoped<IEvenementRedouteRepository, EvenementRedouteRepository>();
@@ -95,6 +142,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapGet("/api/v1/health", async (EbiosDbContext db) =>
 {
@@ -106,6 +155,47 @@ app.MapGet("/api/v1/health", async (EbiosDbContext db) =>
         database = databaseConnected ? "connected" : "disconnected",
         timestampUtc = DateTime.UtcNow
     });
+}).AllowAnonymous();
+
+// --- Authentification ---
+
+app.MapPost("/api/v1/auth/inscription", async (
+    InscriptionRequest request, ServiceAuthentification service, CancellationToken ct) =>
+{
+    try
+    {
+        var (token, utilisateur) = await service.InscrireAsync(request.Email, request.MotDePasse, request.NomAffiche, ct);
+        return Results.Created($"/api/v1/auth/moi", new { token, utilisateur = new { utilisateur.Id, utilisateur.Email, utilisateur.NomAffiche } });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).AllowAnonymous();
+
+app.MapPost("/api/v1/auth/connexion", async (
+    ConnexionRequest request, ServiceAuthentification service, CancellationToken ct) =>
+{
+    var resultat = await service.ConnecterAsync(request.Email, request.MotDePasse, ct);
+    if (resultat is null)
+        return Results.Unauthorized();
+
+    var (token, utilisateur) = resultat.Value;
+    return Results.Ok(new { token, utilisateur = new { utilisateur.Id, utilisateur.Email, utilisateur.NomAffiche } });
+}).AllowAnonymous();
+
+app.MapGet("/api/v1/auth/moi", async (
+    System.Security.Claims.ClaimsPrincipal principal, IUtilisateurRepository repo, CancellationToken ct) =>
+{
+    var idClaim = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+    if (idClaim is null || !Guid.TryParse(idClaim, out var id))
+        return Results.Unauthorized();
+
+    var utilisateur = await repo.ObtenirParIdAsync(id, ct);
+    if (utilisateur is null)
+        return Results.Unauthorized();
+
+    return Results.Ok(new { utilisateur.Id, utilisateur.Email, utilisateur.NomAffiche });
 });
 
 // --- Etudes ---
@@ -134,6 +224,15 @@ app.MapGet("/api/v1/etudes", async (IEtudeRepository repo, CancellationToken ct)
 {
     var etudes = await repo.ListerAsync(ct);
     return Results.Ok(etudes);
+});
+
+app.MapDelete("/api/v1/etudes/{id:guid}", async (
+    Guid id, ServiceSuppressionEtude service, CancellationToken ct) =>
+{
+    var supprimee = await service.SupprimerAsync(id, ct);
+    if (!supprimee)
+        return Results.NotFound(new { error = "Étude introuvable." });
+    return Results.NoContent();
 });
 
 // --- Workflow Engine minimal ---
@@ -2043,6 +2142,8 @@ static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> Par
     return (actions, null);
 }
 
+record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
+record ConnexionRequest(string Email, string MotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);
 record CreerBienSupportRequest(string Description, string Type, string EntiteProprietaire);

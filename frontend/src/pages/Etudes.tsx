@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
-import { listEtudes, createEtude, ApiError } from '../lib/api'
+import { listEtudes, createEtude, supprimerEtude, ApiError } from '../lib/api'
 import type { Etude } from '../lib/api'
 
 export default function Etudes() {
@@ -53,6 +53,17 @@ export default function Etudes() {
         setErreurCreation(message)
       })
       .finally(function () { setCreationEnCours(false) })
+  }
+
+  function handleSupprimer(e: React.MouseEvent, etude: Etude) {
+    e.stopPropagation()
+    if (!window.confirm('Supprimer definitivement l etude "' + etude.nom + '" et tout son contenu ?')) return
+    supprimerEtude(etude.id)
+      .then(charger)
+      .catch(function (err) {
+        var message = err instanceof ApiError ? err.message : 'Impossible de supprimer l etude.'
+        setErreurListe(message)
+      })
   }
 
   return (
@@ -143,6 +154,7 @@ export default function Etudes() {
                 <th className="hidden pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light sm:table-cell">PERIMETRE</th>
                 <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">STATUT</th>
                 <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">CREEE LE</th>
+                <th className="pb-2"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -158,6 +170,15 @@ export default function Etudes() {
                     <td className="py-3.5 text-xs text-steel">{etude.statut}</td>
                     <td className="py-3.5 text-right font-mono text-[11px] text-steel-light">
                       {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
+                    </td>
+                    <td className="py-3.5 pl-3 text-right">
+                      <button
+                        onClick={function (e) { handleSupprimer(e, etude) }}
+                        aria-label={'Supprimer ' + etude.nom}
+                        className="text-steel-light hover:text-risk-critical"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </td>
                   </tr>
                 )

@@ -1,6 +1,7 @@
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
+using EbiosRM.Api.Modules.Identity.Domain;
 
 namespace EbiosRM.Api.Tests.TestDoubles;
 
@@ -8,6 +9,14 @@ namespace EbiosRM.Api.Tests.TestDoubles;
 // du projet). Juste assez de comportement pour exercer les Domain Services
 // qui orchestrent plusieurs repositories (ServiceValidationCompletudeAtelierN,
 // ServiceCreationSnapshotAtelierN) sans base de données réelle.
+
+public sealed class FakeUtilisateurRepository : IUtilisateurRepository
+{
+    public List<Utilisateur> Items { get; } = new();
+    public Task AjouterAsync(Utilisateur u, CancellationToken ct) { Items.Add(u); return Task.CompletedTask; }
+    public Task<Utilisateur?> ObtenirParIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(u => u.Id == id));
+    public Task<Utilisateur?> ObtenirParEmailAsync(string email, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(u => u.Email == email));
+}
 
 public sealed class FakeEtudeRepository : IEtudeRepository
 {

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useParams } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, FileText, Settings, X } from 'lucide-react'
+import { NavLink, useNavigate, useParams } from 'react-router-dom'
+import { LayoutDashboard, FolderOpen, FileText, Settings, LogOut, X } from 'lucide-react'
 import { AtelierChainCompact } from '../methodology/AtelierChain'
 import type { AtelierNode } from '../methodology/AtelierChain'
-import { getEtude } from '../../lib/api'
-import type { Etude } from '../../lib/api'
+import { effacerToken, getEtude, obtenirUtilisateurCourant } from '../../lib/api'
+import type { Etude, Utilisateur } from '../../lib/api'
 
 function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean; onNavigate?: () => void }) {
   var Icon = props.icon
@@ -51,9 +51,11 @@ function ateliersDepuisEtude(etude: Etude | null): AtelierNode[] {
 }
 
 export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }) {
+  var navigate = useNavigate()
   var params = useParams()
   var etudeId = params.etudeId
   var [etude, setEtude] = useState<Etude | null>(null)
+  var [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null)
 
   useEffect(function () {
     if (!etudeId) {
@@ -62,6 +64,15 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
     }
     getEtude(etudeId).then(setEtude).catch(function () { setEtude(null) })
   }, [etudeId])
+
+  useEffect(function () {
+    obtenirUtilisateurCourant().then(setUtilisateur).catch(function () { setUtilisateur(null) })
+  }, [])
+
+  function seDeconnecter() {
+    effacerToken()
+    navigate('/connexion')
+  }
 
   return (
     <>
@@ -117,6 +128,18 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
             <NavItem to="/rapports" icon={FileText} onNavigate={props.onFermer}>Rapports</NavItem>
             <NavItem to="/parametres" icon={Settings} onNavigate={props.onFermer}>Parametres</NavItem>
           </nav>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-ink-line px-5 py-4">
+          <span className="truncate text-xs text-steel-light">{utilisateur ? utilisateur.nomAffiche : ''}</span>
+          <button
+            onClick={seDeconnecter}
+            aria-label="Se deconnecter"
+            className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-steel-light hover:text-white"
+          >
+            <LogOut size={14} strokeWidth={1.75} />
+            Deconnexion
+          </button>
         </div>
       </aside>
     </>

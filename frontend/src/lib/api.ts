@@ -64,11 +64,45 @@ export class ApiError extends Error {
   }
 }
 
+export interface Utilisateur {
+  id: string
+  email: string
+  nomAffiche: string
+}
+
+var CLE_JETON = 'ebiosrm_token'
+
+export function stockerToken(token: string) {
+  localStorage.setItem(CLE_JETON, token)
+}
+
+export function obtenirToken(): string | null {
+  return localStorage.getItem(CLE_JETON)
+}
+
+export function effacerToken() {
+  localStorage.removeItem(CLE_JETON)
+}
+
+export function estConnecte(): boolean {
+  return obtenirToken() !== null
+}
+
 async function apiFetch(path: string, options?: RequestInit): Promise<any> {
+  var headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  var token = obtenirToken()
+  if (token) {
+    headers['Authorization'] = 'Bearer ' + token
+  }
+
   var response = await fetch(API_BASE + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     ...options,
   })
+
+  if (response.status === 401) {
+    effacerToken()
+  }
 
   if (response.status === 404) {
     return null
@@ -88,6 +122,20 @@ async function apiFetch(path: string, options?: RequestInit): Promise<any> {
   return body
 }
 
+export function inscription(email: string, motDePasse: string, nomAffiche: string): Promise<{ token: string; utilisateur: Utilisateur }> {
+  return apiFetch('/auth/inscription', { method: 'POST', body: JSON.stringify({ email, motDePasse, nomAffiche }) })
+    .then(function (r) { stockerToken(r.token); return r })
+}
+
+export function connexion(email: string, motDePasse: string): Promise<{ token: string; utilisateur: Utilisateur }> {
+  return apiFetch('/auth/connexion', { method: 'POST', body: JSON.stringify({ email, motDePasse }) })
+    .then(function (r) { stockerToken(r.token); return r })
+}
+
+export function obtenirUtilisateurCourant(): Promise<Utilisateur> {
+  return apiFetch('/auth/moi')
+}
+
 export function listEtudes(): Promise<Etude[]> {
   return apiFetch('/etudes')
 }
@@ -101,6 +149,10 @@ export function createEtude(nom: string, perimetre: string, mission: string): Pr
     method: 'POST',
     body: JSON.stringify({ nom: nom, perimetre: perimetre, mission: mission }),
   })
+}
+
+export function supprimerEtude(id: string): Promise<void> {
+  return apiFetch('/etudes/' + id, { method: 'DELETE' })
 }
 
 export function demarrerAtelier1(etudeId: string): Promise<Etude> {

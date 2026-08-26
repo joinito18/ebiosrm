@@ -1,6 +1,7 @@
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
+using EbiosRM.Api.Modules.Identity.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace EbiosRM.Api.Infrastructure.Persistence;
@@ -25,6 +26,7 @@ public class EbiosDbContext : DbContext
     public DbSet<ScenarioOperationnel> ScenariosOperationnels => Set<ScenarioOperationnel>();
     public DbSet<ScenarioDeRisque> ScenariosDeRisque => Set<ScenarioDeRisque>();
     public DbSet<PlanTraitementRisque> PlansTraitementRisque => Set<PlanTraitementRisque>();
+    public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -304,6 +306,17 @@ public class EbiosDbContext : DbContext
                 mesure.Property(m => m.Statut).IsRequired().HasConversion<string>().HasMaxLength(50);
                 mesure.Property(m => m.CreeLeUtc).IsRequired();
             });
+        });
+
+        modelBuilder.Entity<Utilisateur>(entity =>
+        {
+            entity.ToTable("utilisateurs");
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Email).IsRequired().HasMaxLength(320);
+            entity.Property(u => u.NomAffiche).IsRequired().HasMaxLength(200);
+            entity.Property(u => u.MotDePasseHache).IsRequired();
+            entity.Property(u => u.CreeLeUtc).IsRequired();
+            entity.HasIndex(u => u.Email).IsUnique();
         });
 
         base.OnModelCreating(modelBuilder);

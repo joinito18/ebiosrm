@@ -23,7 +23,8 @@ public sealed class EbiosApiFactory : WebApplicationFactory<Program>
         {
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ConnectionStrings:EbiosDb"] = "Host=localhost;Port=5433;Database=ebiosrm_test;Username=ebiosrm;Password=ebiosrm_dev"
+                ["ConnectionStrings:EbiosDb"] = "Host=localhost;Port=5433;Database=ebiosrm_test;Username=ebiosrm;Password=ebiosrm_dev",
+                ["Jwt:Secret"] = "test-secret-do-not-use-in-production-0123456789abcdef"
             });
         });
     }

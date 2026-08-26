@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -25,6 +26,17 @@ public class CycleDeVieCompletTests : IClassFixture<EbiosApiFactory>
     [Fact]
     public async Task Parcours_complet_A1_a_A4_avec_snapshots_overrides_et_cascade()
     {
+        // --- Authentification : tous les endpoints sont protégés par défaut (FallbackPolicy) ---
+        var inscription = await _client.PostAsJsonAsync("/api/v1/auth/inscription", new
+        {
+            Email = $"test-integration-{Guid.NewGuid():N}@ebiosrm.local",
+            MotDePasse = "MotDePasseTest123",
+            NomAffiche = "Test Integration"
+        });
+        Assert.Equal(HttpStatusCode.Created, inscription.StatusCode);
+        var token = (await inscription.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
         // --- Création de l'étude ---
         var creerEtude = await _client.PostAsJsonAsync("/api/v1/etudes", new { Nom = "Etude integration", Perimetre = "Perimetre test", Mission = "Mission test" });
         Assert.Equal(HttpStatusCode.Created, creerEtude.StatusCode);
