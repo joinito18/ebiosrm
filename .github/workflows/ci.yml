@@ -125,9 +125,10 @@ jobs:
           dotnet tool install --global dotnet-ef --version 8.0.10
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
-      # Meme nom de base/port/identifiants que appsettings.Development.json --
-      # le backend demarre ensuite avec ASPNETCORE_ENVIRONMENT=Development
-      # sans aucune variable de connexion a surcharger.
+      # appsettings.Development.json est dans .gitignore (contient un secret,
+      # meme si c'est un secret factice de dev) -- absent du checkout CI, donc
+      # ConnectionStrings:EbiosDb et Jwt:Secret sont fournis ici par variables
+      # d'environnement plutot que de dependre de ce fichier.
       - name: Appliquer les migrations
         run: >
           dotnet ef database update
@@ -138,6 +139,8 @@ jobs:
         working-directory: src/EbiosRM.Api
         env:
           ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__EbiosDb: "Host=localhost;Port=5433;Database=ebiosrm;Username=ebiosrm;Password=ebiosrm_dev"
+          Jwt__Secret: "ci-e2e-secret-facultatif-non-reutilise-en-production-0123456789"
         run: |
           dotnet bin/Release/net8.0/EbiosRM.Api.dll --urls http://localhost:5197 > /tmp/backend.log 2>&1 &
           disown
