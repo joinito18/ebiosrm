@@ -2147,5 +2147,14 @@ Suite à un état des lieux honnête demandé par l'utilisateur (« la méthodol
 
 **Incident de déploiement causé par ce chantier, corrigé dans la foulée** : le pipeline `deploy-backend` (section précédente) reconstruit et redéploie l'image, mais n'appliquait aucune migration à la base de production -- le push de ce chantier (qui ajoute une colonne) a donc cassé la prod (500 sur `GET /api/v1/etudes`) dès que le nouveau code a tourné contre l'ancien schéma Neon, pendant ~18 minutes avant d'être remarqué. Corrigé en urgence par une migration manuelle (`dotnet ef database update` avec la chaîne de connexion Neon récupérée depuis Render -> Environment -> `ConnectionStrings__EbiosDb`), puis fixé durablement en ajoutant une étape "Appliquer les migrations en production" dans `deploy-backend`, **avant** la reconstruction/redéploiement de l'image -- nouveau secret de dépôt `PROD_DB_CONNECTION_STRING`.
 
+## Mise à jour — Limitation anti-abus à l'inscription
+
+2e des 4 chantiers choisis par l'utilisateur suite à l'état des lieux honnête (voir section isolation ci-dessus). N'importe qui pouvait créer des comptes en masse sans aucune vérification (pas de captcha, pas de confirmation email).
+
+- `Microsoft.AspNetCore.RateLimiting` (intégré au framework, aucune dépendance externe) : politique `"inscription"`, fenêtre fixe de 5 requêtes/heure par IP, appliquée uniquement à `POST /api/v1/auth/inscription` (`RequireRateLimiting`) -- `/auth/connexion` volontairement non limité pour l'instant (pas demandé, aurait un effet différent -- protection anti brute-force plutôt qu'anti-spam).
+- **Piège Render évité** : Render est un reverse proxy, donc `Connection.RemoteIpAddress` vaut l'IP du proxy pour toutes les requêtes sans `UseForwardedHeaders()` configuré -- sans ça, tous les utilisateurs auraient partagé un seul quota au lieu d'un quota par IP réelle. `KnownNetworks`/`KnownProxies` vidés explicitement (IP du proxy Render non fixe/connaissable à l'avance, pratique standard sur ce type de plateforme).
+
+**Vérification** : suite complète `dotnet test` (227/227, la crainte que les nombreuses inscriptions de test partagent un seul quota IP dans `WebApplicationFactory` ne s'est pas vérifiée), puis test réel contre le serveur local : 5 inscriptions consécutives à 201, 6e et 7e à 429, connexion sur un compte existant non affectée (401 normal, pas 429).
+
 *Fin du contexte.*
 

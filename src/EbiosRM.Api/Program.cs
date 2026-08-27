@@ -8,11 +8,13 @@ using EbiosRM.Api.Modules.Identity.Infrastructure;
 using EbiosRM.Api.Modules.Reporting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using QuestPDF.Infrastructure;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 QuestPDF.Settings.License = LicenseType.Community;
 
@@ -46,6 +48,38 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin()
               .AllowAnyMethod()
               .AllowAnyHeader());
+});
+
+// Render est un reverse proxy -- sans ceci, Connection.RemoteIpAddress vaut
+// toujours l'IP du proxy (la meme pour tout le monde), ce qui ferait
+// partager un seul quota de rate limiting a tous les utilisateurs au lieu
+// d'un quota par IP reelle. KnownNetworks/KnownProxies vides = on fait
+// confiance a l'en-tete X-Forwarded-For tel quel (l'IP du proxy Render
+// n'est pas fixe/connaissable a l'avance, pratique courante sur ce type
+// de plateforme).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// Anti-abus sur l'inscription : n'importe qui pouvait creer des comptes en
+// masse sans aucune verification (pas de captcha, pas d'email a confirmer).
+// 5 inscriptions/heure par IP est large pour un usage legitime (personne ne
+// cree 5 comptes en une heure depuis la meme IP) mais bloque le bourrage.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("inscription", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "inconnu",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+            }));
 });
 
 // Authentification par jeton JWT (pas de cookies de session) : le frontend
@@ -129,6 +163,11 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// En tout premier : sans ca, tout ce qui lit Connection.RemoteIpAddress
+// plus loin dans le pipeline (le rate limiter, ici) voit l'IP du proxy
+// Render au lieu de celle du client reel.
+app.UseForwardedHeaders();
+
 // Gestion d'erreurs centralisée : toute exception non prévue (ex. violation
 // de contrainte SQL, timeout...) renvoie un ProblemDetails générique au lieu
 // de laisser fuiter une erreur 500 non standardisée. Les erreurs métier
@@ -143,6 +182,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -220,7 +260,7 @@ app.MapPost("/api/v1/auth/inscription", async (
     {
         return Results.BadRequest(new { error = ex.Message });
     }
-}).AllowAnonymous();
+}).AllowAnonymous().RequireRateLimiting("inscription");
 
 app.MapPost("/api/v1/auth/connexion", async (
     ConnexionRequest request, ServiceAuthentification service, CancellationToken ct) =>
