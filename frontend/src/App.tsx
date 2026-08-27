@@ -3,6 +3,8 @@ import AppLayout from './components/layout/AppLayout'
 import RouteProtegee from './components/auth/RouteProtegee'
 import Connexion from './pages/Connexion'
 import Inscription from './pages/Inscription'
+import MotDePasseOublie from './pages/MotDePasseOublie'
+import ReinitialiserMotDePasse from './pages/ReinitialiserMotDePasse'
 import Dashboard from './pages/Dashboard'
 import Etudes from './pages/Etudes'
 import AtelierPage from './pages/AtelierPage'
@@ -15,6 +17,8 @@ export default function App() {
       <Routes>
         <Route path="/connexion" element={<Connexion />} />
         <Route path="/inscription" element={<Inscription />} />
+        <Route path="/mot-de-passe-oublie" element={<MotDePasseOublie />} />
+        <Route path="/reinitialiser-mot-de-passe" element={<ReinitialiserMotDePasse />} />
         <Route element={<RouteProtegee />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Navigate to="/etudes" replace />} />

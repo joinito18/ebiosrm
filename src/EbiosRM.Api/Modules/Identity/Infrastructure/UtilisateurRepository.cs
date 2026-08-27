@@ -28,4 +28,15 @@ public sealed class UtilisateurRepository : IUtilisateurRepository
     {
         return await _db.Utilisateurs.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
+
+    public async Task<Utilisateur?> ObtenirParJetonReinitialisationHacheAsync(string jetonHache, CancellationToken cancellationToken)
+    {
+        return await _db.Utilisateurs.FirstOrDefaultAsync(u => u.JetonReinitialisationHache == jetonHache, cancellationToken);
+    }
+
+    public async Task MettreAJourAsync(Utilisateur utilisateur, CancellationToken cancellationToken)
+    {
+        _db.Utilisateurs.Update(utilisateur);
+        await _db.SaveChangesAsync(cancellationToken);
+    }
 }

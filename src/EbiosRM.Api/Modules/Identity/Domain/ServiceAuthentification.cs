@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -7,8 +8,9 @@ using Microsoft.IdentityModel.Tokens;
 namespace EbiosRM.Api.Modules.Identity.Domain;
 
 /// <summary>
-/// Orchestration inscription/connexion : vérifie l'unicité de l'email, hache
-/// et vérifie le mot de passe, émet le jeton JWT. Le hachage utilise
+/// Orchestration inscription/connexion/réinitialisation : vérifie l'unicité de
+/// l'email, hache et vérifie le mot de passe, émet le jeton JWT, pilote le
+/// cycle de vie des jetons de réinitialisation. Le hachage utilise
 /// Microsoft.AspNetCore.Identity.PasswordHasher (PBKDF2, paramètres sûrs par
 /// défaut) plutôt qu'une crypto maison.
 /// </summary>
@@ -23,12 +25,20 @@ public sealed class ServiceAuthentification
     // setter juste pour ce besoin technique.
     private readonly IUtilisateurRepository _repository;
     private readonly IConfiguration _configuration;
+    private readonly IServiceEmail _email;
+    private readonly ILogger<ServiceAuthentification> _logger;
     private readonly PasswordHasher<object> _hasher = new();
 
-    public ServiceAuthentification(IUtilisateurRepository repository, IConfiguration configuration)
+    public ServiceAuthentification(
+        IUtilisateurRepository repository,
+        IConfiguration configuration,
+        IServiceEmail email,
+        ILogger<ServiceAuthentification> logger)
     {
         _repository = repository;
         _configuration = configuration;
+        _email = email;
+        _logger = logger;
     }
 
     public async Task<(string Token, Utilisateur Utilisateur)> InscrireAsync(string email, string motDePasse, string nomAffiche, CancellationToken cancellationToken)
@@ -59,6 +69,69 @@ public sealed class ServiceAuthentification
             return null;
 
         return (GenererJeton(utilisateur), utilisateur);
+    }
+
+    /// <summary>
+    /// Déclenche l'envoi d'un lien de réinitialisation si l'email correspond à un
+    /// compte. Ne révèle jamais si le compte existe : renvoie toujours sans
+    /// erreur, même email inconnu ou échec d'envoi (journalisé, pas propagé).
+    /// </summary>
+    public async Task DemanderReinitialisationAsync(string email, CancellationToken cancellationToken)
+    {
+        var emailNormalise = email.Trim().ToLowerInvariant();
+        var utilisateur = await _repository.ObtenirParEmailAsync(emailNormalise, cancellationToken);
+        if (utilisateur is null)
+        {
+            _logger.LogInformation("Demande de réinitialisation pour un email inconnu : {Email}", emailNormalise);
+            return;
+        }
+
+        var jetonEnClair = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        utilisateur.DemarrerReinitialisation(jetonEnClair, DateTime.UtcNow);
+        await _repository.MettreAJourAsync(utilisateur, cancellationToken);
+
+        var lien = ConstruireLienReinitialisation(jetonEnClair);
+        try
+        {
+            await _email.EnvoyerLienReinitialisationAsync(utilisateur.Email, lien, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // On n'échoue pas la requête : un 500 renseignerait indirectement sur
+            // l'existence du compte. L'opérateur voit l'incident dans les logs.
+            _logger.LogError(ex, "Échec de l'envoi du lien de réinitialisation à {Email}", utilisateur.Email);
+        }
+    }
+
+    /// <summary>
+    /// Applique un nouveau mot de passe à partir d'un jeton de lien.
+    /// Renvoie false si le jeton est inconnu, déjà consommé ou expiré.
+    /// Lève <see cref="ArgumentException"/> si le nouveau mot de passe est trop court.
+    /// </summary>
+    public async Task<bool> ReinitialiserMotDePasseAsync(string jetonEnClair, string nouveauMotDePasse, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(jetonEnClair))
+            return false;
+        if (string.IsNullOrWhiteSpace(nouveauMotDePasse) || nouveauMotDePasse.Length < MotDePasseLongueurMin)
+            throw new ArgumentException($"Le mot de passe doit contenir au moins {MotDePasseLongueurMin} caractères.", nameof(nouveauMotDePasse));
+
+        var jetonHache = Utilisateur.HacherJetonReinitialisation(jetonEnClair);
+        var utilisateur = await _repository.ObtenirParJetonReinitialisationHacheAsync(jetonHache, cancellationToken);
+        if (utilisateur is null)
+            return false;
+
+        var nouveauHache = _hasher.HashPassword(new object(), nouveauMotDePasse);
+        if (!utilisateur.EssayerReinitialiserMotDePasse(jetonEnClair, nouveauHache, DateTime.UtcNow))
+            return false;
+
+        await _repository.MettreAJourAsync(utilisateur, cancellationToken);
+        return true;
+    }
+
+    private string ConstruireLienReinitialisation(string jetonEnClair)
+    {
+        var baseUrl = (_configuration["App:UrlFrontend"] ?? "http://localhost:5173").TrimEnd('/');
+        return $"{baseUrl}/reinitialiser-mot-de-passe?token={Uri.EscapeDataString(jetonEnClair)}";
     }
 
     private string GenererJeton(Utilisateur utilisateur)

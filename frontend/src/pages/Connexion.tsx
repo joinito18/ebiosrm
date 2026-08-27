@@ -49,8 +49,14 @@ export default function Connexion() {
           type="password"
           value={motDePasse}
           onChange={function (e) { setMotDePasse(e.target.value) }}
-          className="mb-5 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none"
+          className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none"
         />
+
+        <div className="mb-5 text-right">
+          <Link to="/mot-de-passe-oublie" className="text-[11px] text-steel hover:text-signature hover:underline">
+            Mot de passe oublie ?
+          </Link>
+        </div>
 
         {erreur && <p className="mb-4 text-xs text-risk-critical">{erreur}</p>}
 

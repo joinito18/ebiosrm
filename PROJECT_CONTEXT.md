@@ -2167,5 +2167,24 @@ Suite à un état des lieux honnête demandé par l'utilisateur (« la méthodol
 
 **Vérification** : `dotnet test` (227/227), test réel contre le serveur local confirmant le contenu exact de l'export sur Atlas Assurances Santé (15 valeurs métier, 10 biens support, 15 événements redoutés, 5 couples, 4 parties prenantes, 3 scénarios stratégiques/chemins/opérationnels/de risque, 7 mesures, 11 contrôles de socle -- tous les chiffres connus de cette étude tout au long de la session), isolation confirmée sur ce nouvel endpoint (404 pour un compte non propriétaire), `npm run build` + `vitest run` (25/25) côté frontend, et téléchargement réel déclenché via Playwright (`page.waitForEvent('download')`, pas une simple vérification HTTP 200) avec relecture du fichier JSON téléchargé.
 
+## Mise à jour — Réinitialisation de mot de passe (branche `feat/reinitialisation-mot-de-passe`, NON mergée)
+
+4e des 4 chantiers choisis par l'utilisateur (isolation ✅, anti-abus inscription ✅, export JSON ✅). **Codé et testé de bout en bout, mais laissé sur une branche dédiée** : l'envoi réel des emails exige un domaine vérifié chez Resend, que l'utilisateur ne peut pas obtenir gratuitement pour l'instant (sous-domaines `vercel.app`/`onrender.com` = pas de contrôle DNS ; piste retenue = domaine gratuit 1 an via GitHub Student Pack, à faire plus tard). On reprend cette branche quand le domaine existe, on finit la config Resend, on merge.
+
+### Ce qui est livré sur la branche
+- **Domaine** : `Utilisateur` gagne `JetonReinitialisationHache` (SHA-256 hex du jeton, jamais le jeton en clair) + `JetonReinitialisationExpireLeUtc`. Méthodes `DemarrerReinitialisation`, `EssayerReinitialiserMotDePasse` (valide correspondance + expiration 1 h, consomme le jeton en cas de succès — un lien ne sert qu'une fois), `HacherJetonReinitialisation` (statique). Comparaison `CryptographicOperations.FixedTimeEquals`.
+- **Migration** `20260827143215_AjoutJetonReinitialisationMotDePasse` (2 colonnes nullable + index). Appliquée en local sur `ebiosrm` et `ebiosrm_test`. **Pas encore appliquée en prod** (le pipeline `deploy-backend` le fera au merge via `PROD_DB_CONNECTION_STRING`).
+- **Email** : `IServiceEmail` (`Modules/Identity/Domain`) + 2 implémentations. `ServiceEmailResend` (HttpClient, API `api.resend.com/emails`) enregistré **seulement si** `Resend:ApiKey` ET `Resend:Expediteur` configurés (`OptionsResend.EstConfigure`) ; sinon `ServiceEmailJournalise` qui loggue le lien — **aucun secret requis en dev/test/CI**, dégradation propre.
+- **ServiceAuthentification** : `DemanderReinitialisationAsync` (réponse toujours identique que l'email existe ou non — anti-énumération ; échec d'envoi journalisé, jamais propagé) + `ReinitialiserMotDePasseAsync` (bool ; `ArgumentException` si mot de passe < 8). Lien construit depuis `App:UrlFrontend` (config ; défaut `http://localhost:5173`).
+- **Endpoints** : `POST /api/v1/auth/mot-de-passe-oublie` (AllowAnonymous, `RequireRateLimiting("mot-de-passe-oublie")` — nouvelle policy 5/h/IP, même patron que `"inscription"`) toujours `200` ; `POST /api/v1/auth/reinitialiser-mot-de-passe` → `200` / `400` (lien invalide/expiré ou mot de passe trop court).
+- **Frontend** : `pages/MotDePasseOublie.tsx` (message de confirmation identique quoi qu'il arrive), `pages/ReinitialiserMotDePasse.tsx` (lit `?token=`, double saisie + confirmation, gère l'absence de token), routes dans `App.tsx` (hors `RouteProtegee`), lien « Mot de passe oublie ? » sur `Connexion.tsx`, fonctions `demanderReinitialisationMotDePasse`/`reinitialiserMotDePasse` dans `lib/api.ts`.
+- **Tests** : `EbiosApiFactory` court-circuite `IServiceEmail` par `FauxServiceEmail` (capture le lien). +9 tests unitaires (`UtilisateurTests`/`ServiceAuthentificationTests`) et +4 d'intégration (`AuthTests`, dont le parcours complet + rejeu du lien refusé). **240/240 backend, 25/25 + build frontend.** Parcours complet rejoué dans un vrai navigateur (Playwright) : inscription → demande → lien capté dans les logs → nouveau mot de passe → ancien rejeté → nouveau accepté.
+
+### Reste à faire au moment de reprendre (rien de bloquant côté code)
+1. Obtenir le domaine (GitHub Student Pack → Namecheap `.me` gratuit 1 an, ou name.com), le vérifier chez Resend (enregistrements DNS SPF/DKIM), créer une clé API Resend.
+2. Sur Render : ajouter `Resend__ApiKey`, `Resend__Expediteur` (ex. `EBIOS RM <no-reply@mon-domaine.me>`) et `App__UrlFrontend` (URL publique du frontend). Le CI e2e/tests n'a besoin de rien (bascule `ServiceEmailJournalise`).
+3. Merger la branche → le pipeline applique la migration en prod puis redéploie.
+4. Optionnel : pointer le domaine sur Vercel/Render et mettre à jour `App__UrlFrontend`.
+
 *Fin du contexte.*
 

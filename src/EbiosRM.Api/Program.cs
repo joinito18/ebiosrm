@@ -88,6 +88,19 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
             }));
+
+    // Demande de reinitialisation : meme raisonnement anti-abus que
+    // l'inscription (un lien envoye par email = un email transactionnel
+    // consomme, ne pas laisser bombarder une boite mail tierce).
+    options.AddPolicy("mot-de-passe-oublie", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "inconnu",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+            }));
 });
 
 // Authentification par jeton JWT (pas de cookies de session) : le frontend
@@ -125,6 +138,16 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<ServiceAuthentification>();
+
+// Envoi d'email : Resend en production (variables Resend__ApiKey /
+// Resend__Expediteur sur Render), sinon une implementation qui journalise le
+// lien -- aucun secret requis pour lancer l'app en local, en test ou en CI.
+var optionsResend = builder.Configuration.GetSection(OptionsResend.Section).Get<OptionsResend>() ?? new OptionsResend();
+builder.Services.Configure<OptionsResend>(builder.Configuration.GetSection(OptionsResend.Section));
+if (optionsResend.EstConfigure)
+    builder.Services.AddHttpClient<IServiceEmail, ServiceEmailResend>();
+else
+    builder.Services.AddScoped<IServiceEmail, ServiceEmailJournalise>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
 builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
@@ -294,6 +317,34 @@ app.MapGet("/api/v1/auth/moi", async (
 
     return Results.Ok(new { utilisateur.Id, utilisateur.Email, utilisateur.NomAffiche });
 });
+
+// Reponse volontairement identique que l'email existe ou non (anti-enumeration
+// de comptes) : le client ne peut pas distinguer les deux cas.
+app.MapPost("/api/v1/auth/mot-de-passe-oublie", async (
+    MotDePasseOublieRequest request, ServiceAuthentification service, CancellationToken ct) =>
+{
+    if (!string.IsNullOrWhiteSpace(request.Email))
+        await service.DemanderReinitialisationAsync(request.Email, ct);
+
+    return Results.Ok(new { message = "Si un compte est associé à cette adresse, un email de réinitialisation vient d'être envoyé." });
+}).AllowAnonymous().RequireRateLimiting("mot-de-passe-oublie");
+
+app.MapPost("/api/v1/auth/reinitialiser-mot-de-passe", async (
+    ReinitialiserMotDePasseRequest request, ServiceAuthentification service, CancellationToken ct) =>
+{
+    try
+    {
+        var reussi = await service.ReinitialiserMotDePasseAsync(request.Token ?? "", request.NouveauMotDePasse ?? "", ct);
+        if (!reussi)
+            return Results.BadRequest(new { error = "Ce lien de réinitialisation est invalide ou a expiré. Refaites une demande." });
+
+        return Results.Ok(new { message = "Votre mot de passe a été réinitialisé. Vous pouvez maintenant vous connecter." });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).AllowAnonymous();
 
 // --- Etudes ---
 
@@ -2313,6 +2364,8 @@ static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> Par
 
 record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
 record ConnexionRequest(string Email, string MotDePasse);
+record MotDePasseOublieRequest(string Email);
+record ReinitialiserMotDePasseRequest(string Token, string NouveauMotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);
 record CreerBienSupportRequest(string Description, string Type, string EntiteProprietaire);

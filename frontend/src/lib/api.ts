@@ -136,6 +136,14 @@ export function obtenirUtilisateurCourant(): Promise<Utilisateur> {
   return apiFetch('/auth/moi')
 }
 
+export function demanderReinitialisationMotDePasse(email: string): Promise<{ message: string }> {
+  return apiFetch('/auth/mot-de-passe-oublie', { method: 'POST', body: JSON.stringify({ email }) })
+}
+
+export function reinitialiserMotDePasse(token: string, nouveauMotDePasse: string): Promise<{ message: string }> {
+  return apiFetch('/auth/reinitialiser-mot-de-passe', { method: 'POST', body: JSON.stringify({ token, nouveauMotDePasse }) })
+}
+
 export function listEtudes(): Promise<Etude[]> {
   return apiFetch('/etudes')
 }

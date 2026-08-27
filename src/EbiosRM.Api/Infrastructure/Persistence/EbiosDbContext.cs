@@ -318,7 +318,9 @@ public class EbiosDbContext : DbContext
             entity.Property(u => u.NomAffiche).IsRequired().HasMaxLength(200);
             entity.Property(u => u.MotDePasseHache).IsRequired();
             entity.Property(u => u.CreeLeUtc).IsRequired();
+            entity.Property(u => u.JetonReinitialisationHache).HasMaxLength(64);
             entity.HasIndex(u => u.Email).IsUnique();
+            entity.HasIndex(u => u.JetonReinitialisationHache);
         });
 
         base.OnModelCreating(modelBuilder);

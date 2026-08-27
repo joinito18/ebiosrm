@@ -16,6 +16,29 @@ public sealed class FakeUtilisateurRepository : IUtilisateurRepository
     public Task AjouterAsync(Utilisateur u, CancellationToken ct) { Items.Add(u); return Task.CompletedTask; }
     public Task<Utilisateur?> ObtenirParIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(u => u.Id == id));
     public Task<Utilisateur?> ObtenirParEmailAsync(string email, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(u => u.Email == email));
+    public Task<Utilisateur?> ObtenirParJetonReinitialisationHacheAsync(string jetonHache, CancellationToken ct) => Task.FromResult(Items.FirstOrDefault(u => u.JetonReinitialisationHache == jetonHache));
+    public Task MettreAJourAsync(Utilisateur u, CancellationToken ct)
+    {
+        // Items contient déjà l'instance (repo en mémoire, pas de tracking EF) : rien à faire.
+        if (!Items.Contains(u)) Items.Add(u);
+        return Task.CompletedTask;
+    }
+}
+
+/// <summary>Doublure d'email : mémorise le dernier lien de réinitialisation.</summary>
+public sealed class FakeServiceEmail : IServiceEmail
+{
+    public string? DernierDestinataire { get; private set; }
+    public string? DernierLien { get; private set; }
+    public int NombreEnvois { get; private set; }
+
+    public Task EnvoyerLienReinitialisationAsync(string destinataire, string lienReinitialisation, CancellationToken cancellationToken)
+    {
+        DernierDestinataire = destinataire;
+        DernierLien = lienReinitialisation;
+        NombreEnvois++;
+        return Task.CompletedTask;
+    }
 }
 
 public sealed class FakeEtudeRepository : IEtudeRepository
