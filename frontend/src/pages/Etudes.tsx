@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Download } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
 import Button from '../components/shared/Button'
 import Card from '../components/shared/Card'
 import EmptyState from '../components/shared/EmptyState'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
+import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { listEtudes, createEtude, supprimerEtude, ApiError } from '../lib/api'
 import type { Etude } from '../lib/api'
 
@@ -169,13 +170,24 @@ export default function Etudes() {
                       {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
                     </td>
                     <td className="py-3.5 pl-3 text-right">
-                      <button
-                        onClick={function (e) { handleSupprimer(e, etude) }}
-                        aria-label={'Supprimer ' + etude.nom}
-                        className="text-steel-light transition hover:text-risk-critical"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center justify-end gap-3" onClick={function (e) { e.stopPropagation() }}>
+                        <BoutonTelechargerRapport
+                          path={'/etudes/' + etude.id + '/export'}
+                          nomFichier={'etude-' + etude.nom.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json'}
+                          className="text-steel-light transition hover:text-signature"
+                        >
+                          <span aria-label={'Exporter ' + etude.nom} title="Exporter en JSON">
+                            <Download size={14} />
+                          </span>
+                        </BoutonTelechargerRapport>
+                        <button
+                          onClick={function (e) { handleSupprimer(e, etude) }}
+                          aria-label={'Supprimer ' + etude.nom}
+                          className="text-steel-light transition hover:text-risk-critical"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )

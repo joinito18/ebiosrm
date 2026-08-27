@@ -324,6 +324,51 @@ app.MapGet("/api/v1/etudes/{id:guid}", async (Guid id, IEtudeRepository repo, Ca
     return etude is null ? Results.NotFound() : Results.Ok(etude);
 });
 
+// Export/sauvegarde complete d'une etude en JSON -- couvre le contenu editable
+// des 5 ateliers (pas les snapshots figes, deja des rapports PDF derives, pas
+// des donnees sources). Beneficie automatiquement du middleware de visibilite
+// des etudes (etudeId dans la route) : 404 si non visible, aucune restriction
+// d'ecriture puisque c'est une simple lecture.
+app.MapGet("/api/v1/etudes/{etudeId:guid}/export", async (
+    Guid etudeId,
+    IEtudeRepository etudeRepo,
+    IValeurMetierRepository valeurMetierRepo,
+    IBienSupportRepository bienSupportRepo,
+    IEvenementRedouteRepository evenementRedouteRepo,
+    ISocleSecuriteRepository socleRepo,
+    ICoupleSourceRisqueObjectifViseRepository coupleRepo,
+    IPartiePrenanteRepository partiePrenanteRepo,
+    IScenarioStrategiqueRepository scenarioStrategiqueRepo,
+    ICheminAttaqueRepository cheminAttaqueRepo,
+    IScenarioOperationnelRepository scenarioOperationnelRepo,
+    IScenarioDeRisqueRepository scenarioDeRisqueRepo,
+    IPlanTraitementRisqueRepository planTraitementRepo,
+    CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null) return Results.NotFound();
+
+    var export = new
+    {
+        formatVersion = 1,
+        exporteLeUtc = DateTime.UtcNow,
+        etude,
+        valeursMetier = await valeurMetierRepo.ListerParEtudeAsync(etudeId, ct),
+        biensSupport = await bienSupportRepo.ListerParEtudeAsync(etudeId, ct),
+        evenementsRedoutes = await evenementRedouteRepo.ListerParEtudeAsync(etudeId, ct),
+        socleSecurite = await socleRepo.ObtenirParEtudeAsync(etudeId, ct),
+        couplesSourceRisqueObjectifVise = await coupleRepo.ListerParEtudeAsync(etudeId, ct),
+        partiesPrenantes = await partiePrenanteRepo.ListerParEtudeAsync(etudeId, ct),
+        scenariosStrategiques = await scenarioStrategiqueRepo.ListerParEtudeAsync(etudeId, ct),
+        cheminsAttaque = await cheminAttaqueRepo.ListerParEtudeAsync(etudeId, ct),
+        scenariosOperationnels = await scenarioOperationnelRepo.ListerParEtudeAsync(etudeId, ct),
+        scenariosDeRisque = await scenarioDeRisqueRepo.ListerParEtudeAsync(etudeId, ct),
+        planTraitementRisque = await planTraitementRepo.ObtenirParEtudeAsync(etudeId, ct),
+    };
+
+    return Results.Ok(export);
+});
+
 app.MapGet("/api/v1/etudes", async (IEtudeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
     var utilisateurId = ObtenirUtilisateurId(principal);
