@@ -2156,5 +2156,7 @@ Suite à un état des lieux honnête demandé par l'utilisateur (« la méthodol
 
 **Vérification** : suite complète `dotnet test` (227/227, la crainte que les nombreuses inscriptions de test partagent un seul quota IP dans `WebApplicationFactory` ne s'est pas vérifiée), puis test réel contre le serveur local : 5 inscriptions consécutives à 201, 6e et 7e à 429, connexion sur un compte existant non affectée (401 normal, pas 429).
 
+**Bug de production trouvé immédiatement après déploiement, corrigé dans la foulée** : le rate limit ne se déclenchait jamais en ligne (6 inscriptions consécutives toutes à 201) alors qu'il fonctionnait en local. Cause : `ForwardedHeadersOptions.ForwardLimit` vaut `1` par défaut -- un seul maillon de la chaîne `X-Forwarded-For` est traité, ce qui résout un hop de proxy interne à Render (potentiellement instable d'une requête à l'autre) plutôt que l'IP publique réelle et stable du client, dès qu'il y a plusieurs proxys enchaînés avant le conteneur. Corrigé en mettant `ForwardLimit = null` (remonte toute la chaîne jusqu'au client). Reconfirmé en production après correction : 5 inscriptions à 201, comportement bloquant attendu à partir de la 6e.
+
 *Fin du contexte.*
 

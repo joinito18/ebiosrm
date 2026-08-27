@@ -60,6 +60,14 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Par defaut ForwardLimit vaut 1 : un seul maillon de la chaine
+    // X-Forwarded-For est traite, ce qui peut resoudre un hop de proxy
+    // interne a Render (potentiellement instable d'une requete a l'autre)
+    // plutot que l'IP publique reelle du client si plusieurs proxys
+    // s'enchainent avant d'atteindre le conteneur -- constate en prod, ou
+    // le rate limiter ne se declenchait jamais (contrairement au test local
+    // sans proxy). Illimite = on remonte toute la chaine jusqu'au client.
+    options.ForwardLimit = null;
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
