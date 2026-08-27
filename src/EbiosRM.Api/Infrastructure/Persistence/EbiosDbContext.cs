@@ -46,6 +46,8 @@ public class EbiosDbContext : DbContext
             entity.Property(e => e.StatutAtelier4).IsRequired().HasConversion<string>().HasMaxLength(50);
             entity.Property(e => e.StatutAtelier5).IsRequired().HasConversion<string>().HasMaxLength(50);
             entity.Property(e => e.CreeLeUtc).IsRequired();
+            entity.Property(e => e.ProprietaireId);
+            entity.HasIndex(e => e.ProprietaireId);
         });
 
         modelBuilder.Entity<ValeurMetier>(entity =>

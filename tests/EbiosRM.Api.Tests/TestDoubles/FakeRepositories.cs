@@ -24,6 +24,8 @@ public sealed class FakeEtudeRepository : IEtudeRepository
     public Task AjouterAsync(Etude etude, CancellationToken ct) { Etudes.Add(etude); return Task.CompletedTask; }
     public Task<Etude?> ObtenirParIdAsync(Guid id, CancellationToken ct) => Task.FromResult(Etudes.FirstOrDefault(e => e.Id == id));
     public Task<List<Etude>> ListerAsync(CancellationToken ct) => Task.FromResult(Etudes.ToList());
+    public Task<List<Etude>> ListerVisiblesAsync(Guid utilisateurId, CancellationToken ct) =>
+        Task.FromResult(Etudes.Where(e => e.ProprietaireId == null || e.ProprietaireId == utilisateurId).ToList());
     public Task MettreAJourAsync(Etude etude, CancellationToken ct) => Task.CompletedTask;
 }
 

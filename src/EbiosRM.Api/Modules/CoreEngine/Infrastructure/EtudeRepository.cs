@@ -29,6 +29,13 @@ public sealed class EtudeRepository : IEtudeRepository
         return await _db.Etudes.ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Etude>> ListerVisiblesAsync(Guid utilisateurId, CancellationToken cancellationToken)
+    {
+        return await _db.Etudes
+            .Where(e => e.ProprietaireId == null || e.ProprietaireId == utilisateurId)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task MettreAJourAsync(Etude etude, CancellationToken cancellationToken)
     {
         await _db.SaveChangesAsync(cancellationToken);

@@ -147,6 +147,53 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Isolation des etudes entre comptes : toute route commencant par
+// /api/v1/etudes/{id} (route "id" pour les 2 endpoints de premier niveau,
+// "etudeId" pour tous les endpoints imbriques d'atelier) passe par cette
+// verification centralisee plutot que de repeter le controle dans chacun
+// des 50+ handlers -- une omission dans un seul aurait laisse une fuite.
+// L'etude de demonstration publique (ProprietaireId null, cf. migration
+// AjoutProprietaireEtude) reste visible en lecture par tous mais non
+// modifiable/supprimable par personne (ProprietaireId null ne correspond
+// jamais a un utilisateur reel, donc la comparaison d'egalite echoue
+// naturellement pour tout le monde).
+app.Use(async (context, next) =>
+{
+    var routeValue = context.GetRouteValue("etudeId") ?? context.GetRouteValue("id");
+    if (routeValue is string idBrut && Guid.TryParse(idBrut, out var etudeId) && context.User.Identity?.IsAuthenticated == true)
+    {
+        var utilisateurId = ObtenirUtilisateurId(context.User);
+        if (utilisateurId is not null)
+        {
+            var repo = context.RequestServices.GetRequiredService<IEtudeRepository>();
+            var etude = await repo.ObtenirParIdAsync(etudeId, context.RequestAborted);
+            if (etude is not null)
+            {
+                var visiblePourMoi = etude.ProprietaireId is null || etude.ProprietaireId == utilisateurId;
+                if (!visiblePourMoi)
+                {
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                }
+                var estEcriture = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
+                if (estEcriture && etude.ProprietaireId is null)
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(new { error = "Cette etude de demonstration est en lecture seule -- creez votre propre etude pour la modifier." });
+                    return;
+                }
+            }
+        }
+    }
+    await next(context);
+});
+
+Guid? ObtenirUtilisateurId(System.Security.Claims.ClaimsPrincipal principal)
+{
+    var idClaim = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+    return Guid.TryParse(idClaim, out var id) ? id : null;
+}
+
 app.MapGet("/api/v1/health", async (EbiosDbContext db) =>
 {
     var databaseConnected = await db.Database.CanConnectAsync();
@@ -202,11 +249,16 @@ app.MapGet("/api/v1/auth/moi", async (
 
 // --- Etudes ---
 
-app.MapPost("/api/v1/etudes", async (CreerEtudeRequest request, IEtudeRepository repo, CancellationToken ct) =>
+app.MapPost("/api/v1/etudes", async (
+    CreerEtudeRequest request, IEtudeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
     try
     {
-        var etude = Etude.Creer(request.Nom, request.Perimetre, request.Mission);
+        // Toute etude nouvellement creee appartient a son createur (isolation
+        // entre comptes) -- seule l'etude de demonstration deja en base avant
+        // ce chantier reste publique (ProprietaireId null, cf. migration).
+        var proprietaireId = ObtenirUtilisateurId(principal);
+        var etude = Etude.Creer(request.Nom, request.Perimetre, request.Mission, proprietaireId);
         await repo.AjouterAsync(etude, ct);
         return Results.Created($"/api/v1/etudes/{etude.Id}", etude);
     }
@@ -218,13 +270,18 @@ app.MapPost("/api/v1/etudes", async (CreerEtudeRequest request, IEtudeRepository
 
 app.MapGet("/api/v1/etudes/{id:guid}", async (Guid id, IEtudeRepository repo, CancellationToken ct) =>
 {
+    // Visibilite deja verifiee par le middleware de visibilite des etudes --
+    // si on arrive ici, l'appelant a le droit de la voir.
     var etude = await repo.ObtenirParIdAsync(id, ct);
     return etude is null ? Results.NotFound() : Results.Ok(etude);
 });
 
-app.MapGet("/api/v1/etudes", async (IEtudeRepository repo, CancellationToken ct) =>
+app.MapGet("/api/v1/etudes", async (IEtudeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
-    var etudes = await repo.ListerAsync(ct);
+    var utilisateurId = ObtenirUtilisateurId(principal);
+    var etudes = utilisateurId is null
+        ? new List<Etude>()
+        : await repo.ListerVisiblesAsync(utilisateurId.Value, ct);
     return Results.Ok(etudes);
 });
 

@@ -21,9 +21,19 @@ public sealed class Etude
     public StatutEtude StatutAtelier5 { get; private set; }
     public DateTime CreeLeUtc { get; private set; }
 
+    /// <summary>
+    /// Proprietaire de l'etude. Null = etude de demonstration publique,
+    /// visible en lecture par tous les comptes mais non modifiable/supprimable
+    /// par personne (cf. middleware de visibilite dans Program.cs). Les etudes
+    /// existant avant l'introduction de cette colonne restent a null par la
+    /// migration (comportement historique "tout le monde voit tout" conserve
+    /// pour les donnees deja creees, isolation appliquee aux nouvelles).
+    /// </summary>
+    public Guid? ProprietaireId { get; private set; }
+
     private Etude() { }
 
-    public static Etude Creer(string nom, string perimetre, string mission)
+    public static Etude Creer(string nom, string perimetre, string mission, Guid? proprietaireId = null)
     {
         if (string.IsNullOrWhiteSpace(nom))
             throw new ArgumentException("Le nom de l'étude est obligatoire.", nameof(nom));
@@ -45,7 +55,8 @@ public sealed class Etude
             StatutAtelier3 = StatutEtude.Brouillon,
             StatutAtelier4 = StatutEtude.Brouillon,
             StatutAtelier5 = StatutEtude.Brouillon,
-            CreeLeUtc = DateTime.UtcNow
+            CreeLeUtc = DateTime.UtcNow,
+            ProprietaireId = proprietaireId
         };
     }
 
