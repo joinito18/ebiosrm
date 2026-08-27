@@ -93,6 +93,13 @@ export function estConnecte(): boolean {
 // ou erreur applicative. Les pages font toutes `err instanceof ApiError ?
 // err.message : ...` -- un throw non type leur ferait afficher un message
 // generique trompeur ("verifiez localhost").
+//
+// Reveil du backend (plan gratuit Render) : le conteneur se met en veille
+// apres ~15 min d'inactivite et met ~1 min a redemarrer. On absorbe ce delai
+// avec quelques reessais automatiques (erreur reseau ou 502/503/504) plutot
+// que de renvoyer une erreur a l'utilisateur des le premier appel a froid.
+var ATTENTES_REESSAI_MS = [3000, 12000, 20000]
+
 async function apiFetch(path: string, options?: RequestInit): Promise<any> {
   var headers: Record<string, string> = { 'Content-Type': 'application/json' }
   var token = obtenirToken()
@@ -100,41 +107,53 @@ async function apiFetch(path: string, options?: RequestInit): Promise<any> {
     headers['Authorization'] = 'Bearer ' + token
   }
 
-  var response: Response
-  try {
-    response = await fetch(API_BASE + path, { headers, ...options })
-  } catch (e) {
-    throw new ApiError(0, 'Impossible de joindre le serveur. Il est peut-etre en veille (redemarrage ~1 min) -- reessayez dans un instant.')
-  }
+  for (var tentative = 0; ; tentative++) {
+    var estDerniereTentative = tentative >= ATTENTES_REESSAI_MS.length
 
-  if (response.status === 401) {
-    effacerToken()
-  }
-
-  if (response.status === 404) {
-    return null
-  }
-
-  var text = await response.text()
-  var body: any = null
-  if (text) {
+    var response: Response
     try {
-      body = JSON.parse(text)
+      response = await fetch(API_BASE + path, { headers, ...options })
     } catch (e) {
-      // Corps non-JSON : typiquement une page d'erreur HTML de l'hebergeur
-      // quand le backend est indisponible ou en train de demarrer.
-      if (!response.ok) {
-        throw new ApiError(response.status, messageIndisponibilite(response.status))
+      if (!estDerniereTentative) {
+        await attendre(ATTENTES_REESSAI_MS[tentative])
+        continue
+      }
+      throw new ApiError(0, 'Impossible de joindre le serveur. Il est peut-etre en veille (redemarrage ~1 min) -- reessayez dans un instant.')
+    }
+
+    if (response.status === 401) effacerToken()
+    if (response.status === 404) return null
+
+    if ((response.status === 502 || response.status === 503 || response.status === 504) && !estDerniereTentative) {
+      await attendre(ATTENTES_REESSAI_MS[tentative])
+      continue
+    }
+
+    var text = await response.text()
+    var body: any = null
+    if (text) {
+      try {
+        body = JSON.parse(text)
+      } catch (e) {
+        // Corps non-JSON : typiquement une page d'erreur HTML de l'hebergeur
+        // quand le backend est indisponible ou en train de demarrer.
+        if (!response.ok) {
+          throw new ApiError(response.status, messageIndisponibilite(response.status))
+        }
       }
     }
-  }
 
-  if (!response.ok) {
-    var message = body && body.error ? body.error : messageIndisponibilite(response.status)
-    throw new ApiError(response.status, message)
-  }
+    if (!response.ok) {
+      var message = body && body.error ? body.error : messageIndisponibilite(response.status)
+      throw new ApiError(response.status, message)
+    }
 
-  return body
+    return body
+  }
+}
+
+function attendre(ms: number): Promise<void> {
+  return new Promise(function (resolve) { setTimeout(resolve, ms) })
 }
 
 function messageIndisponibilite(status: number): string {

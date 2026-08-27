@@ -1,0 +1,31 @@
+name: Keep-alive backend
+
+# Le backend tourne sur le plan gratuit de Render : le conteneur se met en
+# veille apres ~15 min sans requete et met ~1 min a redemarrer. Ce ping
+# regulier de /health le garde eveille (et reveille aussi Neon au passage,
+# puisque le health check teste la connexion a la base). Depot public =>
+# minutes GitHub Actions gratuites et illimitees.
+#
+# Uniquement 06h-22h UTC (07h-23h heure d'Afrique de l'Ouest) : garder le
+# service eveille 24/7 consommerait ~720 h/mois, soit quasiment tout le quota
+# gratuit Render (750 h/mois). Se limiter aux heures ou quelqu'un peut
+# reellement l'utiliser laisse une marge confortable (~510 h/mois).
+
+on:
+  schedule:
+    - cron: '*/10 6-22 * * *'
+  workflow_dispatch: {}
+
+# Un seul ping a la fois ; on abandonne un run encore en cours si le suivant demarre.
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health
+        run: |
+          curl -fsS --retry 5 --retry-all-errors --retry-delay 15 --max-time 90 \
+            https://ebiosrm-api.onrender.com/api/v1/health
