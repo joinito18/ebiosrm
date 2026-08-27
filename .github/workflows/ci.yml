@@ -190,3 +190,31 @@ jobs:
         run: |
           echo "--- backend ---"; cat /tmp/backend.log || true
           echo "--- frontend ---"; cat /tmp/frontend.log || true
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    # Le frontend (Vercel) se redeploie automatiquement sur chaque push --
+    # le backend (Render, service Docker/GHCR) ne le faisait pas, un simple
+    # `git push` ne suffisait donc jamais a mettre l'API en ligne a jour
+    # (constate en conditions reelles : plusieurs chantiers de cette session
+    # invisibles en production malgre des push verts). Ce job ferme l'ecart :
+    # reconstruit l'image seulement si backend/frontend/e2e sont tous verts,
+    # la pousse sur GHCR, puis declenche le redeploiement Render via son
+    # Deploy Hook.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Connexion a GHCR
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Construire l'image Docker
+        run: docker build -t ghcr.io/joinito18/ebiosrm-api:latest -f src/EbiosRM.Api/Dockerfile src/EbiosRM.Api
+
+      - name: Pousser l'image sur GHCR
+        run: docker push ghcr.io/joinito18/ebiosrm-api:latest
+
+      - name: Declencher le redeploiement Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
