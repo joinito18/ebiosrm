@@ -144,22 +144,30 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             });
                             if (socle.ParTheme.Count > 0)
                             {
+                                // Un radar a moins de 3 axes degenere en point ou en segment (aucune
+                                // aire ne peut se former) -- on ne l'affiche que si au moins 3 themes
+                                // sont representes, sinon la seule barre de conformite occupe la ligne.
+                                var afficherRadar = socle.ParTheme.Count >= 3;
                                 c.Item().PaddingTop(14).ShowEntire().Row(row =>
                                 {
+                                    row.Spacing(24);
                                     row.RelativeItem().Column(cc =>
                                     {
                                         cc.Item().AlignCenter().Text("Taux de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                        cc.Item().PaddingTop(4).Svg(GraphiqueBarres(
+                                        cc.Item().PaddingTop(4).Height(160).AlignMiddle().Svg(GraphiqueBarres(
                                             socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct, BleuFrance)).ToList(),
-                                            100, "%")).FitWidth();
+                                            100, "%")).FitArea();
                                     });
-                                    row.RelativeItem().Column(cc =>
+                                    if (afficherRadar)
                                     {
-                                        cc.Item().AlignCenter().Text("Cartographie de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                        cc.Item().PaddingTop(4).Svg(GraphiqueRadar(
-                                            socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct)).ToList(),
-                                            BleuFrance)).FitWidth();
-                                    });
+                                        row.RelativeItem().Column(cc =>
+                                        {
+                                            cc.Item().AlignCenter().Text("Cartographie de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                            cc.Item().PaddingTop(4).Height(160).AlignMiddle().Svg(GraphiqueRadar(
+                                                socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct)).ToList(),
+                                                BleuFrance)).FitArea();
+                                        });
+                                    }
                                 });
                                 c.Item().PaddingTop(10).ShowEntire().Column(cc =>
                                 {

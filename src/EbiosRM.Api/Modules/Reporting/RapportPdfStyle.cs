@@ -164,25 +164,34 @@ public static class RapportPdfStyle
     /// Graphique en barres verticales (ex: taux de conformite par theme).
     /// echelleMax fixe la hauteur representant 100% de la barre -- passer 100
     /// pour des pourcentages, ou le plus grand effectif pour des comptages.
+    /// Une piste de fond (grise, pleine hauteur) est toujours dessinee sous
+    /// chaque barre : sans elle, une valeur a 0% ne laisse plus rien de
+    /// visible a l'ecran (deja arrive avec un seul axe de traitement encore
+    /// "a lancer") et le graphique a l'air casse plutot que de montrer un 0.
+    /// Une marge haute dediee evite aussi que l'etiquette d'une barre a 100%
+    /// soit rognee contre le bord superieur du SVG.
     /// </summary>
     public static string GraphiqueBarres(List<(string Label, double Valeur, string Couleur)> barres, double echelleMax, string suffixeValeur)
     {
-        const double largeurTotale = 340, hauteurTotale = 150, hauteurZone = 100, largeurBarre = 46;
+        const double largeurTotale = 340, margeHaut = 20, hauteurZone = 100, margeBas = 34, largeurBarre = 46;
+        const double hauteurTotale = margeHaut + hauteurZone + margeBas;
         var n = barres.Count;
         var espacement = n == 0 ? 0 : (largeurTotale - n * largeurBarre) / (n + 1);
         var sb = new StringBuilder();
         sb.Append(FormattableString.Invariant($"<svg viewBox=\"0 0 {largeurTotale} {hauteurTotale}\" xmlns=\"http://www.w3.org/2000/svg\">"));
-        sb.Append(FormattableString.Invariant($"<line x1=\"0\" y1=\"{hauteurZone}\" x2=\"{largeurTotale}\" y2=\"{hauteurZone}\" stroke=\"{GrisLigne}\" stroke-width=\"1\" />"));
+        sb.Append(FormattableString.Invariant($"<line x1=\"0\" y1=\"{margeHaut + hauteurZone}\" x2=\"{largeurTotale}\" y2=\"{margeHaut + hauteurZone}\" stroke=\"{GrisLigne}\" stroke-width=\"1\" />"));
         for (var i = 0; i < n; i++)
         {
             var (label, valeur, couleur) = barres[i];
             var x = espacement + i * (largeurBarre + espacement);
             var fraction = echelleMax <= 0 ? 0 : Math.Clamp(valeur / echelleMax, 0, 1);
             var hauteurBarre = fraction * hauteurZone;
-            var y = hauteurZone - hauteurBarre;
-            sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{y:F1}\" width=\"{largeurBarre}\" height=\"{hauteurBarre:F1}\" fill=\"{couleur}\" rx=\"2\" />"));
-            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{Math.Max(y - 5, 10):F1}\" text-anchor=\"middle\" font-size=\"11\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"{Encre}\">{valeur.ToString("F0", CultureInfo.InvariantCulture)}{suffixeValeur}</text>"));
-            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{hauteurZone + 16:F1}\" text-anchor=\"middle\" font-size=\"8.5\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(label)}</text>"));
+            var y = margeHaut + hauteurZone - hauteurBarre;
+            sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{margeHaut:F1}\" width=\"{largeurBarre}\" height=\"{hauteurZone}\" fill=\"#F2F2F2\" rx=\"2\" />"));
+            if (hauteurBarre > 0)
+                sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{y:F1}\" width=\"{largeurBarre}\" height=\"{hauteurBarre:F1}\" fill=\"{couleur}\" rx=\"2\" />"));
+            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{Math.Max(y - 6, margeHaut - 6):F1}\" text-anchor=\"middle\" font-size=\"11\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"{Encre}\">{valeur.ToString("F0", CultureInfo.InvariantCulture)}{suffixeValeur}</text>"));
+            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{margeHaut + hauteurZone + 16:F1}\" text-anchor=\"middle\" font-size=\"8.5\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(label)}</text>"));
         }
         sb.Append("</svg>");
         return sb.ToString();
