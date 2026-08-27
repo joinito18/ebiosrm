@@ -30,7 +30,7 @@ export default function Etudes() {
         setErreurListe('')
       })
       .catch(function (err) {
-        var message = err instanceof ApiError ? err.message : 'Impossible de contacter l API. Verifiez que le backend tourne sur localhost:5197.'
+        var message = err instanceof ApiError ? err.message : 'Impossible de charger les etudes. Reessayez dans un instant.'
         setErreurListe(message)
       })
       .finally(function () { setChargement(false) })
@@ -54,7 +54,7 @@ export default function Etudes() {
         navigate('/etudes/' + etude.id)
       })
       .catch(function (err) {
-        var message = err instanceof ApiError ? err.message : 'Impossible de creer l etude. Verifiez que le backend tourne sur localhost:5197.'
+        var message = err instanceof ApiError ? err.message : 'Impossible de creer l etude. Reessayez dans un instant.'
         setErreurCreation(message)
       })
       .finally(function () { setCreationEnCours(false) })

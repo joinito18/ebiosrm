@@ -88,6 +88,11 @@ export function estConnecte(): boolean {
   return obtenirToken() !== null
 }
 
+// Toute defaillance ressort en ApiError typee : reseau injoignable, reponse
+// non-JSON (page d'erreur d'un proxy, backend Render en cours de reveil...),
+// ou erreur applicative. Les pages font toutes `err instanceof ApiError ?
+// err.message : ...` -- un throw non type leur ferait afficher un message
+// generique trompeur ("verifiez localhost").
 async function apiFetch(path: string, options?: RequestInit): Promise<any> {
   var headers: Record<string, string> = { 'Content-Type': 'application/json' }
   var token = obtenirToken()
@@ -95,10 +100,12 @@ async function apiFetch(path: string, options?: RequestInit): Promise<any> {
     headers['Authorization'] = 'Bearer ' + token
   }
 
-  var response = await fetch(API_BASE + path, {
-    headers,
-    ...options,
-  })
+  var response: Response
+  try {
+    response = await fetch(API_BASE + path, { headers, ...options })
+  } catch (e) {
+    throw new ApiError(0, 'Impossible de joindre le serveur. Il est peut-etre en veille (redemarrage ~1 min) -- reessayez dans un instant.')
+  }
 
   if (response.status === 401) {
     effacerToken()
@@ -108,18 +115,33 @@ async function apiFetch(path: string, options?: RequestInit): Promise<any> {
     return null
   }
 
-  var body = null
   var text = await response.text()
+  var body: any = null
   if (text) {
-    body = JSON.parse(text)
+    try {
+      body = JSON.parse(text)
+    } catch (e) {
+      // Corps non-JSON : typiquement une page d'erreur HTML de l'hebergeur
+      // quand le backend est indisponible ou en train de demarrer.
+      if (!response.ok) {
+        throw new ApiError(response.status, messageIndisponibilite(response.status))
+      }
+    }
   }
 
   if (!response.ok) {
-    var message = body && body.error ? body.error : 'Erreur API (' + response.status + ')'
+    var message = body && body.error ? body.error : messageIndisponibilite(response.status)
     throw new ApiError(response.status, message)
   }
 
   return body
+}
+
+function messageIndisponibilite(status: number): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return 'Le serveur est momentanement indisponible (il redemarre peut-etre). Reessayez dans une minute.'
+  }
+  return 'Erreur serveur (' + status + '). Reessayez dans un instant.'
 }
 
 export function inscription(email: string, motDePasse: string, nomAffiche: string): Promise<{ token: string; utilisateur: Utilisateur }> {

@@ -25,6 +25,9 @@ packages/
 .env
 .env.*
 !.env.example
+# Config de build publique (URL de l'API en prod, aucun secret) -- doit etre
+# versionnee sinon le build Vercel retombe sur le fallback localhost.
+!frontend/.env.production
 
 # Development configuration containing local secrets
 **/appsettings.Development.json
