@@ -2145,5 +2145,7 @@ Suite à un état des lieux honnête demandé par l'utilisateur (« la méthodol
 
 **Vérification** : migration appliquée aux deux bases locales (`ebiosrm` dev et `ebiosrm_test` -- la seconde avait été oubliée au premier passage, causant 7 échecs de test avant correction), suite complète `dotnet test` (227/227), puis test fonctionnel réel avec deux comptes distincts créés à la volée : étude privée du compte A invisible dans la liste du compte B, 404 sur accès direct et sur suppression par B, 200 pour A sur sa propre étude ; étude publique (Atlas Assurances Santé) confirmée en 200 sur GET et 403 avec message explicite sur DELETE, peu importe le compte.
 
+**Incident de déploiement causé par ce chantier, corrigé dans la foulée** : le pipeline `deploy-backend` (section précédente) reconstruit et redéploie l'image, mais n'appliquait aucune migration à la base de production -- le push de ce chantier (qui ajoute une colonne) a donc cassé la prod (500 sur `GET /api/v1/etudes`) dès que le nouveau code a tourné contre l'ancien schéma Neon, pendant ~18 minutes avant d'être remarqué. Corrigé en urgence par une migration manuelle (`dotnet ef database update` avec la chaîne de connexion Neon récupérée depuis Render -> Environment -> `ConnectionStrings__EbiosDb`), puis fixé durablement en ajoutant une étape "Appliquer les migrations en production" dans `deploy-backend`, **avant** la reconstruction/redéploiement de l'image -- nouveau secret de dépôt `PROD_DB_CONNECTION_STRING`.
+
 *Fin du contexte.*
 

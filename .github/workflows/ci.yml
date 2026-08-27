@@ -207,6 +207,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # Applique les migrations en attente a la base de production AVANT de
+      # deployer le nouveau code -- sans cette etape, un commit qui change le
+      # schema (ex. AjoutProprietaireEtude) casse la prod des que le nouveau
+      # code tourne contre l'ancien schema (deja arrive : 500 sur /etudes
+      # jusqu'a une migration manuelle en urgence). PROD_DB_CONNECTION_STRING
+      # est la chaine Npgsql telle qu'affichee dans Render -> Environment ->
+      # ConnectionStrings__EbiosDb.
+      - name: Appliquer les migrations en production
+        run: |
+          dotnet tool install --global dotnet-ef --version 8.0.10
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          dotnet ef database update --project src/EbiosRM.Api/EbiosRM.Api.csproj --connection "${{ secrets.PROD_DB_CONNECTION_STRING }}"
+
       - name: Connexion a GHCR
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
