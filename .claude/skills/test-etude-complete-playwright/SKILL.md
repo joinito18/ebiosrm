@@ -7,6 +7,8 @@ description: Fait passer une etude complete par les 5 ateliers EBIOS RM via de v
 
 Plusieurs bugs de ce projet (select qui ne se pre-selectionne jamais, texte qui se concatene avec une suggestion, section rendue au mauvais endroit) n'etaient visibles qu'en interaction navigateur reelle -- l'API repondait 200 dans tous les cas, `dotnet build`/`npx tsc` passaient, et pourtant l'ecran etait casse. Ne jamais declarer un correctif frontend termine sans ce genre de verification.
 
+**Ce script tourne aussi automatiquement en CI** (job `e2e` dans `.github/workflows/ci.yml`, apres `backend`/`frontend`) depuis qu'une regression reelle (telechargements de rapport casses par le chantier d'auth) n'avait ete detectee par aucun test unitaire. La CI demarre le backend compile et le serveur de dev Vite sur les ports standard (5197/5174) contre un Postgres de service nomme comme `appsettings.Development.json`, attend leur disponibilite via `/api/v1/health`, puis rejoue ce meme script. Relancer le job localement avec les etapes ci-dessous reste utile pour deboguer un echec CI sans attendre un run distant.
+
 ## Demarrer l'environnement
 
 - **Backend** : `ASPNETCORE_ENVIRONMENT=Development` doit etre positionne (sinon la connection string n'est pas chargee -- erreur "ConnectionString property has not been initialized"). Lancer en arriere-plan avec `setsid` pour survivre a la fin de la commande shell :
