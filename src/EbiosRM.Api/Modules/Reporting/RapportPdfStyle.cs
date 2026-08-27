@@ -161,6 +161,52 @@ public static class RapportPdfStyle
     }
 
     /// <summary>
+    /// Vrai camembert (secteurs pleins depuis le centre), a la difference de
+    /// l'anneau de <see cref="AnneauMultiSegments"/> -- plus lisible en un
+    /// coup d'oeil pour une Direction que des arcs fins. Un segment qui
+    /// totalise a lui seul 100% est trace en cercle plein directement : un
+    /// arc SVG ne peut pas dessiner un tour complet (360deg) en un seul
+    /// trace M-L-A-Z, le point de depart et d'arrivee seraient confondus.
+    /// </summary>
+    public static string Camembert(List<(double Part, string Couleur)> segments)
+    {
+        const double rayon = 55, centre = 60;
+        var total = segments.Sum(s => s.Part);
+        var sb = new StringBuilder();
+        sb.Append("<svg viewBox=\"0 0 120 120\" xmlns=\"http://www.w3.org/2000/svg\">");
+
+        if (total <= 0)
+        {
+            sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"#EDEDED\" />"));
+        }
+        else
+        {
+            var angle = -Math.PI / 2;
+            foreach (var (part, couleur) in segments)
+            {
+                if (part <= 0) continue;
+                var fraction = part / total;
+                if (fraction >= 0.9999)
+                {
+                    sb.Append(FormattableString.Invariant($"<circle cx=\"{centre}\" cy=\"{centre}\" r=\"{rayon}\" fill=\"{couleur}\" />"));
+                    continue;
+                }
+                var angleFin = angle + fraction * 2 * Math.PI;
+                var x1 = centre + rayon * Math.Cos(angle);
+                var y1 = centre + rayon * Math.Sin(angle);
+                var x2 = centre + rayon * Math.Cos(angleFin);
+                var y2 = centre + rayon * Math.Sin(angleFin);
+                var grandArc = angleFin - angle > Math.PI ? 1 : 0;
+                sb.Append(FormattableString.Invariant($"<path d=\"M{centre},{centre} L{x1:F2},{y1:F2} A{rayon},{rayon} 0 {grandArc} 1 {x2:F2},{y2:F2} Z\" fill=\"{couleur}\" stroke=\"white\" stroke-width=\"1.2\" />"));
+                angle = angleFin;
+            }
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Graphique en barres verticales (ex: taux de conformite par theme).
     /// echelleMax fixe la hauteur representant 100% de la barre -- passer 100
     /// pour des pourcentages, ou le plus grand effectif pour des comptages.
@@ -276,7 +322,7 @@ public static class RapportPdfStyle
     /// correspondant a ses coordonnees reelles -- pas un graphique generique,
     /// la representation exacte que la methode recommande.
     /// </summary>
-    public static void GrilleCartographie(IContainer container, string titre, List<(ScenarioDeRisqueData Scenario, string Code)> codes, Func<ScenarioDeRisqueData, int> graviteFn, Func<ScenarioDeRisqueData, int> vraisemblanceIndexFn)
+    public static void GrilleCartographie(IContainer container, string titre, List<(ScenarioDeRisqueData Scenario, string Code)> codes, Func<ScenarioDeRisqueData, int> graviteFn, Func<ScenarioDeRisqueData, int> vraisemblanceIndexFn, float tailleCase = 34)
     {
         container.Column(col =>
         {
@@ -287,7 +333,7 @@ public static class RapportPdfStyle
                 {
                     cc.Item().Height(16);
                     for (var gravite = 4; gravite >= 1; gravite--)
-                        cc.Item().Height(34).AlignMiddle().AlignCenter().Text(gravite.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
+                        cc.Item().Height(tailleCase).AlignMiddle().AlignCenter().Text(gravite.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
                 });
                 row.AutoItem().Column(cc =>
                 {
@@ -302,7 +348,7 @@ public static class RapportPdfStyle
                                 var v = vrai;
                                 var niveau = MatriceNiveaux[g - 1][v - 1];
                                 var codesCellule = codes.Where(x => graviteFn(x.Scenario) == g && vraisemblanceIndexFn(x.Scenario) == v).Select(x => x.Code).ToList();
-                                ligne.ConstantItem(34).Height(34).Border(0.7f).BorderColor(Colors.White).Background(CouleurNiveau(niveau))
+                                ligne.ConstantItem(tailleCase).Height(tailleCase).Border(0.7f).BorderColor(Colors.White).Background(CouleurNiveau(niveau))
                                     .AlignMiddle().AlignCenter().Text(string.Join(" ", codesCellule)).FontFamily(SansSemiBold).FontSize(6.5f).FontColor(Colors.White);
                             }
                         });
@@ -310,7 +356,7 @@ public static class RapportPdfStyle
                     cc.Item().Row(ligne =>
                     {
                         for (var vrai = 1; vrai <= 4; vrai++)
-                            ligne.ConstantItem(34).AlignCenter().PaddingTop(2).Text(vrai.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
+                            ligne.ConstantItem(tailleCase).AlignCenter().PaddingTop(2).Text(vrai.ToString()).FontFamily(MonoMedium).FontSize(7).FontColor(BleuFrance);
                     });
                     cc.Item().AlignCenter().Text("VRAISEMBLANCE").FontFamily(MonoMedium).FontSize(6).FontColor(BleuFrance).LetterSpacing(0.03f);
                 });
@@ -318,18 +364,18 @@ public static class RapportPdfStyle
         });
     }
 
-    /// <summary>Les 2 grilles (initial/residuel) reliees par une fleche, plus la legende des codes -- bloc complet reutilise par le rapport Atelier 5 et la synthese globale.</summary>
-    public static void CartographieCompleteAvecLegende(ColumnDescriptor c, List<ScenarioDeRisqueData> scenarios)
+    /// <summary>Les 2 grilles (initial/residuel) reliees par une fleche, plus la legende des codes -- bloc complet reutilise par le rapport Atelier 5 et la synthese globale. tailleCase permet a la synthese d'afficher une grille plus imposante sans affecter le rapport Atelier 5.</summary>
+    public static void CartographieCompleteAvecLegende(ColumnDescriptor c, List<ScenarioDeRisqueData> scenarios, float tailleCase = 34)
     {
         var codes = scenarios.Select((s, i) => (Scenario: s, Code: "R" + (i + 1))).ToList();
 
         c.Item().PaddingTop(8).ShowEntire().Row(row =>
         {
             row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque initial", codes,
-                x => x.Gravite, x => VraisemblanceVersIndex(x.VraisemblanceInitiale)));
+                x => x.Gravite, x => VraisemblanceVersIndex(x.VraisemblanceInitiale), tailleCase));
             row.ConstantItem(36).AlignMiddle().AlignCenter().Text("->").FontFamily(SerifTitreSemiBold).FontSize(20).FontColor(BleuFrance);
             row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque residuel", codes,
-                x => x.GraviteResiduelle ?? 0, x => VraisemblanceVersIndex(x.VraisemblanceResiduelle)));
+                x => x.GraviteResiduelle ?? 0, x => VraisemblanceVersIndex(x.VraisemblanceResiduelle), tailleCase));
         });
 
         c.Item().PaddingTop(10).Column(cc =>

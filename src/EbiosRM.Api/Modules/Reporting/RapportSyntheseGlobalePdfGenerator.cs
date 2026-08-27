@@ -126,17 +126,19 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             var pctConforme = 100.0 * socle.NombreConforme / totalControles;
                             c.Item().PaddingTop(6).ShowEntire().Row(row =>
                             {
-                                row.ConstantItem(100).Height(100).Svg(AnneauMultiSegments(
+                                row.ConstantItem(140).Height(140).Svg(Camembert(
                                     new List<(double, string)>
                                     {
                                         (socle.NombreConforme, VertConforme),
                                         (socle.NombreNonConforme, RougeAlerte),
                                         (socle.NombreNonApplicable, GrisLigne),
-                                    },
-                                    pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
-                                row.RelativeItem().PaddingLeft(16).Column(cc =>
+                                    })).FitWidth();
+                                row.RelativeItem().PaddingLeft(20).AlignMiddle().Column(cc =>
                                 {
-                                    cc.Item().Row(r => Legende(r, VertConforme, socle.NombreConforme + " conforme(s)"));
+                                    // Le camembert n'a pas de trou central pour un chiffre --
+                                    // le taux global est affiche en tete de la legende a la place.
+                                    cc.Item().Text(pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "% conforme").FontFamily(SerifTitreSemiBold).FontSize(18).FontColor(BleuFrance);
+                                    cc.Item().PaddingTop(6).Row(r => Legende(r, VertConforme, socle.NombreConforme + " conforme(s)"));
                                     cc.Item().PaddingTop(3).Row(r => Legende(r, RougeAlerte, socle.NombreNonConforme + " non conforme(s)"));
                                     cc.Item().PaddingTop(3).Row(r => Legende(r, GrisLigne, socle.NombreNonApplicable + " non applicable(s)"));
                                     cc.Item().PaddingTop(3).Text(totalControles + " controle(s) evalue(s) au total.").FontSize(7.5f).FontColor(GrisTexte);
@@ -154,7 +156,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                     row.RelativeItem().Column(cc =>
                                     {
                                         cc.Item().AlignCenter().Text("Taux de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                        cc.Item().PaddingTop(4).Height(160).AlignMiddle().Svg(GraphiqueBarres(
+                                        cc.Item().PaddingTop(4).Height(210).AlignMiddle().Svg(GraphiqueBarres(
                                             socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct, BleuFrance)).ToList(),
                                             100, "%")).FitArea();
                                     });
@@ -163,7 +165,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                         row.RelativeItem().Column(cc =>
                                         {
                                             cc.Item().AlignCenter().Text("Cartographie de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                            cc.Item().PaddingTop(4).Height(160).AlignMiddle().Svg(GraphiqueRadar(
+                                            cc.Item().PaddingTop(4).Height(210).AlignMiddle().Svg(GraphiqueRadar(
                                                 socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct)).ToList(),
                                                 BleuFrance)).FitArea();
                                         });
@@ -172,7 +174,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                 c.Item().PaddingTop(10).ShowEntire().Column(cc =>
                                 {
                                     cc.Item().AlignCenter().Text("Repartition des controles par etat").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(220).Svg(GraphiqueBarres(
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(300).Svg(GraphiqueBarres(
                                         new List<(string, double, string)>
                                         {
                                             ("Conforme", socle.NombreConforme, VertConforme),
@@ -240,7 +242,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                         }
                         else
                         {
-                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque);
+                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque, tailleCase: 42);
 
                             c.Item().PaddingTop(10).Table(table =>
                             {
@@ -296,7 +298,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             var pctTermine = 100.0 * termine / data.Mesures.Count;
                             c.Item().PaddingTop(6).ShowEntire().Row(row =>
                             {
-                                row.ConstantItem(90).Height(90).Svg(AnneauSimple(pctTermine, VertConforme, pctTermine.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
+                                row.ConstantItem(120).Height(120).Svg(AnneauSimple(pctTermine, VertConforme, pctTermine.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
                                 row.RelativeItem().PaddingLeft(16).AlignMiddle().Row(rr =>
                                 {
                                     foreach (var statut in new[] { "ALancer", "EnCours", "Termine" })
@@ -319,7 +321,7 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                 c.Item().PaddingTop(14).ShowEntire().Column(cc =>
                                 {
                                     cc.Item().AlignCenter().Text("Avancement du plan par axe de traitement").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(280).Svg(GraphiqueBarres(
+                                    cc.Item().PaddingTop(4).AlignCenter().Width(380).Svg(GraphiqueBarres(
                                         parAxe.Select(a => (a.Axe + " (" + a.Total + ")", a.Pct, VertConforme)).ToList(),
                                         100, "%")).FitWidth();
                                 });
