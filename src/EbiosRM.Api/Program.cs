@@ -244,12 +244,19 @@ app.UseRateLimiter();
 // statiques et fait tomber toute route non-API sur index.html (routage React).
 // Ignore si wwwroot/index.html est absent -> API hebergee et conteneur "api"
 // (dont le frontend est servi par nginx) inchanges.
-var indexHtml = Path.Combine(app.Environment.WebRootPath ?? "", "index.html");
+//
+// On resout wwwroot depuis AppContext.BaseDirectory (dossier de l'exe), PAS
+// depuis app.Environment.WebRootPath : lance depuis le menu des applications,
+// le repertoire courant est le HOME de l'utilisateur, WebRootPath pointerait
+// alors sur ~/wwwroot (inexistant) et toute l'appli renverrait 401.
+var dossierWwwroot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+var indexHtml = Path.Combine(dossierWwwroot, "index.html");
 var frontendEmbarque = File.Exists(indexHtml);
 if (frontendEmbarque)
 {
-    app.UseDefaultFiles();
-    app.UseStaticFiles();
+    var fichiersWwwroot = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(dossierWwwroot);
+    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = fichiersWwwroot });
+    app.UseStaticFiles(new StaticFileOptions { FileProvider = fichiersWwwroot });
 }
 
 app.UseAuthentication();
@@ -2330,7 +2337,7 @@ if (execution.ModeBureau && app.Configuration.GetValue("App:OuvrirNavigateur", t
     {
         var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
         Console.WriteLine($"\nEBIOS RM est demarre. Ouvrez {url} si le navigateur ne s'ouvre pas.\n");
-        LanceurNavigateur.Ouvrir(url);
+        LanceurNavigateur.Ouvrir(url, execution.DossierDonnees);
     });
 }
 

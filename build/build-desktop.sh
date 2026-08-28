@@ -24,21 +24,20 @@ rm -rf "$API/wwwroot"
 mkdir -p "$API/wwwroot"
 cp -r dist/* "$API/wwwroot/"
 
-echo "==> Publication backend ($RID, autonome, fichier unique)"
+# Autonome (aucun .NET requis) mais PAS fichier unique : un exe fichier unique
+# se ré-extrait à chaque premier lancement (~15 s sans retour visible depuis le
+# menu -> "rien ne se passe"). Un dossier de fichiers démarre instantanément.
+echo "==> Publication backend ($RID, autonome)"
 rm -rf "$SORTIE"
 dotnet publish "$API/EbiosRM.Api.csproj" \
   -c Release -r "$RID" --self-contained \
-  -p:PublishSingleFile=true \
-  -p:IncludeNativeLibrariesForSelfExtract=true \
-  -p:EnableCompressionInSingleFile=true \
   -p:DebugType=none \
   -o "$SORTIE"
 
 # appsettings.Development.json n'a rien à faire dans une distribution.
 rm -f "$SORTIE/appsettings.Development.json" "$SORTIE/web.config"
 
-# Renomme l'exécutable hôte en "EbiosRM" (sans incidence : le nom de l'exe
-# est indépendant du nom de l'assembly pour une publication fichier unique).
+# Renomme l'exécutable hôte en "EbiosRM" (l'apphost, indépendant du nom d'assembly).
 if [[ "$RID" == win-* ]]; then
   mv "$SORTIE/EbiosRM.Api.exe" "$SORTIE/EbiosRM.exe"
 else
