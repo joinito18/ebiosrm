@@ -42,3 +42,7 @@ coverage/
 
 # Cache téléchargée par docs/architecture/uml-source/regenerate-pdfs.sh
 docs/architecture/uml-source/mermaid.min.js
+
+# Artefacts de build de l application de bureau
+build/output/
+installer/output/

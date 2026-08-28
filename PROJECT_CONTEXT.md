@@ -2192,5 +2192,38 @@ Le **Root Directory** du projet Vercel doit être mis à `frontend` (Settings ->
 - **`README.md`** créé (n'existait pas) : installation autonome Docker, environnement de dev, tests, sauvegarde/restauration pg_dump, accès réseau.
 - **Vérifié** : les 3 images buildent ; `up` OK ; auto-migration sur base vierge = 32 migrations appliquées + schéma `core_engine` complet ; parcours end-to-end via nginx (inscription -> JWT -> `POST /etudes` 201 -> `GET /etudes`) ; SPA + deep link `/etudes` = 200 ; bundle servi -> `/api/v1` relatif. `dotnet build` + `npm run build` + `vitest` (25/25) verts.
 
+## Mise à jour — Application de bureau installable (branche `feat/application-bureau`, NON mergée)
+
+**Demande** : « je veux que l'installation puisse être simple comme un simple .exe ». Un seul fichier à double-cliquer, sans Docker ni runtime à installer.
+
+### Architecture retenue : un seul binaire, décision par convention
+Le **même** `Program.cs` sert les 3 modes ; `Infrastructure/Hebergement/ConfigurationExecution.Determiner()` tranche :
+- `ConnectionStrings:EbiosDb` renseigné → **mode serveur PostgreSQL** (hébergé, docker selfhost). Inchangé.
+- `Database:Provider=Sqlite` explicite → mode serveur SQLite (pas d'ouverture de navigateur).
+- **rien de configuré** → **mode bureau** : SQLite dans le dossier de données local de l'OS (`%LOCALAPPDATA%\EbiosRM` / `~/.local/share/EbiosRM` / `~/Library/Application Support/EbiosRM`), secret JWT auto-généré et persisté (`jwt.key`), port fixe `http://localhost:5000`, **ouverture du navigateur** au démarrage (`App:OuvrirNavigateur=false` pour désactiver).
+
+Les tests d'intégration (`EbiosApiFactory` fournit une chaîne Postgres) et les 2 déploiements Docker restent en mode serveur PostgreSQL : **zéro impact**, 227 tests toujours verts.
+
+### Changements backend
+- `EbiosRM.Api.csproj` : ajout `Microsoft.EntityFrameworkCore.Sqlite`.
+- `Program.cs` : `AddDbContext` branche `UseSqlite`/`UseNpgsql` ; secret JWT résolu puis réinjecté dans `Configuration["Jwt:Secret"]` (lu par `ServiceAuthentification` **et** le handler JwtBearer) ; au démarrage, SQLite → `EnsureCreatedAsync()` (les 32 migrations EF sont PostgreSQL, jamais rejouées sur SQLite), Postgres → `MigrateAsync()` si `ApplyMigrationsOnStartup` ; `UseDefaultFiles`/`UseStaticFiles` + `MapFallback` vers `index.html` **si `wwwroot/index.html` existe** (frontend embarqué) — sinon inchangé pour l'API hébergée et le conteneur `api` (frontend servi par nginx) ; `LanceurNavigateur` (xdg-open/open/ShellExecute).
+- `EbiosDbContext.OnModelCreating` : `HasDefaultSchema("core_engine")` et `ContenuJson` en `jsonb` désormais **conditionnels `if (Database.IsNpgsql())`** — SQLite : pas de schéma (tables à noms nus), `ContenuJson` en TEXT (jamais interrogé en SQL, juste `JsonSerializer` côté C#, vérifié).
+- `EbiosDbContextDesignTimeFactory` : force Npgsql pour `dotnet ef` (les migrations restent PostgreSQL-only).
+
+### Empaquetage
+- `build/build-desktop.sh` / `.ps1` : `npm ci` + `VITE_API_BASE=/api/v1 npm run build`, copie dans `src/EbiosRM.Api/wwwroot/` (git-ignoré), puis `dotnet publish -r <rid> --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` (le natif `libQuestPdfSkia` s'auto-extrait, vérifié), exe renommé `EbiosRM(.exe)`. Sortie `build/output/<rid>/` : exe (~55 Mo) + `wwwroot/` + `Assets/`+`LatoFont/` (polices QuestPDF) + `appsettings.json`.
+- `installer/ebiosrm.iss` : Inno Setup, installation **par utilisateur** (`PrivilegesRequired=lowest`, pas d'UAC), raccourcis menu Démarrer + Bureau (optionnel), désinstalleur qui **préserve les données** (`%LOCALAPPDATA%\EbiosRM`).
+- `.github/workflows/release.yml` : sur tag `v*`, build win-x64 + Inno Setup (`choco install innosetup`) + linux-x64 + osx-arm64 + osx-x64, archives + `EbiosRM-Setup.exe` attachés à une Release GitHub. `workflow_dispatch` pour test à blanc.
+- `README.md` : section « Application de bureau » ajoutée en tête (avant Docker et déploiement web).
+
+### Vérifié (sur le binaire self-contained linux-x64 réellement publié)
+Mode bureau zéro-config : `ebiosrm.db` + `jwt.key` auto-créés, `EnsureCreated` génère les 20 tables (noms nus), `/api/v1/health` → `database: connected`, `/` et deep link `/etudes` → 200 (SPA + fallback), `/api/v1/inexistant` → 404, inscription → 201. `dotnet test` 227/227, `npm run build` + `vitest` 25/25.
+
+### Limite assumée (v1)
+`EnsureCreated()` = pas de chemin de migration du schéma SQLite : une future version qui change le modèle ne mettra pas à jour une base `ebiosrm.db` existante. Contournement prévu : l'export JSON (déjà livré) + un import (pas encore fait). Pas bloquant pour livrer le .exe.
+
+### Reste à faire
+Merger la branche, poser un tag `v*` pour produire les binaires. Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).
+
 *Fin du contexte.*
 

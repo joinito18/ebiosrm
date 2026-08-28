@@ -4,9 +4,60 @@ Application web pour conduire une analyse de risque selon la méthode **EBIOS Ri
 Manager** de l'ANSSI, de l'atelier 1 (cadrage) à l'atelier 5 (traitement du
 risque), avec génération des rapports PDF.
 
-- **Backend** : ASP.NET Core 8 (API minimale), PostgreSQL, Entity Framework Core.
+- **Backend** : ASP.NET Core 8 (API minimale), Entity Framework Core, PostgreSQL ou SQLite.
 - **Frontend** : React 19 + Vite + Tailwind CSS.
 - **Authentification** : compte email / mot de passe, jeton JWT.
+
+Trois façons de l'installer, de la plus simple à la plus flexible :
+
+| Mode | Pour qui | Base de données |
+|---|---|---|
+| **Application de bureau** | un poste, un ou quelques utilisateurs | SQLite (fichier local) |
+| **Docker autonome** | une organisation qui héberge chez elle | PostgreSQL en conteneur |
+| **Déploiement web** | accès public / multi-postes | PostgreSQL managé |
+
+---
+
+## Application de bureau (Windows, macOS, Linux)
+
+L'installation la plus simple : **un seul fichier**, aucun outil à installer
+(ni .NET, ni Node, ni Docker), base de données incluse.
+
+### Utilisateur final
+
+- **Windows** : télécharger `EbiosRM-Setup.exe` depuis la
+  [page des releases](https://github.com/joinito18/ebiosrm/releases), double-cliquer,
+  suivre l'assistant. Un raccourci « EBIOS RM » est créé dans le menu Démarrer.
+- **macOS / Linux** : télécharger l'archive correspondante, l'extraire, lancer
+  l'exécutable `EbiosRM`.
+
+Au lancement, l'application démarre puis **ouvre le navigateur** sur
+`http://localhost:5000`. Les données sont stockées localement :
+
+| Système | Emplacement |
+|---|---|
+| Windows | `%LOCALAPPDATA%\EbiosRM\ebiosrm.db` |
+| macOS | `~/Library/Application Support/EbiosRM/ebiosrm.db` *(via `$XDG_DATA_HOME` sinon)* |
+| Linux | `~/.local/share/EbiosRM/ebiosrm.db` |
+
+C'est un fichier SQLite unique : pour sauvegarder ou transférer, il suffit de le copier.
+La désinstallation ne supprime pas ces données.
+
+### Construire les binaires soi-même
+
+Prérequis : .NET SDK 8 + Node.js 20.
+
+```bash
+# Windows (PowerShell)
+./build/build-desktop.ps1 -Rid win-x64
+# macOS / Linux
+./build/build-desktop.sh linux-x64        # ou osx-arm64, osx-x64
+```
+
+Résultat dans `build/output/<rid>/`. Pour fabriquer l'installeur Windows,
+compiler ensuite `installer/ebiosrm.iss` avec [Inno Setup](https://jrsoftware.org/isinfo.php).
+Le workflow `.github/workflows/release.yml` fait tout cela automatiquement sur
+un tag `v*`.
 
 ---
 

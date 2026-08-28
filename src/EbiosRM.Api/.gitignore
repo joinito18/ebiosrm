@@ -1,1 +1,4 @@
 *.pdf
+
+# Frontend embarque (copie au build par build/build-desktop.sh)
+wwwroot/
