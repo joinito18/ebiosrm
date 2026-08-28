@@ -30,7 +30,10 @@ public class EbiosDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("core_engine");
+        // SQLite (mode bureau) ne connait pas les schemas : ils deviendraient un
+        // prefixe litteral dans le nom des tables. Uniquement sur PostgreSQL.
+        if (Database.IsNpgsql())
+            modelBuilder.HasDefaultSchema("core_engine");
 
         modelBuilder.Entity<Etude>(entity =>
         {
@@ -121,7 +124,11 @@ public class EbiosDbContext : DbContext
             entity.Property(s => s.NumeroAtelier).IsRequired();
             entity.Property(s => s.Version).IsRequired();
             entity.Property(s => s.DateCreationUtc).IsRequired();
-            entity.Property(s => s.ContenuJson).IsRequired().HasColumnType("jsonb");
+            // Stocke une chaine JSON serialisee cote C# (jamais interrogee en SQL) :
+            // jsonb sur PostgreSQL, TEXT par defaut sur SQLite.
+            var contenuJson = entity.Property(s => s.ContenuJson).IsRequired();
+            if (Database.IsNpgsql())
+                contenuJson.HasColumnType("jsonb");
             entity.HasIndex(s => new { s.EtudeId, s.NumeroAtelier, s.Version }).IsUnique();
         });
 

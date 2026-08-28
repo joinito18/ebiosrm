@@ -4,9 +4,82 @@ Application web pour conduire une analyse de risque selon la méthode **EBIOS Ri
 Manager** de l'ANSSI, de l'atelier 1 (cadrage) à l'atelier 5 (traitement du
 risque), avec génération des rapports PDF.
 
-- **Backend** : ASP.NET Core 8 (API minimale), PostgreSQL, Entity Framework Core.
+- **Backend** : ASP.NET Core 8 (API minimale), Entity Framework Core, PostgreSQL ou SQLite.
 - **Frontend** : React 19 + Vite + Tailwind CSS.
 - **Authentification** : compte email / mot de passe, jeton JWT.
+
+Trois façons de l'installer, de la plus simple à la plus flexible :
+
+| Mode | Pour qui | Base de données |
+|---|---|---|
+| **Application de bureau** | un poste, un ou quelques utilisateurs | SQLite (fichier local) |
+| **Docker autonome** | une organisation qui héberge chez elle | PostgreSQL en conteneur |
+| **Déploiement web** | accès public / multi-postes | PostgreSQL managé |
+
+---
+
+## Application de bureau (Windows, macOS, Linux)
+
+L'installation la plus simple : **un seul fichier**, aucun outil à installer
+(ni .NET, ni Node, ni Docker), base de données incluse.
+
+### Utilisateur final
+
+- **Windows** : télécharger `EbiosRM-Setup.exe` depuis la
+  [page des releases](https://github.com/joinito18/ebiosrm/releases), double-cliquer,
+  suivre l'assistant. Un raccourci « EBIOS RM » est créé dans le menu Démarrer.
+- **Ubuntu / Linux** : télécharger `EbiosRM-<version>-linux.tar.gz`, puis :
+
+  ```bash
+  tar xzf EbiosRM-*-linux.tar.gz
+  cd EbiosRM-*            # ou le dossier extrait
+  ./installer.sh          # ajoute "EBIOS RM" au menu des applications, sans sudo
+  ```
+
+  Ensuite, lancer **EBIOS RM** depuis la grille des applications (ou la commande
+  `ebiosrm` en terminal). Sans installation : `./EbiosRM` directement dans le
+  dossier extrait. Désinstaller : `./installer.sh --desinstaller`.
+- **macOS** : télécharger l'archive correspondante, l'extraire, lancer
+  l'exécutable `EbiosRM` (clic droit → Ouvrir la première fois, binaire non signé).
+
+Au lancement, l'application démarre puis **ouvre le navigateur** sur
+`http://localhost:5000`. Au tout premier démarrage, une **étude d'exemple
+complète** (« Atlas Assurances Santé », 15 valeurs métier, les 5 ateliers
+validés) est présente en lecture seule pour découvrir l'outil — créer un
+compte pour commencer sa propre étude. `App:ChargerExemple=false` pour
+démarrer sur une base vierge.
+
+Les données sont stockées localement :
+
+| Système | Emplacement |
+|---|---|
+| Windows | `%LOCALAPPDATA%\EbiosRM\ebiosrm.db` |
+| macOS | `~/Library/Application Support/EbiosRM/ebiosrm.db` *(via `$XDG_DATA_HOME` sinon)* |
+| Linux | `~/.local/share/EbiosRM/ebiosrm.db` |
+
+C'est un fichier SQLite unique : pour sauvegarder ou transférer, il suffit de le copier.
+La désinstallation ne supprime pas ces données.
+
+### Construire les binaires soi-même
+
+Prérequis : .NET SDK 8 + Node.js 20.
+
+```bash
+# Windows (PowerShell)
+./build/build-desktop.ps1 -Rid win-x64
+# macOS / Linux
+./build/build-desktop.sh linux-x64        # ou osx-arm64, osx-x64
+```
+
+Résultat dans `build/output/<rid>/`. Pour fabriquer l'installeur Windows,
+compiler ensuite `installer/ebiosrm.iss` avec [Inno Setup](https://jrsoftware.org/isinfo.php).
+Le workflow `.github/workflows/release.yml` fait tout cela automatiquement sur
+un tag `v*`.
+
+L'étude d'exemple embarquée est le fichier `src/EbiosRM.Api/ressources/ebiosrm.seed.db`
+(versionné). Pour la régénérer après une évolution du modèle ou de l'étude :
+`bash build/seed/generer-seed.sh` (nécessite la base PostgreSQL de dev + son
+étude « Atlas Assurances Santé », et `python3` + `psycopg2`).
 
 ---
 

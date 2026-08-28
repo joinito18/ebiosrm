@@ -1,3 +1,4 @@
+using EbiosRM.Api.Infrastructure.Hebergement;
 using EbiosRM.Api.Infrastructure.Persistence;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
@@ -23,14 +24,41 @@ QuestPDF.Settings.License = LicenseType.Community;
 // noms de claims tels qu'émis par ServiceAuthentification.GenererJeton.
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
-var dossierPolices = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
-if (Directory.Exists(dossierPolices))
+// Polices des rapports PDF : embarquees dans l'assembly (EmbeddedResource) donc
+// disponibles quel que soit le mode de publication -- y compris l'executable
+// fichier unique de l'application de bureau, qui ne recopie pas les fichiers
+// loose a cote de l'exe.
+var assemblyCourant = typeof(Program).Assembly;
+foreach (var nomRessource in assemblyCourant.GetManifestResourceNames())
 {
-    foreach (var fichierPolice in Directory.GetFiles(dossierPolices, "*.ttf"))
-        QuestPDF.Drawing.FontManager.RegisterFont(File.OpenRead(fichierPolice));
+    if (!nomRessource.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
+        continue;
+    using var fluxRessource = assemblyCourant.GetManifestResourceStream(nomRessource);
+    if (fluxRessource is null)
+        continue;
+    var memoirePolice = new MemoryStream();
+    fluxRessource.CopyTo(memoirePolice);
+    memoirePolice.Position = 0;
+    QuestPDF.Drawing.FontManager.RegisterFont(memoirePolice);
 }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Mode d'execution : serveur PostgreSQL (deploiement heberge / docker) ou
+// bureau SQLite (le .exe double-clique). Cf. ConfigurationExecution.
+var execution = ConfigurationExecution.Determiner(builder.Configuration);
+builder.Services.AddSingleton(execution);
+
+// Secret JWT resolu (auto-genere et persiste en mode bureau) reinjecte dans la
+// configuration : ServiceAuthentification et le handler JwtBearer le lisent
+// tous deux via Configuration["Jwt:Secret"].
+builder.Configuration["Jwt:Secret"] = execution.ResoudreSecretJwt(builder.Configuration);
+
+if (execution.ModeBureau)
+{
+    // Port fixe et connu pour l'ouverture du navigateur.
+    builder.WebHost.UseUrls("http://localhost:5000");
+}
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -38,9 +66,12 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddDbContext<EbiosDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("EbiosDb")
-    ));
+{
+    if (execution.Fournisseur == FournisseurBaseDeDonnees.Sqlite)
+        options.UseSqlite(execution.ChaineConnexion);
+    else
+        options.UseNpgsql(execution.ChaineConnexion);
+});
 
 builder.Services.AddCors(options =>
 {
@@ -171,17 +202,21 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
-// Application automatique des migrations au demarrage. Desactive par defaut :
-// en SaaS c'est le pipeline de deploiement qui applique le schema (etape
-// dediee de ci.yml). Active (ApplyMigrationsOnStartup=true) pour un
-// deploiement autonome facon "docker compose up", ou aucune etape externe
-// ne le fait -- le conteneur API cree/met a jour le schema lui-meme au
-// premier lancement.
-if (app.Configuration.GetValue<bool>("ApplyMigrationsOnStartup"))
+// Mise en place du schema de la base au demarrage :
+//  - SQLite (mode bureau, le .exe) : cree la base directement depuis le modele
+//    au premier lancement (les migrations EF de ce projet sont PostgreSQL).
+//  - PostgreSQL : migrations EF, uniquement si ApplyMigrationsOnStartup=true
+//    (docker compose selfhost). En SaaS c'est le pipeline ci.yml qui migre.
 {
+    // Mode bureau, 1er lancement : deposer l'etude d'exemple embarquee (si presente).
+    execution.DeposerBaseExempleSiPremierLancement(app.Configuration);
+
     using var scopeMigration = app.Services.CreateScope();
-    await scopeMigration.ServiceProvider.GetRequiredService<EbiosDbContext>()
-        .Database.MigrateAsync();
+    var dbDemarrage = scopeMigration.ServiceProvider.GetRequiredService<EbiosDbContext>();
+    if (execution.Fournisseur == FournisseurBaseDeDonnees.Sqlite)
+        await dbDemarrage.Database.EnsureCreatedAsync();
+    else if (app.Configuration.GetValue<bool>("ApplyMigrationsOnStartup"))
+        await dbDemarrage.Database.MigrateAsync();
 }
 
 // En tout premier : sans ca, tout ce qui lit Connection.RemoteIpAddress
@@ -204,6 +239,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseRateLimiter();
+
+// Frontend embarque (build .exe / image Docker "web") : sert les fichiers
+// statiques et fait tomber toute route non-API sur index.html (routage React).
+// Ignore si wwwroot/index.html est absent -> API hebergee et conteneur "api"
+// (dont le frontend est servi par nginx) inchanges.
+var indexHtml = Path.Combine(app.Environment.WebRootPath ?? "", "index.html");
+var frontendEmbarque = File.Exists(indexHtml);
+if (frontendEmbarque)
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -2263,6 +2310,29 @@ app.MapDelete("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures/{mes
         return Results.BadRequest(new { error = ex.Message });
     }
 });
+
+// Toute route non reconnue (et non /api/...) -> index.html : le routeur React
+// prend le relais (liens profonds, rechargement de page). Anonyme : la page
+// se charge, puis le frontend redirige vers /connexion si pas de jeton.
+if (frontendEmbarque)
+{
+    app.MapFallback((HttpContext ctx) =>
+        ctx.Request.Path.StartsWithSegments("/api")
+            ? Results.NotFound()
+            : Results.File(indexHtml, "text/html")).AllowAnonymous();
+}
+
+// Mode bureau : ouvrir le navigateur une fois Kestrel a l'ecoute
+// (App:OuvrirNavigateur=false pour un lancement en arriere-plan / sans interface).
+if (execution.ModeBureau && app.Configuration.GetValue("App:OuvrirNavigateur", true))
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var url = app.Urls.FirstOrDefault() ?? "http://localhost:5000";
+        Console.WriteLine($"\nEBIOS RM est demarre. Ouvrez {url} si le navigateur ne s'ouvre pas.\n");
+        LanceurNavigateur.Ouvrir(url);
+    });
+}
 
 app.Run();
 
