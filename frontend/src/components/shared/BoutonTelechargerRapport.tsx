@@ -1,13 +1,27 @@
+import { useState } from 'react'
 import { telechargerRapport, ApiError } from '../../lib/api'
+import { toastErreur } from '../../lib/toast'
 
 export default function BoutonTelechargerRapport(props: { path: string; nomFichier: string; children: React.ReactNode; className?: string }) {
+  var [enCours, setEnCours] = useState(false)
+
   function handleClick() {
+    setEnCours(true)
     telechargerRapport(props.path, props.nomFichier)
-      .catch(function (err) { window.alert(err instanceof ApiError ? err.message : 'Erreur lors du telechargement.') })
+      .catch(function (err) {
+        toastErreur(err instanceof ApiError ? err.message : 'Erreur lors du telechargement du rapport.')
+      })
+      .finally(function () { setEnCours(false) })
   }
 
   return (
-    <button onClick={handleClick} className={props.className}>
+    <button
+      onClick={handleClick}
+      disabled={enCours}
+      aria-busy={enCours}
+      className={props.className}
+      style={enCours ? { opacity: 0.55, cursor: 'wait' } : undefined}
+    >
       {props.children}
     </button>
   )

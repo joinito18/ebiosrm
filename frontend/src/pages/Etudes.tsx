@@ -8,6 +8,7 @@ import EmptyState from '../components/shared/EmptyState'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { listEtudes, createEtude, supprimerEtude, ApiError } from '../lib/api'
+import { toastSucces } from '../lib/toast'
 import type { Etude } from '../lib/api'
 
 export default function Etudes() {
@@ -64,7 +65,10 @@ export default function Etudes() {
     e.stopPropagation()
     if (!window.confirm('Supprimer definitivement l etude "' + etude.nom + '" et tout son contenu ?')) return
     supprimerEtude(etude.id)
-      .then(charger)
+      .then(function () {
+        toastSucces('Etude "' + etude.nom + '" supprimee.')
+        charger()
+      })
       .catch(function (err) {
         var message = err instanceof ApiError ? err.message : 'Impossible de supprimer l etude.'
         setErreurListe(message)
