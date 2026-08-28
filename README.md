@@ -32,7 +32,7 @@ cp .env.example .env
 #   openssl rand -base64 48        (Linux/macOS)
 #   [Convert]::ToBase64String((1..48|%{Get-Random -Max 256}))   (PowerShell)
 
-docker compose --profile selfhost up -d --build
+docker compose -f docker-compose.selfhost.yml up -d --build
 ```
 
 Au premier lancement, le conteneur API crée le schéma de la base
@@ -45,15 +45,15 @@ Application disponible sur **http://localhost:8080**
 
 | Action | Commande |
 |---|---|
-| État des conteneurs | `docker compose --profile selfhost ps` |
-| Journaux de l'API | `docker compose --profile selfhost logs -f api` |
-| Arrêter | `docker compose --profile selfhost stop` |
-| Arrêter et supprimer les conteneurs | `docker compose --profile selfhost down` |
-| Mettre à jour (nouvelle version du code) | `git pull && docker compose --profile selfhost up -d --build` |
-| **Tout effacer, y compris les données** | `docker compose --profile selfhost down -v` |
+| État des conteneurs | `docker compose -f docker-compose.selfhost.yml ps` |
+| Journaux de l'API | `docker compose -f docker-compose.selfhost.yml logs -f api` |
+| Arrêter | `docker compose -f docker-compose.selfhost.yml stop` |
+| Arrêter et supprimer les conteneurs | `docker compose -f docker-compose.selfhost.yml down` |
+| Mettre à jour (nouvelle version du code) | `git pull && docker compose -f docker-compose.selfhost.yml up -d --build` |
+| **Tout effacer, y compris les données** | `docker compose -f docker-compose.selfhost.yml down -v` |
 
 Les données de la base survivent aux `stop` / `down` / `up` (volume Docker
-`ebiosrm_postgres_data`). Seul `down -v` les détruit.
+`ebiosrm_pgdata`). Seul `down -v` les détruit.
 
 ### Configuration (`.env`)
 

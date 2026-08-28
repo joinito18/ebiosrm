@@ -1,0 +1,61 @@
+# Installation complète autonome : frontend + backend + base de données, tout
+# en conteneurs, aucune dépendance externe.
+#
+#   cp .env.example .env        # puis renseigner JWT_SECRET
+#   docker compose -f docker-compose.selfhost.yml up -d --build
+#   # -> application sur http://localhost:${WEB_PORT:-8080}
+#
+# Fichier indépendant de docker-compose.yml (qui, lui, ne sert qu'au
+# développement). Voir le README pour l'exploitation, la sauvegarde, etc.
+
+name: ebiosrm
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: ebiosrm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ebiosrm
+      POSTGRES_USER: ebiosrm
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ebiosrm_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ebiosrm -d ebiosrm"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./src/EbiosRM.Api
+    container_name: ebiosrm-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__EbiosDb: "Host=postgres;Port=5432;Database=ebiosrm;Username=ebiosrm;Password=${POSTGRES_PASSWORD:-ebiosrm_dev}"
+      Jwt__Secret: "${JWT_SECRET:?Renseigne JWT_SECRET dans le fichier .env (chaine aleatoire longue)}"
+      App__UrlFrontend: "${APP_URL:-http://localhost:8080}"
+      # Le conteneur applique lui-meme les migrations au demarrage.
+      ApplyMigrationsOnStartup: "true"
+      ASPNETCORE_ENVIRONMENT: "Production"
+      # Inutile en conteneur, et source de crash sur hotes a faible quota inotify.
+      DOTNET_hostBuilder__reloadConfigOnChange: "false"
+    expose:
+      - "8080"
+
+  web:
+    build:
+      context: ./frontend
+    container_name: ebiosrm-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
