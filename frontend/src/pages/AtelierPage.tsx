@@ -394,7 +394,7 @@ export default function AtelierPage() {
 
       {estVerrouille && (
         <div className="mb-10 border border-paper-line bg-paper-dim px-5 py-4">
-          <p className="text-xs text-steel">Cet atelier n est pas encore implemente cote backend (Slice non commence). Aucune donnee reelle a afficher pour l instant.</p>
+          <p className="text-xs text-steel">Numero d atelier invalide. La methode EBIOS RM compte 5 ateliers (1 a 5) &mdash; <Link to={'/etudes/' + etudeId} className="text-signature hover:underline">retour au tableau de bord de l etude</Link>.</p>
         </div>
       )}
 
