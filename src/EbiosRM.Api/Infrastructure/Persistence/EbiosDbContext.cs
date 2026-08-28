@@ -1,4 +1,5 @@
 using EbiosRM.Api.Modules.Audit.Domain;
+using EbiosRM.Api.Modules.Collaboration.Domain;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
@@ -29,6 +30,7 @@ public class EbiosDbContext : DbContext
     public DbSet<PlanTraitementRisque> PlansTraitementRisque => Set<PlanTraitementRisque>();
     public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
     public DbSet<EntreeJournal> JournalAudit => Set<EntreeJournal>();
+    public DbSet<EtudeMembre> EtudeMembres => Set<EtudeMembre>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -342,6 +344,18 @@ public class EbiosDbContext : DbContext
             entity.Property(e => e.Chemin).IsRequired().HasMaxLength(500);
             entity.Property(e => e.StatutHttp).IsRequired();
             entity.HasIndex(e => new { e.EtudeId, e.DateUtc });
+        });
+
+        modelBuilder.Entity<EtudeMembre>(entity =>
+        {
+            entity.ToTable("etude_membres");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.EtudeId).IsRequired();
+            entity.Property(m => m.UtilisateurId).IsRequired();
+            entity.Property(m => m.Role).IsRequired().HasConversion<string>().HasMaxLength(20);
+            entity.Property(m => m.AjouteLeUtc).IsRequired();
+            entity.HasIndex(m => new { m.EtudeId, m.UtilisateurId }).IsUnique();
+            entity.HasIndex(m => m.UtilisateurId);
         });
 
         base.OnModelCreating(modelBuilder);

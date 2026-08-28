@@ -2,6 +2,8 @@ using EbiosRM.Api.Infrastructure.Hebergement;
 using EbiosRM.Api.Infrastructure.Persistence;
 using EbiosRM.Api.Modules.Audit.Domain;
 using EbiosRM.Api.Modules.Audit.Infrastructure;
+using EbiosRM.Api.Modules.Collaboration.Domain;
+using EbiosRM.Api.Modules.Collaboration.Infrastructure;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
@@ -109,6 +111,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // masse sans aucune verification (pas de captcha, pas d'email a confirmer).
 // 5 inscriptions/heure par IP est large pour un usage legitime (personne ne
 // cree 5 comptes en une heure depuis la meme IP) mais bloque le bourrage.
+// En environnement de test, les WebApplicationFactory partagent une seule IP
+// (null -> "inconnu") : des dizaines d'inscriptions de test se retrouveraient
+// dans un unique quota. On desserre alors la limite.
+var quotaInscription = builder.Environment.IsEnvironment("Testing") ? 100_000 : 5;
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -117,7 +123,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "inconnu",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = quotaInscription,
                 Window = TimeSpan.FromHours(1),
                 QueueLimit = 0,
             }));
@@ -158,6 +164,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
+builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -265,16 +272,15 @@ if (frontendEmbarque)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Isolation des etudes entre comptes : toute route commencant par
-// /api/v1/etudes/{id} (route "id" pour les 2 endpoints de premier niveau,
-// "etudeId" pour tous les endpoints imbriques d'atelier) passe par cette
-// verification centralisee plutot que de repeter le controle dans chacun
-// des 50+ handlers -- une omission dans un seul aurait laisse une fuite.
-// L'etude de demonstration publique (ProprietaireId null, cf. migration
-// AjoutProprietaireEtude) reste visible en lecture par tous mais non
-// modifiable/supprimable par personne (ProprietaireId null ne correspond
-// jamais a un utilisateur reel, donc la comparaison d'egalite echoue
-// naturellement pour tout le monde).
+// Controle d'acces aux etudes, centralise : toute route /api/v1/etudes/{id|etudeId}
+// passe ici plutot que de repeter le controle dans chacun des ~80 handlers.
+//  - Etude de demonstration (ProprietaireId null) : visible en lecture par tous,
+//    non modifiable par personne.
+//  - Sinon : il faut etre membre (table etude_membres). Le role requis pour
+//    ecrire depend de l'action :
+//      * gestion des membres (.../membres) ou suppression de l'etude : Proprietaire
+//      * tout le reste (contenu des ateliers, valider/rouvrir, acceptation) : Editeur+
+//    Un Lecteur ne peut qu'afficher et telecharger les rapports.
 app.Use(async (context, next) =>
 {
     var routeValue = context.GetRouteValue("etudeId") ?? context.GetRouteValue("id");
@@ -283,22 +289,57 @@ app.Use(async (context, next) =>
         var utilisateurId = ObtenirUtilisateurId(context.User);
         if (utilisateurId is not null)
         {
-            var repo = context.RequestServices.GetRequiredService<IEtudeRepository>();
-            var etude = await repo.ObtenirParIdAsync(etudeId, context.RequestAborted);
+            var etude = await context.RequestServices.GetRequiredService<IEtudeRepository>()
+                .ObtenirParIdAsync(etudeId, context.RequestAborted);
             if (etude is not null)
             {
-                var visiblePourMoi = etude.ProprietaireId is null || etude.ProprietaireId == utilisateurId;
-                if (!visiblePourMoi)
-                {
-                    context.Response.StatusCode = StatusCodes.Status404NotFound;
-                    return;
-                }
                 var estEcriture = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
-                if (estEcriture && etude.ProprietaireId is null)
+
+                if (etude.ProprietaireId is null)
                 {
-                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new { error = "Cette etude de demonstration est en lecture seule -- creez votre propre etude pour la modifier." });
-                    return;
+                    if (estEcriture)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        await context.Response.WriteAsJsonAsync(new { error = "Cette etude de demonstration est en lecture seule -- creez votre propre etude pour la modifier." });
+                        return;
+                    }
+                }
+                else
+                {
+                    var membreRepo = context.RequestServices.GetRequiredService<IEtudeMembreRepository>();
+                    var membre = await membreRepo.ObtenirAsync(etudeId, utilisateurId.Value, context.RequestAborted);
+
+                    // Filet de securite : si le createur d'origine n'a pas de ligne
+                    // etude_membres (derive de donnees, transaction interrompue...),
+                    // on la recree plutot que de le verrouiller hors de son etude.
+                    if (membre is null && etude.ProprietaireId == utilisateurId.Value)
+                    {
+                        membre = EtudeMembre.Creer(etudeId, utilisateurId.Value, RoleEtude.Proprietaire, utilisateurId.Value);
+                        await membreRepo.AjouterAsync(membre, context.RequestAborted);
+                    }
+                    if (membre is null)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                    if (estEcriture)
+                    {
+                        var chemin = context.Request.Path.Value ?? "";
+                        var actionProprietaire = chemin.Contains("/membres")
+                            || (HttpMethods.IsDelete(context.Request.Method) && System.Text.RegularExpressions.Regex.IsMatch(chemin, @"^/api/v1/etudes/[0-9a-fA-F-]{36}/?$"));
+                        var roleRequis = actionProprietaire ? RoleEtude.Proprietaire : RoleEtude.Editeur;
+                        if (membre.Role < roleRequis)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            await context.Response.WriteAsJsonAsync(new
+                            {
+                                error = roleRequis == RoleEtude.Proprietaire
+                                    ? "Reserve au proprietaire de l'etude."
+                                    : "Votre role (Lecteur) ne permet pas de modifier cette etude.",
+                            });
+                            return;
+                        }
+                    }
                 }
             }
         }
@@ -352,6 +393,20 @@ Guid? ObtenirUtilisateurId(System.Security.Claims.ClaimsPrincipal principal)
     var idClaim = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
     return Guid.TryParse(idClaim, out var id) ? id : null;
 }
+
+// Projette une etude + le role de l'appelant ("monRole" : Proprietaire /
+// Editeur / Lecteur, ou null pour l'etude de demonstration publique).
+static object AvecRole(Etude e, string? monRole) => new
+{
+    e.Id, e.Nom, e.Perimetre, e.Mission, e.VersionReferentielId,
+    Statut = e.Statut.ToString(),
+    StatutAtelier2 = e.StatutAtelier2.ToString(),
+    StatutAtelier3 = e.StatutAtelier3.ToString(),
+    StatutAtelier4 = e.StatutAtelier4.ToString(),
+    StatutAtelier5 = e.StatutAtelier5.ToString(),
+    e.CreeLeUtc, e.ProprietaireId,
+    monRole,
+};
 
 app.MapGet("/api/v1/health", async (EbiosDbContext db) =>
 {
@@ -409,16 +464,19 @@ app.MapGet("/api/v1/auth/moi", async (
 // --- Etudes ---
 
 app.MapPost("/api/v1/etudes", async (
-    CreerEtudeRequest request, IEtudeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+    CreerEtudeRequest request, IEtudeRepository repo, IEtudeMembreRepository membreRepo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
     try
     {
-        // Toute etude nouvellement creee appartient a son createur (isolation
-        // entre comptes) -- seule l'etude de demonstration deja en base avant
-        // ce chantier reste publique (ProprietaireId null, cf. migration).
+        // Le createur devient Proprietaire (table etude_membres) ; ProprietaireId
+        // reste le marqueur du createur d'origine. Seule l'etude de demonstration
+        // (deja en base avant ce chantier) reste publique (ProprietaireId null).
         var proprietaireId = ObtenirUtilisateurId(principal);
         var etude = Etude.Creer(request.Nom, request.Perimetre, request.Mission, proprietaireId);
         await repo.AjouterAsync(etude, ct);
+        if (proprietaireId is not null)
+            await membreRepo.AjouterAsync(EtudeMembre.Creer(etude.Id, proprietaireId.Value, RoleEtude.Proprietaire, proprietaireId), ct);
         return Results.Created($"/api/v1/etudes/{etude.Id}", etude);
     }
     catch (ArgumentException ex)
@@ -427,12 +485,19 @@ app.MapPost("/api/v1/etudes", async (
     }
 });
 
-app.MapGet("/api/v1/etudes/{id:guid}", async (Guid id, IEtudeRepository repo, CancellationToken ct) =>
+app.MapGet("/api/v1/etudes/{id:guid}", async (
+    Guid id, IEtudeRepository repo, IEtudeMembreRepository membreRepo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
-    // Visibilite deja verifiee par le middleware de visibilite des etudes --
-    // si on arrive ici, l'appelant a le droit de la voir.
+    // Visibilite deja verifiee par le middleware -- si on arrive ici, l'appelant
+    // a le droit de voir l'etude. On joint son role pour que le frontend adapte
+    // ses controles (edition / gestion des membres).
     var etude = await repo.ObtenirParIdAsync(id, ct);
-    return etude is null ? Results.NotFound() : Results.Ok(etude);
+    if (etude is null) return Results.NotFound();
+
+    var moiId = ObtenirUtilisateurId(principal);
+    var monRole = moiId is null ? null : (await membreRepo.ObtenirAsync(id, moiId.Value, ct))?.Role.ToString();
+    return Results.Ok(AvecRole(etude, monRole));
 });
 
 // Export/sauvegarde complete d'une etude en JSON -- couvre le contenu editable
@@ -448,6 +513,80 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/journal", async (
     {
         e.Id, e.DateUtc, e.NomUtilisateur, e.Action, e.Methode, e.Chemin, e.StatutHttp,
     }));
+});
+
+// --- Membres d'une etude (partage) ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/membres", async (
+    Guid etudeId, IEtudeMembreRepository membreRepo, IUtilisateurRepository utilRepo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    var membres = await membreRepo.ListerParEtudeAsync(etudeId, ct);
+    var resultat = new List<object>();
+    foreach (var m in membres)
+    {
+        var u = await utilRepo.ObtenirParIdAsync(m.UtilisateurId, ct);
+        resultat.Add(new
+        {
+            m.UtilisateurId,
+            nomAffiche = u?.NomAffiche ?? "(compte supprime)",
+            email = u?.Email ?? "",
+            role = m.Role.ToString(),
+            m.AjouteLeUtc,
+            estMoi = m.UtilisateurId == moiId,
+        });
+    }
+    return Results.Ok(resultat);
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/membres", async (
+    Guid etudeId, AjouterMembreRequest request, IEtudeMembreRepository membreRepo,
+    IUtilisateurRepository utilRepo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RoleEtude>(request.Role, ignoreCase: true, out var role))
+        return Results.BadRequest(new { error = $"Role invalide. Valeurs : {string.Join(", ", Enum.GetNames<RoleEtude>())}." });
+
+    var utilisateur = await utilRepo.ObtenirParEmailAsync((request.Email ?? "").Trim().ToLowerInvariant(), ct);
+    if (utilisateur is null)
+        return Results.NotFound(new { error = "Aucun compte avec cet email. La personne doit d'abord creer un compte." });
+
+    if (await membreRepo.ObtenirAsync(etudeId, utilisateur.Id, ct) is not null)
+        return Results.Conflict(new { error = "Cette personne est deja membre de l'etude." });
+
+    await membreRepo.AjouterAsync(EtudeMembre.Creer(etudeId, utilisateur.Id, role, ObtenirUtilisateurId(principal)), ct);
+    return Results.Created($"/api/v1/etudes/{etudeId}/membres/{utilisateur.Id}", new { utilisateur.Id, utilisateur.NomAffiche, utilisateur.Email, role = role.ToString() });
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/membres/{utilisateurId:guid}", async (
+    Guid etudeId, Guid utilisateurId, ChangerRoleMembreRequest request, IEtudeMembreRepository membreRepo, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<RoleEtude>(request.Role, ignoreCase: true, out var role))
+        return Results.BadRequest(new { error = "Role invalide." });
+
+    var membre = await membreRepo.ObtenirAsync(etudeId, utilisateurId, ct);
+    if (membre is null) return Results.NotFound();
+
+    if (membre.Role == RoleEtude.Proprietaire && role != RoleEtude.Proprietaire
+        && await membreRepo.CompterProprietairesAsync(etudeId, ct) <= 1)
+        return Results.Conflict(new { error = "L'etude doit garder au moins un proprietaire." });
+
+    membre.ChangerRole(role);
+    await membreRepo.MettreAJourAsync(membre, ct);
+    return Results.Ok(new { utilisateurId, role = role.ToString() });
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/membres/{utilisateurId:guid}", async (
+    Guid etudeId, Guid utilisateurId, IEtudeMembreRepository membreRepo, CancellationToken ct) =>
+{
+    var membre = await membreRepo.ObtenirAsync(etudeId, utilisateurId, ct);
+    if (membre is null) return Results.NotFound();
+
+    if (membre.Role == RoleEtude.Proprietaire && await membreRepo.CompterProprietairesAsync(etudeId, ct) <= 1)
+        return Results.Conflict(new { error = "L'etude doit garder au moins un proprietaire." });
+
+    await membreRepo.SupprimerAsync(membre, ct);
+    return Results.NoContent();
 });
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/export", async (
@@ -490,13 +629,18 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/export", async (
     return Results.Ok(export);
 });
 
-app.MapGet("/api/v1/etudes", async (IEtudeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+app.MapGet("/api/v1/etudes", async (
+    IEtudeRepository repo, IEtudeMembreRepository membreRepo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
     var utilisateurId = ObtenirUtilisateurId(principal);
-    var etudes = utilisateurId is null
-        ? new List<Etude>()
-        : await repo.ListerVisiblesAsync(utilisateurId.Value, ct);
-    return Results.Ok(etudes);
+    if (utilisateurId is null)
+        return Results.Ok(Array.Empty<object>());
+
+    var etudes = await repo.ListerVisiblesAsync(utilisateurId.Value, ct);
+    var roles = (await membreRepo.ListerParUtilisateurAsync(utilisateurId.Value, ct))
+        .ToDictionary(m => m.EtudeId, m => m.Role.ToString());
+    return Results.Ok(etudes.Select(e => AvecRole(e, roles.GetValueOrDefault(e.Id))));
 });
 
 app.MapDelete("/api/v1/etudes/{id:guid}", async (
@@ -2458,6 +2602,8 @@ static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> Par
 record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
 record ConnexionRequest(string Email, string MotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
+record AjouterMembreRequest(string Email, string Role);
+record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);
 record CreerBienSupportRequest(string Description, string Type, string EntiteProprietaire);
 record CreerEvenementRedouteRequest(string Description, int Gravite);

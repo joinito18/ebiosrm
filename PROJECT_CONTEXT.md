@@ -2257,9 +2257,35 @@ Suite à `docs/analyse-concurrentielle.md` (écart 🔴 « pas de journal d'audi
 - **Frontend** : `pages/JournalEtude.tsx` (page `/etudes/:id/journal`), panneau « JOURNAL D ACTIVITE » sur le Dashboard (6 dernières + lien). `listerJournal()` + type dans `api.ts`.
 - **Vérifié** : 230 tests backend (+3), 25 frontend, + navigateur (Dashboard + page journal, parcours Atelier 1 → 7 entrées correctes).
 
-### Reste à faire
-- **Étape 2/2 : partage + rôles.** `EtudeMembre`, endpoints `POST/DELETE /etudes/{id}/membres`, middleware d'isolation qui vérifie le rôle (lecture = tout membre, écriture = Contributeur+, valider/rouvrir/accepter = Valideur+, gestion membres + suppression = Propriétaire), UI de partage. Invitation par email (dépend de la branche réinitialisation MDP).
-- **Régénérer `ebiosrm.seed.db`** : `journal_audit` ajoutée après le dernier `generer-seed.sh` → le seed embarqué dans le .exe n'a pas cette table (le middleware d'audit échoue silencieusement en mode bureau jusqu'à `bash build/seed/generer-seed.sh`).
+## Mise à jour — Partage des études + rôles (chantier « socle collaboratif », étape 2/2)
+
+**Révision du modèle de rôles avant codage** (réticence de l'utilisateur, à raison) : **3 rôles** au lieu de 4. « Valider un atelier » = point de contrôle de l'analyste (figer + générer le rapport), pas un acte de gouvernance → l'exiger d'un rôle distinct = friction pure. La séparation des tâches (ISO 27001 A.5.3) est couverte autrement : le **journal d'audit** (qui a validé quoi) + les **signataires nommés** de l'acceptation formelle du risque (Atelier 5). Si un client régulé exige un vrai « Valideur » séparé, ce sera une valeur de rôle en plus, sans changer le modèle.
+
+| Rôle | Peut |
+|---|---|
+| **Proprietaire** | Tout + gérer les membres + supprimer l'étude + acceptation formelle |
+| **Editeur** | Tout le contenu des ateliers + valider / rouvrir les ateliers |
+| **Lecteur** | Consultation + téléchargement des rapports |
+
+`enum RoleEtude { Lecteur = 0, Editeur = 1, Proprietaire = 2 }` — l'ordre permet `membre.Role < roleRequis` dans le middleware.
+
+### Livré
+- **`Modules/Collaboration/`** : `EtudeMembre(Id, EtudeId, UtilisateurId, Role, AjouteLeUtc, AjoutePar?)`, `IEtudeMembreRepository`. Table `etude_membres`, index unique `(EtudeId, UtilisateurId)`.
+- **Migration `AjoutEtudeMembres`** avec **backfill SQL** : chaque étude existante (hors démo `ProprietaireId` null) → un membre Proprietaire = son créateur.
+- **`POST /etudes`** crée aussi la ligne membre Proprietaire. `Etude.ProprietaireId` conservé (marqueur du créateur d'origine + logique démo publique).
+- **Middleware d'isolation réécrit** : démo publique = lecture pour tous / écriture pour personne ; sinon il faut être membre (sinon 404), et pour écrire : `/membres` ou suppression de l'étude → Proprietaire, tout le reste → Editeur+. **Filet de sécurité** : si le créateur d'origine n'a pas de ligne `etude_membres` (dérive de données), on la recrée au lieu de le verrouiller dehors.
+- **Endpoints membres** : `GET` (tout membre), `POST {email, role}` (compte inconnu → 404, déjà membre → 409), `PUT {role}`, `DELETE` — les 3 derniers réservés Proprietaire (via middleware), avec garde « au moins un Proprietaire » (409).
+- **`GET /etudes/{id}` et `GET /etudes`** renvoient désormais `monRole` (projection `AvecRole`).
+- `ListerVisiblesAsync` : `ProprietaireId null OU membre`. `ServiceSuppressionEtude` purge `etude_membres`.
+- **Rate limiter inscription** : `PermitLimit` passé à 100 000 en environnement `Testing` (les WebApplicationFactory partagent une IP null → un seul quota pour toutes les inscriptions de test).
+- **Frontend** : `pages/MembresEtude.tsx` (`/etudes/:id/membres` — formulaire d'ajout + tableau + changement de rôle inline + retrait, tout masqué si pas Proprietaire), liens MEMBRES/JOURNAL + rôle affiché + bandeau « lecture seule » sur le Dashboard. `RoleEtude`/`MembreEtude` + 4 fonctions dans `api.ts`.
+- **`ebiosrm.seed.db` régénéré** (tables `journal_audit` + `etude_membres`).
+- **Vérifié** : 236 tests backend (+6 : créateur = Proprietaire, non-membre 404, Editeur modifie mais pas les membres, Lecteur lit mais 403 en écriture, email inconnu 404, dernier Proprietaire non retirable), 25 frontend, + navigateur (Playwright) : page Membres côté Proprietaire vs Lecteur, bandeau lecture seule, partage rendant l'étude visible.
+
+### Reste à faire (améliorations, non bloquant)
+- **Gating fin de l'UI** : sur `AtelierPage.tsx`, masquer les boutons Ajouter/Modifier/Supprimer pour un Lecteur (aujourd'hui ils sont visibles mais le backend renvoie 403 → toast). Bandeau « lecture seule » déjà présent sur le Dashboard.
+- **« Quitter l'étude »** : self-removal d'un Lecteur/Editeur (aujourd'hui seul le Proprietaire gère les membres).
+- **Invitation d'un compte inexistant** : aujourd'hui la personne doit déjà avoir un compte. Un vrai flux d'invitation par email dépend de la branche `feat/reinitialisation-mot-de-passe` (envoi d'emails).
 
 *Fin du contexte.*
 

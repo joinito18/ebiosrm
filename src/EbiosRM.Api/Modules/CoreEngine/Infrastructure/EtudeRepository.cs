@@ -31,8 +31,11 @@ public sealed class EtudeRepository : IEtudeRepository
 
     public async Task<List<Etude>> ListerVisiblesAsync(Guid utilisateurId, CancellationToken cancellationToken)
     {
+        // Visible = etude de demonstration publique (ProprietaireId null) OU
+        // etude dont l'utilisateur est membre (cf. table etude_membres).
         return await _db.Etudes
-            .Where(e => e.ProprietaireId == null || e.ProprietaireId == utilisateurId)
+            .Where(e => e.ProprietaireId == null
+                        || _db.EtudeMembres.Any(m => m.EtudeId == e.Id && m.UtilisateurId == utilisateurId))
             .ToListAsync(cancellationToken);
     }
 

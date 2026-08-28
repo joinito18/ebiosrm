@@ -11,6 +11,7 @@ import Etudes from './pages/Etudes'
 // Pages lourdes chargees a la demande (l'Atelier surtout : ~la moitie du bundle).
 const Dashboard = lazy(function () { return import('./pages/Dashboard') })
 const JournalEtude = lazy(function () { return import('./pages/JournalEtude') })
+const MembresEtude = lazy(function () { return import('./pages/MembresEtude') })
 const AtelierPage = lazy(function () { return import('./pages/AtelierPage') })
 const Rapports = lazy(function () { return import('./pages/Rapports') })
 const Parametres = lazy(function () { return import('./pages/Parametres') })
@@ -38,6 +39,7 @@ export default function App() {
                 <Route path="/etudes" element={<Etudes />} />
                 <Route path="/etudes/:etudeId" element={<Dashboard />} />
                 <Route path="/etudes/:etudeId/journal" element={<JournalEtude />} />
+                <Route path="/etudes/:etudeId/membres" element={<MembresEtude />} />
                 <Route path="/etudes/:etudeId/ateliers/:numero" element={<AtelierPage />} />
                 <Route path="/rapports" element={<Rapports />} />
                 <Route path="/parametres" element={<Parametres />} />

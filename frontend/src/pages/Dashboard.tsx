@@ -77,8 +77,15 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <div className="mb-8 border-b border-paper-line pb-8">
-        <div className="mb-3 font-mono text-[11px] tracking-wide text-steel">
-          REF. {etude.id.slice(0, 8).toUpperCase()} - {etude.versionReferentielId}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="font-mono text-[11px] tracking-wide text-steel">
+            REF. {etude.id.slice(0, 8).toUpperCase()} - {etude.versionReferentielId}
+          </div>
+          <div className="flex items-center gap-4 font-mono text-[10px] tracking-wide text-steel">
+            {etude.monRole && <span className="text-steel-light">{etude.monRole.toUpperCase()}</span>}
+            <Link to={'/etudes/' + etudeId + '/membres'} className="hover:text-signature">MEMBRES</Link>
+            <Link to={'/etudes/' + etudeId + '/journal'} className="hover:text-signature">JOURNAL</Link>
+          </div>
         </div>
         <h1 className="font-display text-[34px] leading-tight text-ink">
           {etude.nom}
@@ -86,6 +93,11 @@ export default function Dashboard() {
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-steel">
           {etude.perimetre}
         </p>
+        {etude.monRole === 'Lecteur' && (
+          <p className="mt-3 inline-block border border-paper-line bg-paper-dim px-3 py-1.5 text-[11px] text-steel">
+            Vous consultez cette etude en lecture seule.
+          </p>
+        )}
       </div>
 
       <div className="mb-12 grid grid-cols-1 gap-px border-y border-paper-line bg-paper-line sm:grid-cols-3 lg:grid-cols-5">

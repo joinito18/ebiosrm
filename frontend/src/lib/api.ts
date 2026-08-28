@@ -12,6 +12,18 @@ export interface Etude {
   statutAtelier4: 'Brouillon' | 'EnCours' | 'Validee'
   statutAtelier5: 'Brouillon' | 'EnCours' | 'Validee'
   creeLeUtc: string
+  monRole?: RoleEtude | null
+}
+
+export type RoleEtude = 'Proprietaire' | 'Editeur' | 'Lecteur'
+
+export interface MembreEtude {
+  utilisateurId: string
+  nomAffiche: string
+  email: string
+  role: RoleEtude
+  ajouteLeUtc: string
+  estMoi: boolean
 }
 
 export interface ValeurMetier {
@@ -197,6 +209,22 @@ export interface EntreeJournal {
 
 export function listerJournal(etudeId: string, limite?: number): Promise<EntreeJournal[]> {
   return apiFetch('/etudes/' + etudeId + '/journal' + (limite ? '?limite=' + limite : ''))
+}
+
+export function listerMembres(etudeId: string): Promise<MembreEtude[]> {
+  return apiFetch('/etudes/' + etudeId + '/membres')
+}
+
+export function ajouterMembre(etudeId: string, email: string, role: RoleEtude): Promise<unknown> {
+  return apiFetch('/etudes/' + etudeId + '/membres', { method: 'POST', body: JSON.stringify({ email, role }) })
+}
+
+export function changerRoleMembre(etudeId: string, utilisateurId: string, role: RoleEtude): Promise<unknown> {
+  return apiFetch('/etudes/' + etudeId + '/membres/' + utilisateurId, { method: 'PUT', body: JSON.stringify({ role }) })
+}
+
+export function retirerMembre(etudeId: string, utilisateurId: string): Promise<void> {
+  return apiFetch('/etudes/' + etudeId + '/membres/' + utilisateurId, { method: 'DELETE' })
 }
 
 export function createEtude(nom: string, perimetre: string, mission: string): Promise<Etude> {
