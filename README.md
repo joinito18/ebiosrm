@@ -28,8 +28,19 @@ L'installation la plus simple : **un seul fichier**, aucun outil à installer
 - **Windows** : télécharger `EbiosRM-Setup.exe` depuis la
   [page des releases](https://github.com/joinito18/ebiosrm/releases), double-cliquer,
   suivre l'assistant. Un raccourci « EBIOS RM » est créé dans le menu Démarrer.
-- **macOS / Linux** : télécharger l'archive correspondante, l'extraire, lancer
-  l'exécutable `EbiosRM`.
+- **Ubuntu / Linux** : télécharger `EbiosRM-<version>-linux.tar.gz`, puis :
+
+  ```bash
+  tar xzf EbiosRM-*-linux.tar.gz
+  cd EbiosRM-*            # ou le dossier extrait
+  ./installer.sh          # ajoute "EBIOS RM" au menu des applications, sans sudo
+  ```
+
+  Ensuite, lancer **EBIOS RM** depuis la grille des applications (ou la commande
+  `ebiosrm` en terminal). Sans installation : `./EbiosRM` directement dans le
+  dossier extrait. Désinstaller : `./installer.sh --desinstaller`.
+- **macOS** : télécharger l'archive correspondante, l'extraire, lancer
+  l'exécutable `EbiosRM` (clic droit → Ouvrir la première fois, binaire non signé).
 
 Au lancement, l'application démarre puis **ouvre le navigateur** sur
 `http://localhost:5000`. Au tout premier démarrage, une **étude d'exemple

@@ -2230,6 +2230,9 @@ Demande : « même sur le fichier d'exécution, la première étude de 15 valeur
 ### Limite assumée (v1)
 `EnsureCreated()` + seed .db figé = pas de chemin de migration du schéma SQLite : une future version qui change le modèle ne mettra pas à jour une base `ebiosrm.db` existante, et il faut régénérer le seed (`generer-seed.sh`). Contournement utilisateur prévu : export JSON (déjà livré) + import (pas encore fait). Pas bloquant pour livrer le .exe.
 
+### Installateur Ubuntu / Linux
+`build/linux/installer.sh` + `build/linux/EbiosRM.desktop` : installation **par utilisateur** (aucun sudo) — copie dans `~/.local/opt/ebiosrm`, entrée `~/.local/share/applications/ebiosrm.desktop` (l'appli apparaît dans la grille GNOME), commande `~/.local/bin/ebiosrm`, `--desinstaller` qui préserve les données. `build/build-desktop.sh` les copie dans la sortie `linux-*` (+ `favicon.svg` comme icône). Testé dans un `$HOME` isolé (install + désinstall).
+
 ### Reste à faire
 Merger la branche, poser un tag `v*` pour produire les binaires. Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).
 

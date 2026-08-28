@@ -46,6 +46,14 @@ else
   chmod +x "$SORTIE/EbiosRM"
 fi
 
+# Sous Linux : script d'installation dans le menu des applications + icone.
+if [[ "$RID" == linux-* ]]; then
+  cp "$RACINE/build/linux/installer.sh" "$SORTIE/installer.sh"
+  cp "$RACINE/build/linux/EbiosRM.desktop" "$SORTIE/EbiosRM.desktop"
+  cp "$RACINE/frontend/public/favicon.svg" "$SORTIE/favicon.svg"
+  chmod +x "$SORTIE/installer.sh"
+fi
+
 echo
 echo "==> OK : $SORTIE"
 ls -lh "$SORTIE"

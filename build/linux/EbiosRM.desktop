@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=EBIOS RM
+Comment=Analyse de risque EBIOS Risk Manager (ANSSI)
+Exec=__EXEC__
+Icon=__ICON__
+Terminal=false
+Categories=Office;ProjectManagement;Security;
+StartupNotify=true
