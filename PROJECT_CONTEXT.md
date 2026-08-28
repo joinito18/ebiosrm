@@ -2219,8 +2219,16 @@ Les tests d'intégration (`EbiosApiFactory` fournit une chaîne Postgres) et les
 ### Vérifié (sur le binaire self-contained linux-x64 réellement publié)
 Mode bureau zéro-config : `ebiosrm.db` + `jwt.key` auto-créés, `EnsureCreated` génère les 20 tables (noms nus), `/api/v1/health` → `database: connected`, `/` et deep link `/etudes` → 200 (SPA + fallback), `/api/v1/inexistant` → 404, inscription → 201. `dotnet test` 227/227, `npm run build` + `vitest` 25/25.
 
+### Étude d'exemple embarquée dans le .exe
+Demande : « même sur le fichier d'exécution, la première étude de 15 valeurs métier présente à titre d'exemple ». Livré :
+- `build/seed/copier-etude.py` : copie table par table l'étude « Atlas Assurances Santé » de la base PostgreSQL de dev vers une base SQLite déjà créée (schéma via EnsureCreated). **Aucun remapping de FK** (les IDs sont conservés), juste une conversion de format vers ce qu'attend le fournisseur SQLite d'EF Core : `uuid` → **TEXT majuscules** `D` (piège : psycopg2 rend les uuid en str minuscules sans `register_uuid()`), `timestamptz` → `YYYY-MM-DD HH:MM:SS.ffffff` sans fuseau, `boolean` → 0/1, `jsonb` (ContenuJson) → texte tel quel, `PrimitiveCollection<List<Guid>>` (`scenarios_de_risque_ids`) → tableau natif PG → **tableau JSON de TEXT majuscules** côté SQLite. `--public` force `ProprietaireId = NULL`.
+- `build/seed/generer-seed.sh` : orchestre (schéma SQLite vierge en lançant l'API une fois + `copier-etude.py` + `VACUUM`) → produit `src/EbiosRM.Api/ressources/ebiosrm.seed.db` (**332 Ko, versionné** — GitHub Actions n'a pas accès à la base PG pour le régénérer).
+- `EbiosRM.Api.csproj` : `<EmbeddedResource Include="ressources\ebiosrm.seed.db" Condition="Exists(...)">`.
+- `ConfigurationExecution.DeposerBaseExempleSiPremierLancement` : **mode bureau uniquement** (pas en `Database:Provider=Sqlite` serveur), si `ebiosrm.db` absent et `App:ChargerExemple != false` → extrait la ressource dans le dossier de données, avant `EnsureCreated` (qui devient un no-op).
+- **Vérifié sur le paquet Linux livré** (extraction tarball → run → inscription) : « Atlas Assurances Santé » présente, 15 VM / 10 biens / 15 ER / 5 couples / 4 PP / 3 scénarios strat-op-risque / 7 mesures / 5 snapshots, les 3 rapports PDF testés (Atelier 1 3 pages, Atelier 3, synthèse globale 4 pages) rendus correctement, étude en lecture seule (DELETE → 403), un compte peut créer ses propres études à côté. 227 tests backend + 25 frontend toujours verts.
+
 ### Limite assumée (v1)
-`EnsureCreated()` = pas de chemin de migration du schéma SQLite : une future version qui change le modèle ne mettra pas à jour une base `ebiosrm.db` existante. Contournement prévu : l'export JSON (déjà livré) + un import (pas encore fait). Pas bloquant pour livrer le .exe.
+`EnsureCreated()` + seed .db figé = pas de chemin de migration du schéma SQLite : une future version qui change le modèle ne mettra pas à jour une base `ebiosrm.db` existante, et il faut régénérer le seed (`generer-seed.sh`). Contournement utilisateur prévu : export JSON (déjà livré) + import (pas encore fait). Pas bloquant pour livrer le .exe.
 
 ### Reste à faire
 Merger la branche, poser un tag `v*` pour produire les binaires. Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).

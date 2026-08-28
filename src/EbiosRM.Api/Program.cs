@@ -208,6 +208,9 @@ var app = builder.Build();
 //  - PostgreSQL : migrations EF, uniquement si ApplyMigrationsOnStartup=true
 //    (docker compose selfhost). En SaaS c'est le pipeline ci.yml qui migre.
 {
+    // Mode bureau, 1er lancement : deposer l'etude d'exemple embarquee (si presente).
+    execution.DeposerBaseExempleSiPremierLancement(app.Configuration);
+
     using var scopeMigration = app.Services.CreateScope();
     var dbDemarrage = scopeMigration.ServiceProvider.GetRequiredService<EbiosDbContext>();
     if (execution.Fournisseur == FournisseurBaseDeDonnees.Sqlite)

@@ -24,5 +24,9 @@
     <!-- Polices des rapports PDF, embarquees dans l'assembly (cf. Program.cs) :
          fonctionne aussi en publication fichier unique. -->
     <EmbeddedResource Include="Assets\Fonts\*.ttf" />
+    <!-- Etude d'exemple deposee au 1er lancement du .exe (cf.
+         ConfigurationExecution). Genere par build/seed/generer-seed.sh,
+         absent du depot par defaut -> l'inclusion est conditionnelle. -->
+    <EmbeddedResource Include="ressources\ebiosrm.seed.db" Condition="Exists('ressources\ebiosrm.seed.db')" />
   </ItemGroup>
 </Project>

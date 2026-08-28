@@ -22,12 +22,16 @@ public sealed class ConfigurationExecution
     public bool ModeBureau { get; }
     public string DossierDonnees { get; }
 
-    private ConfigurationExecution(FournisseurBaseDeDonnees fournisseur, string chaineConnexion, bool modeBureau, string dossierDonnees)
+    /// <summary>Chemin du fichier .db en mode SQLite, <c>null</c> sinon.</summary>
+    public string? FichierSqlite { get; }
+
+    private ConfigurationExecution(FournisseurBaseDeDonnees fournisseur, string chaineConnexion, bool modeBureau, string dossierDonnees, string? fichierSqlite)
     {
         Fournisseur = fournisseur;
         ChaineConnexion = chaineConnexion;
         ModeBureau = modeBureau;
         DossierDonnees = dossierDonnees;
+        FichierSqlite = fichierSqlite;
     }
 
     public static ConfigurationExecution Determiner(IConfiguration configuration)
@@ -45,7 +49,8 @@ public sealed class ConfigurationExecution
                 FournisseurBaseDeDonnees.Postgres,
                 chainePostgres ?? throw new InvalidOperationException("ConnectionStrings:EbiosDb est requis en mode PostgreSQL."),
                 modeBureau: false,
-                dossierDonnees: AppContext.BaseDirectory);
+                dossierDonnees: AppContext.BaseDirectory,
+                fichierSqlite: null);
         }
 
         var dossier = configuration["App:DossierDonnees"] ?? DossierDonneesParDefaut();
@@ -58,7 +63,35 @@ public sealed class ConfigurationExecution
         // serveur (pas d'ouverture de navigateur).
         var modeBureau = string.IsNullOrWhiteSpace(chainePostgres) && string.IsNullOrWhiteSpace(fournisseurForce);
 
-        return new ConfigurationExecution(FournisseurBaseDeDonnees.Sqlite, $"Data Source={fichierDb}", modeBureau, dossier);
+        return new ConfigurationExecution(FournisseurBaseDeDonnees.Sqlite, $"Data Source={fichierDb}", modeBureau, dossier, fichierDb);
+    }
+
+    /// <summary>
+    /// Tout premier lancement en mode bureau : si aucune base n'existe encore
+    /// et que l'application embarque une base d'exemple (ressource
+    /// <c>ebiosrm.seed.db</c>), la déposer -- l'utilisateur découvre l'outil
+    /// avec une étude déjà remplie plutôt qu'un écran vide.
+    /// <c>App:ChargerExemple=false</c> pour démarrer sur une base vierge.
+    /// </summary>
+    public void DeposerBaseExempleSiPremierLancement(IConfiguration configuration)
+    {
+        if (!ModeBureau
+            || FichierSqlite is null
+            || File.Exists(FichierSqlite)
+            || !configuration.GetValue("App:ChargerExemple", true))
+            return;
+
+        var assembly = typeof(ConfigurationExecution).Assembly;
+        var ressource = assembly.GetManifestResourceNames()
+            .FirstOrDefault(n => n.EndsWith("ebiosrm.seed.db", StringComparison.OrdinalIgnoreCase));
+        if (ressource is null)
+            return;
+
+        using var source = assembly.GetManifestResourceStream(ressource);
+        if (source is null)
+            return;
+        using var cible = File.Create(FichierSqlite);
+        source.CopyTo(cible);
     }
 
     private static string DossierDonneesParDefaut()

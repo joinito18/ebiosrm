@@ -32,7 +32,13 @@ L'installation la plus simple : **un seul fichier**, aucun outil à installer
   l'exécutable `EbiosRM`.
 
 Au lancement, l'application démarre puis **ouvre le navigateur** sur
-`http://localhost:5000`. Les données sont stockées localement :
+`http://localhost:5000`. Au tout premier démarrage, une **étude d'exemple
+complète** (« Atlas Assurances Santé », 15 valeurs métier, les 5 ateliers
+validés) est présente en lecture seule pour découvrir l'outil — créer un
+compte pour commencer sa propre étude. `App:ChargerExemple=false` pour
+démarrer sur une base vierge.
+
+Les données sont stockées localement :
 
 | Système | Emplacement |
 |---|---|
@@ -58,6 +64,11 @@ Résultat dans `build/output/<rid>/`. Pour fabriquer l'installeur Windows,
 compiler ensuite `installer/ebiosrm.iss` avec [Inno Setup](https://jrsoftware.org/isinfo.php).
 Le workflow `.github/workflows/release.yml` fait tout cela automatiquement sur
 un tag `v*`.
+
+L'étude d'exemple embarquée est le fichier `src/EbiosRM.Api/ressources/ebiosrm.seed.db`
+(versionné). Pour la régénérer après une évolution du modèle ou de l'étude :
+`bash build/seed/generer-seed.sh` (nécessite la base PostgreSQL de dev + son
+étude « Atlas Assurances Santé », et `python3` + `psycopg2`).
 
 ---
 
