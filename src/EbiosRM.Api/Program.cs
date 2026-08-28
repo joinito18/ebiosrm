@@ -171,6 +171,19 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// Application automatique des migrations au demarrage. Desactive par defaut :
+// en SaaS c'est le pipeline de deploiement qui applique le schema (etape
+// dediee de ci.yml). Active (ApplyMigrationsOnStartup=true) pour un
+// deploiement autonome facon "docker compose up", ou aucune etape externe
+// ne le fait -- le conteneur API cree/met a jour le schema lui-meme au
+// premier lancement.
+if (app.Configuration.GetValue<bool>("ApplyMigrationsOnStartup"))
+{
+    using var scopeMigration = app.Services.CreateScope();
+    await scopeMigration.ServiceProvider.GetRequiredService<EbiosDbContext>()
+        .Database.MigrateAsync();
+}
+
 // En tout premier : sans ca, tout ce qui lit Connection.RemoteIpAddress
 // plus loin dans le pipeline (le rate limiter, ici) voit l'IP du proxy
 // Render au lieu de celle du client reel.

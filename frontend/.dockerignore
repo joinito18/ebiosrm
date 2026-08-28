@@ -1,0 +1,9 @@
+node_modules
+dist
+.vercel
+# Config Vercel/hebergé : l'image Docker fixe VITE_API_BASE=/api/v1 elle-même.
+.env
+.env.*
+*.log
+Dockerfile
+.dockerignore

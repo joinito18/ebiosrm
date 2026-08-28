@@ -2167,5 +2167,30 @@ Suite à un état des lieux honnête demandé par l'utilisateur (« la méthodol
 
 **Vérification** : `dotnet test` (227/227), test réel contre le serveur local confirmant le contenu exact de l'export sur Atlas Assurances Santé (15 valeurs métier, 10 biens support, 15 événements redoutés, 5 couples, 4 parties prenantes, 3 scénarios stratégiques/chemins/opérationnels/de risque, 7 mesures, 11 contrôles de socle -- tous les chiffres connus de cette étude tout au long de la session), isolation confirmée sur ce nouvel endpoint (404 pour un compte non propriétaire), `npm run build` + `vitest run` (25/25) côté frontend, et téléchargement réel déclenché via Playwright (`page.waitForEvent('download')`, pas une simple vérification HTTP 200) avec relecture du fichier JSON téléchargé.
 
+## Mise à jour — Incident prod « API injoignable sur mobile » + installation autonome Docker
+
+**Déclencheur** : l'utilisateur signale que le site déployé affiche « impossible de contacter l'API » sur mobile.
+
+### Diagnostic (2 causes, toutes côté config Vercel, aucune côté code)
+1. **`VITE_API_BASE` défini nulle part sur Vercel**, et `frontend/.env.production` (qui le fixe à l'URL Render) était **git-ignoré** par la règle `.env.*` du `.gitignore` racine. Le build Vercel retombait donc sur le fallback `http://localhost:5197` de `api.ts` -> le site ne marchait que sur une machine ayant le backend local (d'où « OK sur desktop, KO sur mobile »).
+2. **Root Directory du projet Vercel = `.`** au lieu de `frontend` -> tous les builds de prod échouaient depuis des heures (`vite: command not found`, exit 127) ; le site en ligne était un vieux build. Découvert via `vercel ls` (déploiements en `● Error`, 2-3 s) + `vercel inspect --logs`.
+
+### Corrections livrées (commits sur `master`)
+- `frontend/.env.production` **versionné** (exception `!frontend/.env.production` dans `.gitignore`) -- ne contient que l'URL publique de l'API, aucun secret. Vite le charge au build de prod.
+- **`api.ts` / `apiFetch` durci** : erreur réseau, réponse non-JSON (page d'erreur HTML d'un proxy), 502/503/504 -> ressortent toutes en `ApiError` typée avec message clair, au lieu de faire remonter un `TypeError`/`SyntaxError` que les pages traduisaient par le trompeur « vérifiez que le backend tourne sur localhost:5197 ». Messages `localhost:5197` retirés de `Etudes.tsx`.
+- **Réessais automatiques** dans `apiFetch` (3 s, 12 s, 20 s) sur erreur réseau / 502-504 : absorbe le réveil du backend Render (plan gratuit : veille après ~15 min, ~1 min de redémarrage) au lieu d'échouer au premier appel à froid.
+- **`.github/workflows/keep-alive.yml`** : ping `GET /api/v1/health` toutes les 10 min de 06h-22h UTC (fenêtre d'usage réelle -> reste sous le quota Render de 750 h/mois, ~510 h consommées ; dépôt public -> minutes Actions gratuites). Le health check testant la connexion DB, ça réveille aussi Neon. Testé : réveil en ~24 s, `{"status":"ok","database":"connected"}`.
+
+### État Vercel restant à corriger (non-code, l'utilisateur doit le faire)
+Le **Root Directory** du projet Vercel doit être mis à `frontend` (Settings -> Build and Deployment). Sans ça, les `git push` continuent d'échouer au build ; en attendant, la prod a été redéployée **manuellement** par `npx vercel deploy --prod` depuis `frontend/` (le déploiement en ligne actuel embarque bien le fix de l'URL d'API, vérifié : bundle -> `ebiosrm-api.onrender.com`, plus de `localhost`). L'accès CLI est limité (classifier de l'agent + limite de déploiements/jour du plan gratuit Vercel).
+
+### Installation complète autonome (Docker Compose) -- demande explicite « frontend + backend indépendants »
+`docker compose --profile selfhost up -d --build` démarre **3 conteneurs** : `postgres` + `api` (build depuis `src/EbiosRM.Api/Dockerfile`) + `web` (nouveau `frontend/Dockerfile` : build Vite multi-stage -> nginx). Le `docker-compose.yml` utilise un **profil `selfhost`** : sans le profil, `docker compose up` ne démarre que Postgres (workflow de dev inchangé).
+- **`frontend/nginx.conf`** : sert la SPA (`try_files ... /index.html` pour les deep links) **et** relaie `/api/` vers `http://api:8080`. Le frontend est buildé avec `VITE_API_BASE=/api/v1` (relatif) -> aucun nom d'hôte à connaître au build.
+- **`Program.cs`** : nouveau `if (Configuration.GetValue<bool>("ApplyMigrationsOnStartup")) await db.Database.MigrateAsync()` juste après `builder.Build()`. Désactivé par défaut (en SaaS c'est le pipeline qui migre) ; le compose selfhost le met à `true` -> le conteneur API crée/met à jour le schéma seul au premier lancement.
+- **`.env.example`** (racine, versionné) : `JWT_SECRET` (obligatoire), `POSTGRES_PASSWORD`, `WEB_PORT`, `APP_URL`. Le `.env` réel reste git-ignoré.
+- **`README.md`** créé (n'existait pas) : installation autonome Docker, environnement de dev, tests, sauvegarde/restauration pg_dump, accès réseau.
+- **Vérifié** : les 3 images buildent ; `up` OK ; auto-migration sur base vierge = 32 migrations appliquées + schéma `core_engine` complet ; parcours end-to-end via nginx (inscription -> JWT -> `POST /etudes` 201 -> `GET /etudes`) ; SPA + deep link `/etudes` = 200 ; bundle servi -> `/api/v1` relatif. `dotnet build` + `npm run build` + `vitest` (25/25) verts.
+
 *Fin du contexte.*
 
