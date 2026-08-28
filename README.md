@@ -20,8 +20,10 @@ Trois façons de l'installer, de la plus simple à la plus flexible :
 
 ## Application de bureau (Windows, macOS, Linux)
 
-L'installation la plus simple : **un seul fichier**, aucun outil à installer
-(ni .NET, ni Node, ni Docker), base de données incluse.
+L'installation la plus simple : aucun outil à installer (ni .NET, ni Node, ni
+Docker), base de données incluse. **Fonctionne entièrement hors ligne** —
+aucune connexion internet requise, ni pour l'installation, ni à l'usage (le
+frontend, l'API, la base et les polices sont tous locaux).
 
 ### Utilisateur final
 

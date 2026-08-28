@@ -2211,7 +2211,7 @@ Les tests d'intégration (`EbiosApiFactory` fournit une chaîne Postgres) et les
 - `EbiosDbContextDesignTimeFactory` : force Npgsql pour `dotnet ef` (les migrations restent PostgreSQL-only).
 
 ### Empaquetage
-- `build/build-desktop.sh` / `.ps1` : `npm ci` + `VITE_API_BASE=/api/v1 npm run build`, copie dans `src/EbiosRM.Api/wwwroot/` (git-ignoré), puis `dotnet publish -r <rid> --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` (le natif `libQuestPdfSkia` s'auto-extrait, vérifié), exe renommé `EbiosRM(.exe)`. Sortie `build/output/<rid>/` : exe (~55 Mo) + `wwwroot/` + `Assets/`+`LatoFont/` (polices QuestPDF) + `appsettings.json`.
+- `build/build-desktop.sh` / `.ps1` : `npm ci` + `VITE_API_BASE=/api/v1 npm run build`, copie dans `src/EbiosRM.Api/wwwroot/` (git-ignoré), puis `dotnet publish -r <rid> --self-contained` (**pas `PublishSingleFile`** — voir correctifs post-merge plus bas), exe renommé `EbiosRM(.exe)`. Sortie `build/output/<rid>/` : dossier de ~350 fichiers.
 - `installer/ebiosrm.iss` : Inno Setup, installation **par utilisateur** (`PrivilegesRequired=lowest`, pas d'UAC), raccourcis menu Démarrer + Bureau (optionnel), désinstalleur qui **préserve les données** (`%LOCALAPPDATA%\EbiosRM`).
 - `.github/workflows/release.yml` : sur tag `v*`, build win-x64 + Inno Setup (`choco install innosetup`) + linux-x64 + osx-arm64 + osx-x64, archives + `EbiosRM-Setup.exe` attachés à une Release GitHub. `workflow_dispatch` pour test à blanc.
 - `README.md` : section « Application de bureau » ajoutée en tête (avant Docker et déploiement web).
@@ -2233,8 +2233,16 @@ Demande : « même sur le fichier d'exécution, la première étude de 15 valeur
 ### Installateur Ubuntu / Linux
 `build/linux/installer.sh` + `build/linux/EbiosRM.desktop` : installation **par utilisateur** (aucun sudo) — copie dans `~/.local/opt/ebiosrm`, entrée `~/.local/share/applications/ebiosrm.desktop` (l'appli apparaît dans la grille GNOME), commande `~/.local/bin/ebiosrm`, `--desinstaller` qui préserve les données. `build/build-desktop.sh` les copie dans la sortie `linux-*` (+ `favicon.svg` comme icône). Testé dans un `$HOME` isolé (install + désinstall).
 
+### Correctifs post-merge (masters `3405707`, `d97174b`, + polices)
+Signalés par l'utilisateur après installation réelle sur son poste Linux :
+- **401 sur toute requête quand lancé depuis le menu** : le répertoire courant est alors le HOME, `app.Environment.WebRootPath` pointait sur `~/wwwroot` (inexistant) → fichiers statiques non servis → `FallbackPolicy` renvoyait 401 partout ; le navigateur s'ouvrait sur une page vide. Corrigé : `Program.cs` résout `wwwroot` depuis `AppContext.BaseDirectory` via un `PhysicalFileProvider` explicite.
+- **Démarrage ~15 s sans retour visible** : `PublishSingleFile` se ré-extrayait au 1er lancement. Abandonné → dossier de fichiers, démarrage ~3-4 s. Sorties `build/output/<rid>/` = ~350 fichiers, `EbiosRM(.exe)` + `wwwroot/` + DLLs.
+- **`LanceurNavigateur`** : cascade `xdg-open` → `gio` → navigateurs connus, trace dans `<données>/demarrage.log` si échec.
+- **Tests d'intégration polluaient `~/.local/share/EbiosRM`** : `ConfigurationExecution.Determiner` lit la config avant que `WebApplicationFactory` ne fusionne son `ConfigureAppConfiguration` → les tests basculaient en mode bureau SQLite (dossier de données réel + ouverture navigateur). `EbiosApiFactory` passe désormais par des **variables d'environnement** (`Database__Provider`, `ConnectionStrings__EbiosDb`, `Jwt__Secret`), lues dès `CreateBuilder`.
+- **Polices hors ligne** : `frontend/src/index.css` chargeait `fonts.googleapis.com` via `@import` → l'app de bureau dépendait d'internet pour sa typo. Les 8 TTF backend (IBM Plex Sans/Mono, Fraunces) convertis en woff2 (`fonttools`) dans `frontend/src/assets/fonts/`, `@font-face` local. **Vérifié via Chrome (onglet réseau) : 8 requêtes, toutes sur `localhost:5000`, zéro appel externe.** L'app de bureau est 100 % hors ligne (runtime self-contained + SQLite + frontend + polices, tout local).
+
 ### Reste à faire
-Merger la branche, poser un tag `v*` pour produire les binaires. Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).
+Poser un tag `v*` pour produire les binaires (workflow `release.yml`). Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).
 
 *Fin du contexte.*
 
