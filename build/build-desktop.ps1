@@ -39,7 +39,7 @@ dotnet publish (Join-Path $Api "EbiosRM.Api.csproj") `
     -o $Sortie
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish a echoue" }
 
-Remove-Item -Force (Join-Path $Sortie "appsettings.Development.json") -ErrorAction SilentlyContinue
+Remove-Item -Force (Join-Path $Sortie "appsettings.Development.json"), (Join-Path $Sortie "web.config") -ErrorAction SilentlyContinue
 
 # Renomme l'executable hote en "EbiosRM" (sans incidence pour une publication
 # fichier unique : le nom de l'exe est independant du nom de l'assembly).

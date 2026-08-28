@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Assets\Fonts\*.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <!-- Polices des rapports PDF, embarquees dans l'assembly (cf. Program.cs) :
+         fonctionne aussi en publication fichier unique. -->
+    <EmbeddedResource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 </Project>

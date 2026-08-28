@@ -35,7 +35,7 @@ dotnet publish "$API/EbiosRM.Api.csproj" \
   -o "$SORTIE"
 
 # appsettings.Development.json n'a rien à faire dans une distribution.
-rm -f "$SORTIE/appsettings.Development.json"
+rm -f "$SORTIE/appsettings.Development.json" "$SORTIE/web.config"
 
 # Renomme l'exécutable hôte en "EbiosRM" (sans incidence : le nom de l'exe
 # est indépendant du nom de l'assembly pour une publication fichier unique).

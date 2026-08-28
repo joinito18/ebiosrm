@@ -24,11 +24,22 @@ QuestPDF.Settings.License = LicenseType.Community;
 // noms de claims tels qu'émis par ServiceAuthentification.GenererJeton.
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
-var dossierPolices = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
-if (Directory.Exists(dossierPolices))
+// Polices des rapports PDF : embarquees dans l'assembly (EmbeddedResource) donc
+// disponibles quel que soit le mode de publication -- y compris l'executable
+// fichier unique de l'application de bureau, qui ne recopie pas les fichiers
+// loose a cote de l'exe.
+var assemblyCourant = typeof(Program).Assembly;
+foreach (var nomRessource in assemblyCourant.GetManifestResourceNames())
 {
-    foreach (var fichierPolice in Directory.GetFiles(dossierPolices, "*.ttf"))
-        QuestPDF.Drawing.FontManager.RegisterFont(File.OpenRead(fichierPolice));
+    if (!nomRessource.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase))
+        continue;
+    using var fluxRessource = assemblyCourant.GetManifestResourceStream(nomRessource);
+    if (fluxRessource is null)
+        continue;
+    var memoirePolice = new MemoryStream();
+    fluxRessource.CopyTo(memoirePolice);
+    memoirePolice.Position = 0;
+    QuestPDF.Drawing.FontManager.RegisterFont(memoirePolice);
 }
 
 var builder = WebApplication.CreateBuilder(args);
