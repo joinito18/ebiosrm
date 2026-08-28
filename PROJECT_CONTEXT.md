@@ -2244,5 +2244,22 @@ Signalés par l'utilisateur après installation réelle sur son poste Linux :
 ### Reste à faire
 Poser un tag `v*` pour produire les binaires (workflow `release.yml`). Éventuellement : signature du binaire Windows (sinon SmartScreen affiche « éditeur inconnu » au 1er lancement — acceptable en diffusion restreinte).
 
+## Mise à jour — Journal d'audit (chantier « socle collaboratif », étape 1/2)
+
+Suite à `docs/analyse-concurrentielle.md` (écart 🔴 « pas de journal d'audit »). Choix actés avec l'utilisateur pour tout le chantier collaboratif : **partage par étude** (table `EtudeMembre(EtudeId, UtilisateurId, Role)`, à venir), **4 rôles** (Propriétaire / Valideur / Contributeur / Lecteur — la distinction Valideur ≠ Contributeur applique la séparation des tâches d'ISO 27001 A.5.3), journal d'audit **d'abord**.
+
+### Livré (journal d'audit)
+- **`Modules/Audit/`** : `EntreeJournal` (Id, EtudeId, UtilisateurId?, **NomUtilisateur dénormalisé** — survit à la suppression du compte), DateUtc, Action, Methode, Chemin, StatutHttp. **Append-only** : aucune méthode de mutation, aucun endpoint PUT/DELETE.
+- **`DescriptionAction.Deriver(methode, chemin)`** : méthode + chemin → phrase FR (« Création : valeur métier », « Validation de l'atelier 2 », « Ajustement d'une valeur par jugement d'expert »...). Map des ~18 ressources + verbes d'atelier + cas `acceptation`/overrides ; fallback générique.
+- **Middleware** (Program.cs, juste après l'isolation) : après chaque écriture 2xx sur une route `etudeId`/`id` d'un utilisateur authentifié → consigne l'entrée. **Un échec de journalisation ne fait jamais échouer la requête** (try/catch + log warning).
+- **Endpoint** `GET /api/v1/etudes/{etudeId}/journal?limite=` (défaut 200, borné 1-1000).
+- **Migration** `AjoutJournalAudit` (table `journal_audit`, index `(EtudeId, DateUtc)`). `ServiceSuppressionEtude` purge aussi cette table.
+- **Frontend** : `pages/JournalEtude.tsx` (page `/etudes/:id/journal`), panneau « JOURNAL D ACTIVITE » sur le Dashboard (6 dernières + lien). `listerJournal()` + type dans `api.ts`.
+- **Vérifié** : 230 tests backend (+3), 25 frontend, + navigateur (Dashboard + page journal, parcours Atelier 1 → 7 entrées correctes).
+
+### Reste à faire
+- **Étape 2/2 : partage + rôles.** `EtudeMembre`, endpoints `POST/DELETE /etudes/{id}/membres`, middleware d'isolation qui vérifie le rôle (lecture = tout membre, écriture = Contributeur+, valider/rouvrir/accepter = Valideur+, gestion membres + suppression = Propriétaire), UI de partage. Invitation par email (dépend de la branche réinitialisation MDP).
+- **Régénérer `ebiosrm.seed.db`** : `journal_audit` ajoutée après le dernier `generer-seed.sh` → le seed embarqué dans le .exe n'a pas cette table (le middleware d'audit échoue silencieusement en mode bureau jusqu'à `bash build/seed/generer-seed.sh`).
+
 *Fin du contexte.*
 

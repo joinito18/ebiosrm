@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { AtelierChainExpanded } from '../components/methodology/AtelierChain'
 import type { AtelierNode } from '../components/methodology/AtelierChain'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
@@ -7,9 +7,9 @@ import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapp
 import Card from '../components/shared/Card'
 import RiskMatrix from '../components/dashboard/RiskMatrix'
 import {
-  getEtude, listValeursMetier, listEvenementsRedoutes, listCouplesSrOv, listScenariosDeRisque,
+  getEtude, listValeursMetier, listEvenementsRedoutes, listCouplesSrOv, listScenariosDeRisque, listerJournal,
 } from '../lib/api'
-import type { Etude, ScenarioDeRisque } from '../lib/api'
+import type { Etude, ScenarioDeRisque, EntreeJournal } from '../lib/api'
 
 export default function Dashboard() {
   var params = useParams()
@@ -19,6 +19,7 @@ export default function Dashboard() {
   var [nbEvenementsRedoutes, setNbEvenementsRedoutes] = useState(0)
   var [nbCouplesRetenus, setNbCouplesRetenus] = useState(0)
   var [scenariosDeRisque, setScenariosDeRisque] = useState<ScenarioDeRisque[]>([])
+  var [journal, setJournal] = useState<EntreeJournal[]>([])
   var [chargement, setChargement] = useState(true)
 
   useEffect(function () {
@@ -29,6 +30,7 @@ export default function Dashboard() {
       listEvenementsRedoutes(etudeId),
       listCouplesSrOv(etudeId),
       listScenariosDeRisque(etudeId),
+      listerJournal(etudeId, 6),
     ]).then(function (results) {
       setEtude(results[0])
       setNbValeursMetier(results[1] ? results[1].length : 0)
@@ -36,6 +38,7 @@ export default function Dashboard() {
       var couples = results[3] || []
       setNbCouplesRetenus(couples.filter(function (c) { return c.pertinence === 'TresPertinent' || c.pertinence === 'PlutotPertinent' }).length)
       setScenariosDeRisque(results[4] || [])
+      setJournal(results[5] || [])
     }).finally(function () { setChargement(false) })
   }, [etudeId])
 
@@ -125,16 +128,43 @@ export default function Dashboard() {
           )}
         </section>
 
-        {scenariosDeRisque.length > 0 && (
+        <div className="space-y-8">
+          {scenariosDeRisque.length > 0 && (
+            <section>
+              <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
+                CARTOGRAPHIE DES RISQUES
+              </h2>
+              <Card variant="elevated" className="p-5">
+                <RiskMatrix scenarios={scenariosDeRisque} />
+              </Card>
+            </section>
+          )}
+
           <section>
-            <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
-              CARTOGRAPHIE DES RISQUES
-            </h2>
-            <Card variant="elevated" className="p-5">
-              <RiskMatrix scenarios={scenariosDeRisque} />
-            </Card>
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="font-mono text-[11px] tracking-wide text-steel-light">JOURNAL D ACTIVITE</h2>
+              <Link to={'/etudes/' + etudeId + '/journal'} className="font-mono text-[10px] text-steel hover:text-signature">
+                voir tout &rarr;
+              </Link>
+            </div>
+            {journal.length === 0 ? (
+              <p className="text-xs text-steel-light">Aucune activite pour le moment.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {journal.map(function (e) {
+                  return (
+                    <li key={e.id} className="border-l-2 border-paper-line pl-3 text-xs">
+                      <div className="text-ink">{e.action}</div>
+                      <div className="font-mono text-[10px] text-steel-light">
+                        {e.nomUtilisateur} &middot; {new Date(e.dateUtc).toLocaleDateString('fr-FR')} {new Date(e.dateUtc).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </section>
-        )}
+        </div>
       </div>
     </div>
   )

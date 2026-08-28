@@ -185,6 +185,20 @@ export function getEtude(id: string): Promise<Etude | null> {
   return apiFetch('/etudes/' + id)
 }
 
+export interface EntreeJournal {
+  id: string
+  dateUtc: string
+  nomUtilisateur: string
+  action: string
+  methode: string
+  chemin: string
+  statutHttp: number
+}
+
+export function listerJournal(etudeId: string, limite?: number): Promise<EntreeJournal[]> {
+  return apiFetch('/etudes/' + etudeId + '/journal' + (limite ? '?limite=' + limite : ''))
+}
+
 export function createEtude(nom: string, perimetre: string, mission: string): Promise<Etude> {
   return apiFetch('/etudes', {
     method: 'POST',

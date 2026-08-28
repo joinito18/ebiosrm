@@ -43,6 +43,7 @@ public sealed class ServiceSuppressionEtude
         await _db.ScenariosDeRisque.Where(s => s.EtudeId == etudeId).ExecuteDeleteAsync(cancellationToken);
         await _db.PlansTraitementRisque.Where(p => p.EtudeId == etudeId).ExecuteDeleteAsync(cancellationToken);
         await _db.SnapshotsAtelier.Where(s => s.EtudeId == etudeId).ExecuteDeleteAsync(cancellationToken);
+        await _db.JournalAudit.Where(j => j.EtudeId == etudeId).ExecuteDeleteAsync(cancellationToken);
         await _db.Etudes.Where(e => e.Id == etudeId).ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);

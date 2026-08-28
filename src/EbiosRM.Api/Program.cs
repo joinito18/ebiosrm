@@ -1,5 +1,7 @@
 using EbiosRM.Api.Infrastructure.Hebergement;
 using EbiosRM.Api.Infrastructure.Persistence;
+using EbiosRM.Api.Modules.Audit.Domain;
+using EbiosRM.Api.Modules.Audit.Infrastructure;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
@@ -155,6 +157,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
+builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -303,6 +306,47 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
+// Journal d'audit : apres chaque ecriture reussie sur une route d'etude, on
+// consigne qui / quoi / quand. Centralise ici plutot que dans chaque handler.
+// Append-only : aucune interface ne modifie ni ne supprime une entree. Les
+// echecs de journalisation ne font jamais echouer la requete de l'utilisateur.
+app.Use(async (context, next) =>
+{
+    await next(context);
+
+    var methode = context.Request.Method;
+    if (HttpMethods.IsGet(methode) || HttpMethods.IsHead(methode) || HttpMethods.IsOptions(methode))
+        return;
+    if (context.Response.StatusCode is < 200 or >= 300)
+        return;
+
+    var routeValue = context.GetRouteValue("etudeId") ?? context.GetRouteValue("id");
+    if (routeValue is not string idBrut || !Guid.TryParse(idBrut, out var etudeIdJournal))
+        return;
+
+    var auteurId = ObtenirUtilisateurId(context.User);
+    if (auteurId is null)
+        return;
+
+    try
+    {
+        var repoJournal = context.RequestServices.GetRequiredService<IEntreeJournalRepository>();
+        var repoUtil = context.RequestServices.GetRequiredService<IUtilisateurRepository>();
+        var auteur = await repoUtil.ObtenirParIdAsync(auteurId.Value, CancellationToken.None);
+        var chemin = context.Request.Path.Value ?? "";
+        await repoJournal.AjouterAsync(
+            EntreeJournal.Creer(
+                etudeIdJournal, auteurId, auteur?.NomAffiche ?? auteur?.Email ?? "inconnu",
+                DescriptionAction.Deriver(methode, chemin), methode, chemin, context.Response.StatusCode),
+            CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        context.RequestServices.GetService<ILoggerFactory>()?
+            .CreateLogger("JournalAudit").LogWarning(ex, "Echec d'ecriture du journal d'audit");
+    }
+});
+
 Guid? ObtenirUtilisateurId(System.Security.Claims.ClaimsPrincipal principal)
 {
     var idClaim = principal.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
@@ -396,6 +440,16 @@ app.MapGet("/api/v1/etudes/{id:guid}", async (Guid id, IEtudeRepository repo, Ca
 // des donnees sources). Beneficie automatiquement du middleware de visibilite
 // des etudes (etudeId dans la route) : 404 si non visible, aucune restriction
 // d'ecriture puisque c'est une simple lecture.
+app.MapGet("/api/v1/etudes/{etudeId:guid}/journal", async (
+    Guid etudeId, IEntreeJournalRepository journalRepo, int? limite, CancellationToken ct) =>
+{
+    var entrees = await journalRepo.ListerParEtudeAsync(etudeId, Math.Clamp(limite ?? 200, 1, 1000), ct);
+    return Results.Ok(entrees.Select(e => new
+    {
+        e.Id, e.DateUtc, e.NomUtilisateur, e.Action, e.Methode, e.Chemin, e.StatutHttp,
+    }));
+});
+
 app.MapGet("/api/v1/etudes/{etudeId:guid}/export", async (
     Guid etudeId,
     IEtudeRepository etudeRepo,
