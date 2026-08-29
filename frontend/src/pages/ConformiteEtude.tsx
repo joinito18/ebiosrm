@@ -7,13 +7,6 @@ import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapp
 import { chargerConformiteEtude, getEtude } from '../lib/api'
 import type { RapportConformite, CouvertureConformite, Etude } from '../lib/api'
 
-var LIBELLE_COUVERTURE: { [key in CouvertureConformite]: string } = {
-  Conforme: 'Conforme',
-  Partielle: 'Partielle',
-  NonCouverte: 'Non couverte',
-  NonApplicable: 'Non applicable',
-}
-
 var CLASSE_COUVERTURE: { [key in CouvertureConformite]: string } = {
   Conforme: 'text-risk-low',
   Partielle: 'text-risk-high',
@@ -37,7 +30,7 @@ export default function ConformiteEtude() {
     setChargement(true)
     chargerConformiteEtude(etudeId, referentiel)
       .then(function (r) { setRapport(r); setErreur('') })
-      .catch(function () { setErreur('Impossible de charger le tableau de conformite.') })
+      .catch(function () { setErreur(_t('conformite.indispo')) })
       .finally(function () { setChargement(false) })
   }, [etudeId, referentiel])
 
@@ -50,13 +43,12 @@ export default function ConformiteEtude() {
       <PageHeader
         eyebrow={_t('conformite.eyebrow')}
         titre={_t('conformite.titre')}
-        description={etude ? etude.nom : 'Couverture des exigences réglementaires par le contenu de l’étude.'}
+        description={etude ? etude.nom : _t('conformite.desc')}
       />
 
       <p className="mb-6 border border-paper-line bg-paper-dim px-3 py-2 text-[11px] text-steel">
-        Croisement du socle de sécurité (Atelier 1) et du plan de traitement (Atelier 5) avec les exigences du référentiel.
-        La correspondance ISO&nbsp;27001&nbsp;&rarr;&nbsp;NIS2 est <strong>indicative</strong> et doit être validée par l’analyste.
-        <Link to={'/etudes/' + etudeId} className="ml-2 text-signature hover:underline">retour à l’étude</Link>
+        {_t('conformite.note')}
+        <Link to={'/etudes/' + etudeId} className="ml-2 text-signature hover:underline">{_t('commun.retourEtude')}</Link>
       </p>
 
       <div className="mb-4">
@@ -65,7 +57,7 @@ export default function ConformiteEtude() {
           nomFichier={'conformite-' + etudeId + '.pdf'}
           className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature"
         >
-          Telecharger l annexe de conformite (PDF)
+          {_t('conformite.pdf')}
         </BoutonTelechargerRapport>
       </div>
 
@@ -84,17 +76,17 @@ export default function ConformiteEtude() {
         })}
       </div>
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {chargement && <p className="text-sm text-steel">{_t('commun.chargement')}</p>}
       {!chargement && erreur && <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">{erreur}</div>}
 
       {!chargement && !erreur && rapport && s && (
         <>
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ['Conforme', s.conforme, 'text-risk-low'],
-              ['Partielle', s.partielle, 'text-risk-high'],
-              ['Non couverte', s.nonCouverte, 'text-risk-critical'],
-              ['Non applicable', s.nonApplicable, 'text-steel-light'],
+              [_t('conformite.couv.Conforme'), s.conforme, 'text-risk-low'],
+              [_t('conformite.couv.Partielle'), s.partielle, 'text-risk-high'],
+              [_t('conformite.couv.NonCouverte'), s.nonCouverte, 'text-risk-critical'],
+              [_t('conformite.couv.NonApplicable'), s.nonApplicable, 'text-steel-light'],
             ].map(function (c) {
               return (
                 <div key={c[0] as string} className="border border-paper-line p-3">
@@ -106,20 +98,20 @@ export default function ConformiteEtude() {
           </div>
 
           <p className="mb-4 text-xs text-steel">
-            {couvertes} / {pertinent} exigences applicables adressées{s.nonApplicable > 0 ? ' (' + s.nonApplicable + ' non applicable' + (s.nonApplicable > 1 ? 's' : '') + ')' : ''}.
+            {couvertes} / {pertinent} {_t('conformite.exigencesAdressees')}{s.nonApplicable > 0 ? ' (' + s.nonApplicable + ' ' + _t('conformite.nonApplicables') + ')' : ''}.
           </p>
 
           {rapport.lignes.length === 0 ? (
-            <EmptyState message="Aucune exigence." />
+            <EmptyState message={_t('conformite.aucuneExigence')} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-sm">
                 <thead>
                   <tr className="border-b border-paper-line text-left">
-                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">CODE</th>
-                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">EXIGENCE</th>
-                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">COUVERTURE</th>
-                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">MESURES / SOCLE</th>
+                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('conformite.col.code')}</th>
+                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('conformite.col.exigence')}</th>
+                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('conformite.col.couverture')}</th>
+                    <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('conformite.col.mesures')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,9 +123,9 @@ export default function ConformiteEtude() {
                           {l.titre}
                           <span className="block font-mono text-[10px] text-steel-light">{l.categorie}</span>
                         </td>
-                        <td className={'py-2 font-mono text-[11px] ' + CLASSE_COUVERTURE[l.couverture]}>{LIBELLE_COUVERTURE[l.couverture]}</td>
+                        <td className={'py-2 font-mono text-[11px] ' + CLASSE_COUVERTURE[l.couverture]}>{_t('conformite.couv.' + l.couverture)}</td>
                         <td className="py-2 text-[11px] text-steel">
-                          {l.etatSocle && <span className="mr-2 font-mono text-[10px] text-steel-light">socle : {l.etatSocle}</span>}
+                          {l.etatSocle && <span className="mr-2 font-mono text-[10px] text-steel-light">{_t('conformite.socle')} : {l.etatSocle}</span>}
                           {l.mesures.map(function (m) { return <div key={m.id}>&bull; {m.description}</div> })}
                           {!l.etatSocle && l.mesures.length === 0 && <span className="text-steel-light">&mdash;</span>}
                         </td>

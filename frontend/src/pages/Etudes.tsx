@@ -10,9 +10,11 @@ import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapp
 import { listEtudes, createEtude, supprimerEtude, dupliquerEtude, importerEtude, ApiError } from '../lib/api'
 import { toastSucces, toastErreur } from '../lib/toast'
 import type { Etude } from '../lib/api'
+import { useT, langueCourante } from '../lib/i18n'
 
 export default function Etudes() {
   var navigate = useNavigate()
+  var _t = useT()
   var [etudes, setEtudes] = useState<Etude[]>([])
   var [chargement, setChargement] = useState(true)
   var [erreurListe, setErreurListe] = useState('')
@@ -31,7 +33,7 @@ export default function Etudes() {
         setErreurListe('')
       })
       .catch(function (err) {
-        var message = err instanceof ApiError ? err.message : 'Impossible de charger les etudes. Reessayez dans un instant.'
+        var message = err instanceof ApiError ? err.message : _t('etudes.echecListe')
         setErreurListe(message)
       })
       .finally(function () { setChargement(false) })
@@ -41,7 +43,7 @@ export default function Etudes() {
 
   function handleCreer() {
     if (!nomNouvelle.trim() || !perimetreNouvelle.trim() || !missionNouvelle.trim()) {
-      setErreurCreation('Le nom, la mission et le perimetre sont obligatoires.')
+      setErreurCreation(_t('etudes.champsRequis'))
       return
     }
     setErreurCreation('')
@@ -55,7 +57,7 @@ export default function Etudes() {
         navigate('/etudes/' + etude.id)
       })
       .catch(function (err) {
-        var message = err instanceof ApiError ? err.message : 'Impossible de creer l etude. Reessayez dans un instant.'
+        var message = err instanceof ApiError ? err.message : _t('etudes.echecCreation')
         setErreurCreation(message)
       })
       .finally(function () { setCreationEnCours(false) })
@@ -73,41 +75,41 @@ export default function Etudes() {
     fichier.text()
       .then(function (contenu) { return importerEtude(contenu) })
       .then(function (res) {
-        toastSucces('Etude importee.')
+        toastSucces(_t('etudes.importee'))
         navigate('/etudes/' + res.id)
       })
       .catch(function (err) {
-        toastErreur(err instanceof ApiError ? err.message : 'Impossible d importer ce fichier.')
+        toastErreur(err instanceof ApiError ? err.message : _t('etudes.echecImport'))
       })
       .finally(function () { setImportEnCours(false) })
   }
 
   function handleDupliquer(e: React.MouseEvent, etude: Etude) {
     e.stopPropagation()
-    var nom = window.prompt('Nom de la copie :', etude.nom + ' (copie)')
+    var nom = window.prompt(_t('etudes.nomCopie'), etude.nom + ' (' + _t('etudes.copie') + ')')
     if (nom === null) return
     setDuplicationEnCours(etude.id)
     dupliquerEtude(etude.id, nom.trim() || undefined)
       .then(function (res) {
-        toastSucces('Etude dupliquee.')
+        toastSucces(_t('etudes.dupliquee'))
         navigate('/etudes/' + res.id)
       })
       .catch(function (err) {
-        toastErreur(err instanceof ApiError ? err.message : 'Impossible de dupliquer l etude.')
+        toastErreur(err instanceof ApiError ? err.message : _t('etudes.echecDup'))
       })
       .finally(function () { setDuplicationEnCours('') })
   }
 
   function handleSupprimer(e: React.MouseEvent, etude: Etude) {
     e.stopPropagation()
-    if (!window.confirm('Supprimer definitivement l etude "' + etude.nom + '" et tout son contenu ?')) return
+    if (!window.confirm(_t('etudes.confirmSuppr'))) return
     supprimerEtude(etude.id)
       .then(function () {
-        toastSucces('Etude "' + etude.nom + '" supprimee.')
+        toastSucces(_t('etudes.supprimee'))
         charger()
       })
       .catch(function (err) {
-        var message = err instanceof ApiError ? err.message : 'Impossible de supprimer l etude.'
+        var message = err instanceof ApiError ? err.message : _t('etudes.echecSuppr')
         setErreurListe(message)
       })
   }
@@ -115,9 +117,9 @@ export default function Etudes() {
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
-        eyebrow="REGISTRE DES ETUDES"
-        titre="Etudes"
-        description="Ensemble des analyses de risques EBIOS RM conduites ou en cours."
+        eyebrow={_t('etudes.eyebrow')}
+        titre={_t('etudes.titre')}
+        description={_t('etudes.desc')}
       />
 
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -137,11 +139,11 @@ export default function Etudes() {
             onClick={function () { if (champFichier.current) champFichier.current.click() }}
           >
             <Upload size={14} />
-            {importEnCours ? 'Import...' : 'Importer un fichier'}
+            {importEnCours ? _t('commun.chargement') : _t('etudes.importer')}
           </Button>
           <Button variante="primary" taille="md" onClick={function () { setCreationOuverte(!creationOuverte) }}>
             <Plus size={14} />
-            Nouvelle etude
+            {_t('etudes.nouvelle')}
           </Button>
         </div>
       </div>
@@ -150,7 +152,7 @@ export default function Etudes() {
         <Card variant="elevated" className="mb-8 p-6">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">NOM</label>
+              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">{_t('etudes.form.nom').toUpperCase()}</label>
               <input
                 type="text"
                 value={nomNouvelle}
@@ -159,7 +161,7 @@ export default function Etudes() {
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">MISSION</label>
+              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">{_t('etudes.form.mission').toUpperCase()}</label>
               <input
                 type="text"
                 value={missionNouvelle}
@@ -168,7 +170,7 @@ export default function Etudes() {
               />
             </div>
             <div>
-              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">PERIMETRE</label>
+              <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">{_t('etudes.form.perimetreCourt').toUpperCase()}</label>
               <input
                 type="text"
                 value={perimetreNouvelle}
@@ -185,12 +187,12 @@ export default function Etudes() {
           )}
 
           <Button variante="primary" taille="md" disabled={creationEnCours} onClick={handleCreer} className="mt-4">
-            {creationEnCours ? 'Creation...' : 'Creer l etude'}
+            {creationEnCours ? _t('commun.chargement') : _t('etudes.creer')}
           </Button>
         </Card>
       )}
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {chargement && <p className="text-sm text-steel">{_t('commun.chargement')}</p>}
 
       {!chargement && erreurListe && (
         <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">
@@ -199,7 +201,7 @@ export default function Etudes() {
       )}
 
       {!chargement && !erreurListe && etudes.length === 0 && (
-        <EmptyState message="Aucune etude pour le moment -- creez la premiere avec le bouton ci-dessus." />
+        <EmptyState message={_t('etudes.aucuneLongue')} />
       )}
 
       {!chargement && !erreurListe && etudes.length > 0 && (
@@ -207,10 +209,10 @@ export default function Etudes() {
           <table className="w-full min-w-[480px] border-collapse">
             <thead>
               <tr className="border-b border-paper-line text-left">
-                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ETUDE</th>
-                <th className="hidden pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light sm:table-cell">PERIMETRE</th>
-                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">STATUT</th>
-                <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">CREEE LE</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('portefeuille.col.etude').toUpperCase()}</th>
+                <th className="hidden pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light sm:table-cell">{_t('etudes.col.perimetre').toUpperCase()}</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('etudes.col.statut').toUpperCase()}</th>
+                <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('etudes.creeLe').toUpperCase()}</th>
                 <th className="pb-2"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -226,7 +228,7 @@ export default function Etudes() {
                     <td className="hidden py-3.5 text-xs text-steel sm:table-cell">{etude.perimetre}</td>
                     <td className="py-3.5"><BadgeStatutAtelier statut={etude.statut} /></td>
                     <td className="py-3.5 text-right font-mono text-[11px] text-steel-light">
-                      {new Date(etude.creeLeUtc).toLocaleDateString('fr-FR')}
+                      {new Date(etude.creeLeUtc).toLocaleDateString(langueCourante() === 'en' ? 'en-GB' : 'fr-FR')}
                     </td>
                     <td className="py-3.5 pl-3 text-right">
                       <div className="flex items-center justify-end gap-3" onClick={function (e) { e.stopPropagation() }}>
@@ -235,7 +237,7 @@ export default function Etudes() {
                           nomFichier={'etude-' + etude.nom.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json'}
                           className="text-steel-light transition hover:text-signature"
                         >
-                          <span aria-label={'Exporter ' + etude.nom} title="Exporter en JSON">
+                          <span aria-label={'Exporter ' + etude.nom} title={_t('etudes.exporter')}>
                             <Download size={14} />
                           </span>
                         </BoutonTelechargerRapport>
@@ -243,7 +245,7 @@ export default function Etudes() {
                           onClick={function (e) { handleDupliquer(e, etude) }}
                           disabled={duplicationEnCours === etude.id}
                           aria-label={'Dupliquer ' + etude.nom}
-                          title="Dupliquer (nouvelle etude a partir de celle-ci)"
+                          title={_t('etudes.dupliquer')}
                           className="text-steel-light transition hover:text-signature disabled:opacity-40"
                         >
                           <Copy size={14} />

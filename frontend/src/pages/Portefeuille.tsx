@@ -18,7 +18,7 @@ export default function Portefeuille() {
   useEffect(function () {
     chargerPortefeuille()
       .then(function (d) { setLignes(d || []); setErreur('') })
-      .catch(function () { setErreur('Impossible de charger le portefeuille.') })
+      .catch(function () { setErreur(t('portefeuille.indispo')) })
       .finally(function () { setChargement(false) })
   }, [])
 
@@ -47,15 +47,15 @@ export default function Portefeuille() {
       {!chargement && erreur && <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">{erreur}</div>}
 
       {!chargement && !erreur && (lignes.length === 0 ? (
-        <EmptyState message="Aucune étude visible." />
+        <EmptyState message={t('portefeuille.aucune')} />
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ['Études', lignes.length, 'text-ink'],
-              ['Risques résiduels élevés', totalEleve, totalEleve > 0 ? 'text-risk-critical' : 'text-risk-low'],
-              ['Mesures en retard', somme('mesuresEnRetard'), somme('mesuresEnRetard') > 0 ? 'text-risk-high' : 'text-risk-low'],
-              ['Mesures terminées', somme('mesuresTerminees') + ' / ' + somme('mesures'), 'text-ink'],
+              [t('nav.etudes'), lignes.length, 'text-ink'],
+              [t('portefeuille.stat.eleves'), totalEleve, totalEleve > 0 ? 'text-risk-critical' : 'text-risk-low'],
+              [t('portefeuille.col.retard'), somme('mesuresEnRetard'), somme('mesuresEnRetard') > 0 ? 'text-risk-high' : 'text-risk-low'],
+              [t('portefeuille.stat.mesures'), somme('mesuresTerminees') + ' / ' + somme('mesures'), 'text-ink'],
             ].map(function (c) {
               return (
                 <div key={c[0] as string} className="border border-paper-line p-3">
@@ -70,11 +70,11 @@ export default function Portefeuille() {
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-paper-line text-left">
-                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ÉTUDE</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{t('portefeuille.col.etude').toUpperCase()}</th>
                   <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">A5</th>
-                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">RISQUES RÉSIDUELS (F / M / É)</th>
-                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">TRAITEMENT</th>
-                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">RETARD</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{t('portefeuille.col.residuels').toUpperCase()}</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{t('portefeuille.col.avancement').toUpperCase()}</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{t('portefeuille.col.retard').toUpperCase()}</th>
                   <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">NIS2</th>
                 </tr>
               </thead>
@@ -90,13 +90,13 @@ export default function Portefeuille() {
                       <td className="py-3 text-sm font-medium text-ink">
                         {l.nom}
                         {l.risquesEleveResiduelNonAcceptes > 0 && (
-                          <span className="ml-2 font-mono text-[10px] text-risk-critical">{l.risquesEleveResiduelNonAcceptes} élevé(s) non accepté(s)</span>
+                          <span className="ml-2 font-mono text-[10px] text-risk-critical">{l.risquesEleveResiduelNonAcceptes} {t('portefeuille.nonAcceptes')}</span>
                         )}
                       </td>
                       <td className="py-3"><BadgeStatutAtelier statut={l.statutAtelier5} /></td>
                       <td className="py-3 font-mono text-[11px] text-steel">
                         <span className="text-risk-low">{r.Faible || 0}</span> / <span className="text-risk-high">{r.Moyen || 0}</span> / <span className={(r.Eleve || 0) > 0 ? 'text-risk-critical' : 'text-steel'}>{r.Eleve || 0}</span>
-                        {(r.NonEvalue || 0) > 0 && <span className="text-steel-light"> ({r.NonEvalue} non évalué)</span>}
+                        {(r.NonEvalue || 0) > 0 && <span className="text-steel-light"> ({r.NonEvalue} {t('portefeuille.nonEvalue')})</span>}
                       </td>
                       <td className="py-3 font-mono text-[11px] text-steel">{l.mesuresTerminees} / {l.mesures}</td>
                       <td className={'py-3 font-mono text-[11px] ' + (l.mesuresEnRetard > 0 ? 'text-risk-high' : 'text-steel-light')}>{l.mesuresEnRetard || '—'}</td>
@@ -107,7 +107,7 @@ export default function Portefeuille() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-[11px] text-steel-light">« En retard » : mesure non terminée dont l'échéance datée est dépassée (les échéances en texte libre ne sont pas comptées).</p>
+          <p className="mt-3 text-[11px] text-steel-light">{t('portefeuille.noteRetard')}</p>
         </>
       ))}
     </div>

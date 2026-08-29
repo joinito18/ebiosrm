@@ -5,15 +5,12 @@ import Badge from '../shared/Badge'
 import { COULEUR_STATUT_ATELIER } from '../shared/BadgeStatutAtelier'
 import { getEtude } from '../../lib/api'
 import type { Etude } from '../../lib/api'
-
-var LIBELLES_STATUT: { [key: string]: string } = {
-  Brouillon: 'BROUILLON',
-  EnCours: 'ATELIER 01 EN COURS',
-  Validee: 'ATELIER 01 VALIDE',
-}
+import { useT } from '../../lib/i18n'
+import { libelle } from '../../lib/libelles'
 
 export default function Header(props: { onOuvrirMenu: () => void }) {
   var params = useParams()
+  var _t = useT()
   var etudeId = params.etudeId
   var [etude, setEtude] = useState<Etude | null>(null)
 
@@ -25,20 +22,20 @@ export default function Header(props: { onOuvrirMenu: () => void }) {
     getEtude(etudeId).then(setEtude).catch(function () { setEtude(null) })
   }, [etudeId])
 
-  var libelleStatut = etude ? (LIBELLES_STATUT[etude.statut] || etude.statut) : ''
+  var libelleStatut = etude ? libelle('statutAtelier', etude.statut).toUpperCase() : ''
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-paper-line bg-paper px-4 sm:px-6 lg:px-10">
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={props.onOuvrirMenu}
-          aria-label="Ouvrir le menu"
+          aria-label={_t('nav.etudes')}
           className="text-steel hover:text-ink lg:hidden"
         >
           <Menu size={20} strokeWidth={1.75} />
         </button>
         <div className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-steel">
-          <span className="shrink-0">Etudes</span>
+          <span className="shrink-0">{_t('nav.etudes')}</span>
           {etude && (
             <>
               <span className="shrink-0 text-steel-faint">/</span>

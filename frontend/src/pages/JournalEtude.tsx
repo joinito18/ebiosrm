@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getEtude, listerJournal } from '../lib/api'
 import type { Etude, EntreeJournal } from '../lib/api'
+import { useT, langueCourante } from '../lib/i18n'
 
 var COULEUR_METHODE: Record<string, string> = {
   POST: 'text-risk-low',
@@ -11,12 +12,14 @@ var COULEUR_METHODE: Record<string, string> = {
 }
 
 function formatDate(iso: string): string {
+  var loc = langueCourante() === 'en' ? 'en-GB' : 'fr-FR'
   var d = new Date(iso)
-  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString(loc) + ' ' + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function JournalEtude() {
   var params = useParams()
+  var _t = useT()
   var etudeId = params.etudeId as string
   var [etude, setEtude] = useState<Etude | null>(null)
   var [entrees, setEntrees] = useState<EntreeJournal[]>([])
@@ -36,19 +39,16 @@ export default function JournalEtude() {
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <div className="mb-8 border-b border-paper-line pb-6">
         <Link to={'/etudes/' + etudeId} className="font-mono text-[11px] tracking-wide text-steel hover:text-signature">
-          &larr; {etude ? etude.nom : 'Retour a l etude'}
+          &larr; {etude ? etude.nom : _t('commun.retour')}
         </Link>
-        <h1 className="mt-3 font-display text-3xl text-ink">Journal d activite</h1>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-steel">
-          Trace horodatee de chaque creation, modification, suppression et validation.
-          Consultation seule &mdash; les entrees ne peuvent etre ni modifiees ni effacees.
-        </p>
+        <h1 className="mt-3 font-display text-3xl text-ink">{_t('journal.titre')}</h1>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-steel">{_t('journal.intro')}</p>
       </div>
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {chargement && <p className="text-sm text-steel">{_t('commun.chargement')}</p>}
 
       {!chargement && entrees.length === 0 && (
-        <p className="text-sm text-steel-light">Aucune activite enregistree pour cette etude.</p>
+        <p className="text-sm text-steel-light">{_t('journal.aucune')}</p>
       )}
 
       {!chargement && entrees.length > 0 && (
@@ -56,9 +56,9 @@ export default function JournalEtude() {
           <table className="w-full min-w-[560px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-paper-line text-left">
-                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">DATE</th>
-                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">AUTEUR</th>
-                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ACTION</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('journal.col.date').toUpperCase()}</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('journal.col.auteur').toUpperCase()}</th>
+                <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">{_t('journal.col.action').toUpperCase()}</th>
               </tr>
             </thead>
             <tbody>

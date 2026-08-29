@@ -5,7 +5,7 @@ import { AtelierChainCompact } from '../methodology/AtelierChain'
 import type { AtelierNode } from '../methodology/AtelierChain'
 import { effacerToken, getEtude, obtenirUtilisateurCourant } from '../../lib/api'
 import type { Etude, Utilisateur } from '../../lib/api'
-import { useT } from '../../lib/i18n'
+import { useT, traduire } from '../../lib/i18n'
 
 function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean; onNavigate?: () => void }) {
   var Icon = props.icon
@@ -42,13 +42,10 @@ function ateliersDepuisEtude(etude: Etude | null): AtelierNode[] {
   var statutAtelier3 = statutDe(etude?.statutAtelier3)
   var statutAtelier4 = statutDe(etude?.statutAtelier4)
   var statutAtelier5 = statutDe(etude?.statutAtelier5)
-  return [
-    { numero: 1, nom: 'Cadrage', statut: statutAtelier1, progression: progressionDe(statutAtelier1) },
-    { numero: 2, nom: 'Sources de risque', statut: statutAtelier2, progression: progressionDe(statutAtelier2) },
-    { numero: 3, nom: 'Scenarios strategiques', statut: statutAtelier3, progression: progressionDe(statutAtelier3) },
-    { numero: 4, nom: 'Scenarios operationnels', statut: statutAtelier4, progression: progressionDe(statutAtelier4) },
-    { numero: 5, nom: 'Traitement du risque', statut: statutAtelier5, progression: progressionDe(statutAtelier5) },
-  ]
+  var statuts = [statutAtelier1, statutAtelier2, statutAtelier3, statutAtelier4, statutAtelier5]
+  return [1, 2, 3, 4, 5].map(function (n, i) {
+    return { numero: n, nom: traduire('atelier.' + n + '.nom'), statut: statuts[i], progression: progressionDe(statuts[i]) }
+  })
 }
 
 export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }) {

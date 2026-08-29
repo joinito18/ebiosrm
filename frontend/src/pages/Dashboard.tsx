@@ -10,9 +10,12 @@ import {
   getEtude, listValeursMetier, listEvenementsRedoutes, listCouplesSrOv, listScenariosDeRisque, listerJournal,
 } from '../lib/api'
 import type { Etude, ScenarioDeRisque, EntreeJournal } from '../lib/api'
+import { useT, useLangue } from '../lib/i18n'
 
 export default function Dashboard() {
   var params = useParams()
+  var _t = useT()
+  var langue = useLangue().langue
   var etudeId = params.etudeId as string
   var [etude, setEtude] = useState<Etude | null>(null)
   var [nbValeursMetier, setNbValeursMetier] = useState(0)
@@ -43,11 +46,11 @@ export default function Dashboard() {
   }, [etudeId])
 
   if (chargement) {
-    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">Chargement de l etude...</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">{_t('commun.chargement')}</div>
   }
 
   if (!etude) {
-    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">Etude introuvable.</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">{_t('dash.introuvable')}</div>
   }
 
   function statutDe(s: string): 'done' | 'current' | 'todo' {
@@ -66,13 +69,13 @@ export default function Dashboard() {
     return s === 'done' ? 100 : s === 'current' ? 50 : 0
   }
 
-  var ateliers: AtelierNode[] = [
-    { numero: 1, nom: 'Cadrage', objectif: 'Perimetre, valeurs metier, socle de securite', statut: statutAtelier1, progression: progressionDe(statutAtelier1) },
-    { numero: 2, nom: 'Sources de risque', objectif: 'Couples source de risque / objectif vise', statut: statutAtelier2, progression: progressionDe(statutAtelier2) },
-    { numero: 3, nom: 'Scenarios strategiques', objectif: 'Cartographie ecosysteme et dangerosite', statut: statutAtelier3, progression: progressionDe(statutAtelier3) },
-    { numero: 4, nom: 'Scenarios operationnels', objectif: 'Modes operatoires et vraisemblance', statut: statutAtelier4, progression: progressionDe(statutAtelier4) },
-    { numero: 5, nom: 'Traitement du risque', objectif: 'Plan de traitement et risques residuels', statut: statutAtelier5, progression: progressionDe(statutAtelier5) },
-  ]
+  var statuts = [statutAtelier1, statutAtelier2, statutAtelier3, statutAtelier4, statutAtelier5]
+  var ateliers: AtelierNode[] = [1, 2, 3, 4, 5].map(function (n, i) {
+    return {
+      numero: n, nom: _t('atelier.' + n + '.nom'), objectif: _t('atelier.' + n + '.objectif'),
+      statut: statuts[i], progression: progressionDe(statuts[i]),
+    }
+  })
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
@@ -82,11 +85,11 @@ export default function Dashboard() {
             REF. {etude.id.slice(0, 8).toUpperCase()} - {etude.versionReferentielId}
           </div>
           <div className="flex items-center gap-4 font-mono text-[10px] tracking-wide text-steel">
-            {etude.monRole && <span className="text-steel-light">{etude.monRole.toUpperCase()}</span>}
-            <Link to={'/etudes/' + etudeId + '/membres'} className="hover:text-signature">MEMBRES</Link>
-            <Link to={'/etudes/' + etudeId + '/journal'} className="hover:text-signature">JOURNAL</Link>
-            <Link to={'/etudes/' + etudeId + '/conformite'} className="hover:text-signature">CONFORMITE</Link>
-            <Link to={'/etudes/' + etudeId + '/suivi'} className="hover:text-signature">SUIVI</Link>
+            {etude.monRole && <span className="text-steel-light">{_t('etudes.role.' + etude.monRole.toLowerCase()).toUpperCase()}</span>}
+            <Link to={'/etudes/' + etudeId + '/membres'} className="hover:text-signature">{_t('nav.membres')}</Link>
+            <Link to={'/etudes/' + etudeId + '/journal'} className="hover:text-signature">{_t('nav.journal')}</Link>
+            <Link to={'/etudes/' + etudeId + '/conformite'} className="hover:text-signature">{_t('nav.conformite')}</Link>
+            <Link to={'/etudes/' + etudeId + '/suivi'} className="hover:text-signature">{_t('nav.suivi')}</Link>
           </div>
         </div>
         <h1 className="font-display text-[34px] leading-tight text-ink">
@@ -97,7 +100,7 @@ export default function Dashboard() {
         </p>
         {etude.monRole === 'Lecteur' && (
           <p className="mt-3 inline-block border border-paper-line bg-paper-dim px-3 py-1.5 text-[11px] text-steel">
-            Vous consultez cette etude en lecture seule.
+            {_t('dash.lectureSeule')}
           </p>
         )}
       </div>
@@ -105,43 +108,43 @@ export default function Dashboard() {
       <div className="mb-12 grid grid-cols-1 gap-px border-y border-paper-line bg-paper-line sm:grid-cols-3 lg:grid-cols-5">
         <div className="bg-paper px-6 py-5">
           <div className="mt-1"><BadgeStatutAtelier statut={etude.statut} /></div>
-          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">STATUT ATELIER 1</div>
+          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">{_t('dash.stat.statutA1')}</div>
         </div>
         <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbValeursMetier}</div>
-          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">VALEURS METIER</div>
+          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">{_t('dash.stat.valeursMetier')}</div>
         </div>
         <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbEvenementsRedoutes}</div>
-          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">EVENEMENTS REDOUTES</div>
+          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">{_t('dash.stat.evenementsRedoutes')}</div>
         </div>
         <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{nbCouplesRetenus}</div>
-          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">COUPLES SR/OV RETENUS</div>
+          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">{_t('dash.stat.couplesRetenus')}</div>
         </div>
         <div className="bg-paper px-6 py-5">
           <div className="font-display text-[28px] leading-none text-ink">{scenariosDeRisque.length}</div>
-          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">SCENARIOS DE RISQUE</div>
+          <div className="mt-2 font-mono text-[9px] tracking-wide text-steel-light">{_t('dash.stat.scenariosRisque')}</div>
         </div>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         <section>
           <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
-            PARCOURS METHODOLOGIQUE
+            {_t('dash.parcours')}
           </h2>
           <AtelierChainExpanded ateliers={ateliers} etudeId={etudeId} />
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/registre.xlsx'} nomFichier={'registre-risques-' + etudeId + '.xlsx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Exporter le registre (Excel)</BoutonTelechargerRapport>
-            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/synthese.docx'} nomFichier={'synthese-' + etudeId + '.docx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Exporter la synthese (Word)</BoutonTelechargerRapport>
+            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/registre.xlsx'} nomFichier={'registre-risques-' + etudeId + '.xlsx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">{_t('etudes.export.excel')}</BoutonTelechargerRapport>
+            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/synthese.docx'} nomFichier={'synthese-' + etudeId + '.docx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">{_t('etudes.export.word')}</BoutonTelechargerRapport>
           </div>
 
           {statutAtelier5 === 'done' && (
             <Card variant="elevated" className="mt-8 px-5 py-6">
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-steel">Les 5 ateliers sont valides. La synthese globale consolide les points cles pour presentation a la Direction.</p>
-                <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white transition duration-200 ease-premium hover:bg-signature/90">Telecharger la synthese</BoutonTelechargerRapport>
+                <p className="text-xs text-steel">{_t('dash.syntheseDispo')}</p>
+                <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese' + (langue === 'en' ? '?langue=en' : '')} nomFichier={'synthese-' + etudeId + '.pdf'} className="shrink-0 rounded-sm bg-signature px-3 py-1.5 text-xs font-medium text-white transition duration-200 ease-premium hover:bg-signature/90">{_t('rapports.synthese')}</BoutonTelechargerRapport>
               </div>
             </Card>
           )}
@@ -151,7 +154,7 @@ export default function Dashboard() {
           {scenariosDeRisque.length > 0 && (
             <section>
               <h2 className="mb-6 font-mono text-[11px] tracking-wide text-steel-light">
-                CARTOGRAPHIE DES RISQUES
+                {_t('dash.cartographie')}
               </h2>
               <Card variant="elevated" className="p-5">
                 <RiskMatrix scenarios={scenariosDeRisque} />
@@ -161,21 +164,22 @@ export default function Dashboard() {
 
           <section>
             <div className="mb-4 flex items-baseline justify-between">
-              <h2 className="font-mono text-[11px] tracking-wide text-steel-light">JOURNAL D ACTIVITE</h2>
+              <h2 className="font-mono text-[11px] tracking-wide text-steel-light">{_t('journal.titre').toUpperCase()}</h2>
               <Link to={'/etudes/' + etudeId + '/journal'} className="font-mono text-[10px] text-steel hover:text-signature">
-                voir tout &rarr;
+                {_t('dash.voirTout')} &rarr;
               </Link>
             </div>
             {journal.length === 0 ? (
-              <p className="text-xs text-steel-light">Aucune activite pour le moment.</p>
+              <p className="text-xs text-steel-light">{_t('journal.aucune')}</p>
             ) : (
               <ul className="space-y-2.5">
                 {journal.map(function (e) {
+                  var loc = langue === 'en' ? 'en-GB' : 'fr-FR'
                   return (
                     <li key={e.id} className="border-l-2 border-paper-line pl-3 text-xs">
                       <div className="text-ink">{e.action}</div>
                       <div className="font-mono text-[10px] text-steel-light">
-                        {e.nomUtilisateur} &middot; {new Date(e.dateUtc).toLocaleDateString('fr-FR')} {new Date(e.dateUtc).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        {e.nomUtilisateur} &middot; {new Date(e.dateUtc).toLocaleDateString(loc)} {new Date(e.dateUtc).toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </li>
                   )

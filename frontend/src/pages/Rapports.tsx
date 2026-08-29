@@ -6,11 +6,15 @@ import EmptyState from '../components/shared/EmptyState'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { listEtudes, ApiError } from '../lib/api'
 import type { Etude } from '../lib/api'
+import { useT, useLangue } from '../lib/i18n'
 
 var BOUTON_SECONDAIRE = 'flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-[11px] font-medium text-ink transition duration-200 ease-premium hover:border-signature hover:text-signature'
 
 function AteliersValides(props: { etude: Etude }) {
   var e = props.etude
+  var _t = useT()
+  var langue = useLangue().langue
+  var suffixe = langue === 'en' ? '?langue=en' : ''
   var ateliers = [
     { numero: 1, statut: e.statut },
     { numero: 2, statut: e.statutAtelier2 },
@@ -20,7 +24,7 @@ function AteliersValides(props: { etude: Etude }) {
   ].filter(function (a) { return a.statut === 'Validee' })
 
   if (ateliers.length === 0) {
-    return <span className="text-xs text-steel-light">Aucun atelier valide pour le moment.</span>
+    return <span className="text-xs text-steel-light">{_t('rapports.aucunAtelier')}</span>
   }
 
   return (
@@ -29,30 +33,30 @@ function AteliersValides(props: { etude: Etude }) {
         return (
           <BoutonTelechargerRapport
             key={a.numero}
-            path={'/etudes/' + e.id + '/rapports/atelier' + a.numero}
+            path={'/etudes/' + e.id + '/rapports/atelier' + a.numero + suffixe}
             nomFichier={'rapport-atelier' + a.numero + '-' + e.id + '.pdf'}
             className={BOUTON_SECONDAIRE}
           >
-            Atelier {a.numero}
+            {_t('rapports.atelier')} {a.numero}
           </BoutonTelechargerRapport>
         )
       })}
       {e.statutAtelier5 === 'Validee' && (
         <BoutonTelechargerRapport
-          path={'/etudes/' + e.id + '/rapports/synthese'}
+          path={'/etudes/' + e.id + '/rapports/synthese' + suffixe}
           nomFichier={'synthese-' + e.id + '.pdf'}
           className={BOUTON_SECONDAIRE}
         >
-          Synthese globale
+          {_t('rapports.synthese')}
         </BoutonTelechargerRapport>
       )}
       {e.statutAtelier5 !== 'Brouillon' && (
         <BoutonTelechargerRapport
-          path={'/etudes/' + e.id + '/rapports/cadre-de-suivi'}
+          path={'/etudes/' + e.id + '/rapports/cadre-de-suivi' + suffixe}
           nomFichier={'cadre-de-suivi-' + e.id + '.pdf'}
           className={BOUTON_SECONDAIRE}
         >
-          Cadre de suivi
+          {_t('rapports.cadreSuivi')}
         </BoutonTelechargerRapport>
       )}
     </div>
@@ -61,6 +65,7 @@ function AteliersValides(props: { etude: Etude }) {
 
 export default function Rapports() {
   var navigate = useNavigate()
+  var _t = useT()
   var [etudes, setEtudes] = useState<Etude[]>([])
   var [chargement, setChargement] = useState(true)
   var [erreur, setErreur] = useState('')
@@ -68,7 +73,7 @@ export default function Rapports() {
   useEffect(function () {
     listEtudes()
       .then(setEtudes)
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Impossible de contacter l API.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : _t('commun.apiIndispo')) })
       .finally(function () { setChargement(false) })
   }, [])
 
@@ -79,19 +84,19 @@ export default function Rapports() {
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
-        eyebrow="LIVRABLES"
-        titre="Rapports"
-        description="Documents generes a partir des snapshots figes de chaque atelier valide, par etude."
+        eyebrow={_t('rapports.eyebrow')}
+        titre={_t('rapports.titre')}
+        description={_t('rapports.desc')}
       />
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {chargement && <p className="text-sm text-steel">{_t('commun.chargement')}</p>}
 
       {!chargement && erreur && (
         <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">{erreur}</div>
       )}
 
       {!chargement && !erreur && etudesAvecRapport.length === 0 && (
-        <EmptyState message="Aucun rapport disponible pour le moment -- validez au moins un atelier sur une etude pour en generer." />
+        <EmptyState message={_t('rapports.aucunRapport')} />
       )}
 
       {!chargement && !erreur && etudesAvecRapport.length > 0 && (

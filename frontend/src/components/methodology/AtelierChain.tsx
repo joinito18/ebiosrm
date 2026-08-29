@@ -1,3 +1,5 @@
+import { traduire } from '../../lib/i18n'
+
 export type AtelierState = 'done' | 'current' | 'todo'
 
 export interface AtelierNode {
@@ -113,7 +115,7 @@ export function AtelierChainExpanded(props: { ateliers: AtelierNode[]; etudeId: 
               <div className="mb-2 flex items-center gap-2">
                 <NodeMarker statut={atelier.statut} />
                 <span className="font-mono text-[10px] tracking-wide text-steel-light">
-                  ATELIER {padNumero(atelier.numero)}
+                  {traduire('rapports.atelier').toUpperCase()} {padNumero(atelier.numero)}
                 </span>
               </div>
 
@@ -133,7 +135,7 @@ export function AtelierChainExpanded(props: { ateliers: AtelierNode[]; etudeId: 
 
               {(isCurrent || isDone) && (
                 <a href={linkTarget} className="mt-3 inline-flex items-center gap-1 font-mono text-[11px] font-medium text-signature hover:underline">
-                  {isCurrent ? 'Reprendre l atelier' : 'Consulter'}
+                  {isCurrent ? traduire('dash.continuer') : traduire('dash.consulter')}
                 </a>
               )}
             </div>

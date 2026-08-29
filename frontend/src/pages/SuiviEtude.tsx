@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
-import { useT } from '../lib/i18n'
+import { useT, langueCourante } from '../lib/i18n'
 import EmptyState from '../components/shared/EmptyState'
 import Button from '../components/shared/Button'
 import Sparkline from '../components/shared/Sparkline'
@@ -13,12 +13,15 @@ import {
 } from '../lib/api'
 import type { Etude, EvolutionEtude, IndicateurSuivi, IndicateurAuto, SensAmelioration, TendanceEvolution } from '../lib/api'
 
-var FLECHE_TENDANCE: { [key in TendanceEvolution]: string } = {
-  Amelioration: '↘ amélioration', Stable: '→ stable', Degradation: '↗ dégradation', Nouveau: '＋ nouveau',
+var GLYPHE_TENDANCE: { [key in TendanceEvolution]: string } = {
+  Amelioration: '↘', Stable: '→', Degradation: '↗', Nouveau: '＋',
 }
 var CLASSE_TENDANCE: { [key in TendanceEvolution]: string } = {
   Amelioration: 'text-risk-low', Stable: 'text-steel', Degradation: 'text-risk-critical', Nouveau: 'text-signature',
 }
+
+function loc() { return langueCourante() === 'en' ? 'en-GB' : 'fr-FR' }
+function dateCourte(iso: string) { return new Date(iso).toLocaleDateString(loc()) }
 
 function enAlerte(i: IndicateurSuivi): boolean {
   if (i.seuilAlerte == null || i.points.length === 0) return false
@@ -53,13 +56,13 @@ export default function SuiviEtude() {
       <PageHeader
         eyebrow={_t('suivi.eyebrow')}
         titre={_t('suivi.titre')}
-        description={etude ? etude.nom : 'Indicateurs de risque et évolution dans le temps.'}
+        description={etude ? etude.nom : _t('suivi.desc')}
       />
       <p className="mb-6 text-[11px] text-steel">
-        <Link to={'/etudes/' + etudeId} className="text-signature hover:underline">retour à l'étude</Link>
+        <Link to={'/etudes/' + etudeId} className="text-signature hover:underline">{_t('commun.retourEtude')}</Link>
       </p>
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {chargement && <p className="text-sm text-steel">{_t('commun.chargement')}</p>}
 
       {!chargement && (
         <div className="space-y-12">
@@ -77,29 +80,29 @@ export default function SuiviEtude() {
 }
 
 function SectionEvolution(props: { evolution: EvolutionEtude | null }) {
+  var _t = useT()
   var e = props.evolution
   return (
     <section>
-      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">ÉVOLUTION DEPUIS LA DERNIÈRE REVUE (N / N-1)</h2>
+      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">{_t('suivi.evolution').toUpperCase()}</h2>
       {!e ? (
-        <EmptyState message="Aucune validation de l'Atelier 5 pour l'instant — pas de point de comparaison." />
+        <EmptyState message={_t('suivi.pasDeSnapshot')} />
       ) : !e.precedente ? (
         <p className="text-xs text-steel">
-          Première validation ({e.courante.libelle || 'v' + e.courante.version}, {new Date(e.courante.dateUtc).toLocaleDateString('fr-FR')}).
-          Une prochaine revalidation de l'Atelier 5 créera un point de comparaison.
+          {_t('suivi.premiereValidation')} ({e.courante.libelle || 'v' + e.courante.version}, {dateCourte(e.courante.dateUtc)}).
         </p>
       ) : (
         <>
           <p className="mb-3 text-xs text-steel">
-            {e.precedente.libelle || 'v' + e.precedente.version} ({new Date(e.precedente.dateUtc).toLocaleDateString('fr-FR')})
+            {e.precedente.libelle || 'v' + e.precedente.version} ({dateCourte(e.precedente.dateUtc)})
             {' → '}
-            {e.courante.libelle || 'v' + e.courante.version} ({new Date(e.courante.dateUtc).toLocaleDateString('fr-FR')})
+            {e.courante.libelle || 'v' + e.courante.version} ({dateCourte(e.courante.dateUtc)})
           </p>
           <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[
-              ['Mesures', e.mesures.total, e.mesures.total - e.mesures.totalPrecedent],
-              ['Mesures terminées', e.mesures.terminees, e.mesures.terminees - e.mesures.termineesPrecedent],
-              ['Mesures ajoutées / retirées', e.mesures.ajoutees + ' / ' + e.mesures.retirees, null],
+              [_t('suivi.stat.mesures'), e.mesures.total, e.mesures.total - e.mesures.totalPrecedent],
+              [_t('suivi.stat.terminees'), e.mesures.terminees, e.mesures.terminees - e.mesures.termineesPrecedent],
+              [_t('suivi.stat.ajoutRetrait'), e.mesures.ajoutees + ' / ' + e.mesures.retirees, null],
             ].map(function (c) {
               var delta = c[2] as number | null
               return (
@@ -122,7 +125,7 @@ function SectionEvolution(props: { evolution: EvolutionEtude | null }) {
                     <span className="text-steel-light">{s.niveauResiduelPrecedent || '—'}</span>
                     {' → '}
                     <span className="text-ink">{s.niveauResiduelCourant || '—'}</span>
-                    <span className={'ml-2 ' + CLASSE_TENDANCE[s.tendance]}>{FLECHE_TENDANCE[s.tendance]}</span>
+                    <span className={'ml-2 ' + CLASSE_TENDANCE[s.tendance]}>{GLYPHE_TENDANCE[s.tendance]} {_t('suivi.tendance.' + s.tendance).toLowerCase()}</span>
                   </span>
                 </li>
               )
@@ -135,9 +138,10 @@ function SectionEvolution(props: { evolution: EvolutionEtude | null }) {
 }
 
 function SectionIndicateursAuto(props: { autos: IndicateurAuto[] }) {
+  var _t = useT()
   return (
     <section>
-      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">INDICATEURS AUTOMATIQUES (état courant)</h2>
+      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">{_t('suivi.indicateursAuto').toUpperCase()}</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {props.autos.map(function (a) {
           var atteint = a.cible != null && (a.sens === 'Baisse' ? a.valeur <= a.cible : a.valeur >= a.cible)
@@ -145,7 +149,7 @@ function SectionIndicateursAuto(props: { autos: IndicateurAuto[] }) {
             <div key={a.nom} className="border border-paper-line p-3">
               <div className="flex items-baseline justify-between">
                 <span className={'font-display text-2xl ' + (atteint ? 'text-risk-low' : 'text-ink')}>{a.valeur}{a.unite}</span>
-                {a.cible != null && <span className="font-mono text-[10px] text-steel-light">cible {a.cible}{a.unite}</span>}
+                {a.cible != null && <span className="font-mono text-[10px] text-steel-light">{_t('suivi.cible')} {a.cible}{a.unite}</span>}
               </div>
               <div className="mt-1 text-xs text-ink">{a.nom}</div>
               <div className="font-mono text-[10px] text-steel-light">{a.categorie}</div>
@@ -158,6 +162,7 @@ function SectionIndicateursAuto(props: { autos: IndicateurAuto[] }) {
 }
 
 function SectionIndicateursManuels(props: { etudeId: string; indicateurs: IndicateurSuivi[]; onChange: () => void }) {
+  var _t = useT()
   var [nom, setNom] = useState('')
   var [unite, setUnite] = useState('')
   var [cible, setCible] = useState('')
@@ -172,31 +177,31 @@ function SectionIndicateursManuels(props: { etudeId: string; indicateurs: Indica
       seuilAlerte: seuil === '' ? null : Number(seuil),
       sens: sens,
     })
-      .then(function () { toastSucces('Indicateur cree.'); setNom(''); setUnite(''); setCible(''); setSeuil(''); props.onChange() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(_t('suivi.indicateurCree')); setNom(''); setUnite(''); setCible(''); setSeuil(''); props.onChange() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : _t('commun.erreur')) })
   }
 
   return (
     <section>
-      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">INDICATEURS SUIVIS MANUELLEMENT</h2>
+      <h2 className="mb-3 font-mono text-[11px] tracking-wide text-steel-light">{_t('suivi.indicateursManuels').toUpperCase()}</h2>
 
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">NOUVEL INDICATEUR</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{_t('suivi.nouvelIndicateur').toUpperCase()}</div>
         <div className="grid gap-2 sm:grid-cols-2">
-          <input type="text" placeholder="Nom (ex. incidents de securite / mois)" value={nom} onChange={function (e) { setNom(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-          <input type="text" placeholder="Unite (%, jours...)" value={unite} onChange={function (e) { setUnite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-          <input type="number" placeholder="Cible (optionnel)" value={cible} onChange={function (e) { setCible(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-          <input type="number" placeholder="Seuil d alerte (optionnel)" value={seuil} onChange={function (e) { setSeuil(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+          <input type="text" placeholder={_t('suivi.ph.nom')} value={nom} onChange={function (e) { setNom(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+          <input type="text" placeholder={_t('suivi.ph.unite')} value={unite} onChange={function (e) { setUnite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+          <input type="number" placeholder={_t('suivi.ph.cible')} value={cible} onChange={function (e) { setCible(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+          <input type="number" placeholder={_t('suivi.ph.seuil')} value={seuil} onChange={function (e) { setSeuil(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
           <select value={sens} onChange={function (e) { setSens(e.target.value as SensAmelioration) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            <option value="Baisse">Plus bas = mieux</option>
-            <option value="Hausse">Plus haut = mieux</option>
+            <option value="Baisse">{_t('suivi.sens.baisse')}</option>
+            <option value="Hausse">{_t('suivi.sens.hausse')}</option>
           </select>
         </div>
-        <div className="mt-3"><Button variante="primary" onClick={ajouter} disabled={!nom.trim()}>Creer l indicateur</Button></div>
+        <div className="mt-3"><Button variante="primary" onClick={ajouter} disabled={!nom.trim()}>{_t('suivi.creerIndicateur')}</Button></div>
       </div>
 
       {props.indicateurs.length === 0 ? (
-        <EmptyState message="Aucun indicateur manuel. Ajoutez-en un pour suivre une valeur dans le temps." />
+        <EmptyState message={_t('suivi.aucunManuel')} />
       ) : (
         <div className="space-y-3">
           {props.indicateurs.map(function (i) {
@@ -209,6 +214,7 @@ function SectionIndicateursManuels(props: { etudeId: string; indicateurs: Indica
 }
 
 function LigneIndicateur(props: { etudeId: string; indicateur: IndicateurSuivi; onChange: () => void }) {
+  var _t = useT()
   var i = props.indicateur
   var [date, setDate] = useState(new Date().toISOString().slice(0, 10))
   var [valeur, setValeur] = useState('')
@@ -217,21 +223,21 @@ function LigneIndicateur(props: { etudeId: string; indicateur: IndicateurSuivi; 
   function ajouterPoint() {
     if (valeur === '') return
     ajouterPointIndicateur(props.etudeId, i.id, { date: date, valeur: Number(valeur) })
-      .then(function () { toastSucces('Point ajoute.'); setValeur(''); setAjoutOuvert(false); props.onChange() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(_t('suivi.pointAjoute')); setValeur(''); setAjoutOuvert(false); props.onChange() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : _t('commun.erreur')) })
   }
 
   function retirer() {
-    if (!window.confirm('Supprimer l indicateur "' + i.nom + '" et son historique ?')) return
+    if (!window.confirm(_t('suivi.confirmSupprIndicateur'))) return
     supprimerIndicateur(props.etudeId, i.id)
-      .then(function () { toastSucces('Indicateur supprime.'); props.onChange() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(_t('suivi.indicateurSupprime')); props.onChange() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : _t('commun.erreur')) })
   }
 
   function retirerPoint(pointId: string) {
     supprimerPointIndicateur(props.etudeId, i.id, pointId)
       .then(function () { props.onChange() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : _t('commun.erreur')) })
   }
 
   var dernier = i.points.length > 0 ? i.points[i.points.length - 1] : null
@@ -243,9 +249,9 @@ function LigneIndicateur(props: { etudeId: string; indicateur: IndicateurSuivi; 
         <div>
           <div className="text-sm font-medium text-ink">{i.nom}</div>
           <div className="font-mono text-[10px] text-steel-light">
-            {i.categorie ? i.categorie + ' — ' : ''}{i.sens === 'Baisse' ? 'plus bas = mieux' : 'plus haut = mieux'}
-            {i.cible != null && ' — cible ' + i.cible + (i.unite || '')}
-            {i.seuilAlerte != null && ' — alerte ' + i.seuilAlerte + (i.unite || '')}
+            {i.categorie ? i.categorie + ' — ' : ''}{i.sens === 'Baisse' ? _t('suivi.sens.baisseCourt') : _t('suivi.sens.hausseCourt')}
+            {i.cible != null && ' — ' + _t('suivi.cible') + ' ' + i.cible + (i.unite || '')}
+            {i.seuilAlerte != null && ' — ' + _t('suivi.alerte') + ' ' + i.seuilAlerte + (i.unite || '')}
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -255,7 +261,7 @@ function LigneIndicateur(props: { etudeId: string; indicateur: IndicateurSuivi; 
             </span>
           )}
           <Sparkline valeurs={i.points.map(function (p) { return p.valeur })} cible={i.cible} couleur={alerte ? '#B34000' : '#000091'} />
-          <button onClick={retirer} aria-label="Supprimer" className="text-steel-light transition hover:text-risk-critical"><Trash2 size={14} /></button>
+          <button onClick={retirer} aria-label={_t('commun.supprimer')} className="text-steel-light transition hover:text-risk-critical"><Trash2 size={14} /></button>
         </div>
       </div>
 
@@ -269,13 +275,13 @@ function LigneIndicateur(props: { etudeId: string; indicateur: IndicateurSuivi; 
           )
         })}
         {!ajoutOuvert ? (
-          <button onClick={function () { setAjoutOuvert(true) }} className="font-mono text-[10px] text-signature hover:underline">+ point</button>
+          <button onClick={function () { setAjoutOuvert(true) }} className="font-mono text-[10px] text-signature hover:underline">+ {_t('suivi.point')}</button>
         ) : (
           <span className="inline-flex items-center gap-1">
             <input type="date" value={date} onChange={function (e) { setDate(e.target.value) }} className="border-b border-paper-line bg-transparent py-0.5 text-[11px] text-ink focus:border-signature focus:outline-none" />
-            <input type="number" placeholder="valeur" value={valeur} onChange={function (e) { setValeur(e.target.value) }} className="w-20 border-b border-paper-line bg-transparent py-0.5 text-[11px] text-ink focus:border-signature focus:outline-none" />
-            <button onClick={ajouterPoint} className="font-mono text-[10px] text-signature hover:underline">OK</button>
-            <button onClick={function () { setAjoutOuvert(false) }} className="font-mono text-[10px] text-steel-light hover:text-ink">annuler</button>
+            <input type="number" placeholder={_t('suivi.point')} value={valeur} onChange={function (e) { setValeur(e.target.value) }} className="w-20 border-b border-paper-line bg-transparent py-0.5 text-[11px] text-ink focus:border-signature focus:outline-none" />
+            <button onClick={ajouterPoint} className="font-mono text-[10px] text-signature hover:underline">{_t('commun.ok')}</button>
+            <button onClick={function () { setAjoutOuvert(false) }} className="font-mono text-[10px] text-steel-light hover:text-ink">{_t('commun.annuler').toLowerCase()}</button>
           </span>
         )}
       </div>

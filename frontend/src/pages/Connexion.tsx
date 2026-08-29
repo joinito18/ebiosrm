@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { connexion, ApiError } from '../lib/api'
 import LayoutAuth from '../components/auth/LayoutAuth'
+import { useT } from '../lib/i18n'
 
 export default function Connexion() {
   var navigate = useNavigate()
+  var _t = useT()
   var [email, setEmail] = useState('')
   var [motDePasse, setMotDePasse] = useState('')
   var [erreur, setErreur] = useState('')
@@ -13,7 +15,7 @@ export default function Connexion() {
   function soumettre(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim() || !motDePasse) {
-      setErreur('Email et mot de passe sont obligatoires.')
+      setErreur(_t('auth.champsRequis'))
       return
     }
     setErreur('')
@@ -21,7 +23,7 @@ export default function Connexion() {
     connexion(email.trim(), motDePasse)
       .then(function () { navigate('/etudes') })
       .catch(function (err) {
-        var message = err instanceof ApiError && err.status !== 401 ? err.message : 'Email ou mot de passe incorrect.'
+        var message = err instanceof ApiError && err.status !== 401 ? err.message : _t('auth.echecConnexion')
         setErreur(message)
       })
       .finally(function () { setEnCours(false) })
@@ -30,12 +32,12 @@ export default function Connexion() {
   return (
     <LayoutAuth>
       <div className="mb-8">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">BIENVENUE</div>
-        <h1 className="font-display text-3xl text-ink">Connexion</h1>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">EBIOS RISK MANAGER</div>
+        <h1 className="font-display text-3xl text-ink">{_t('auth.connexion.titre')}</h1>
       </div>
 
       <form onSubmit={soumettre} className="rounded-md border border-paper-line bg-white p-7 shadow-sm">
-        <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">EMAIL</label>
+        <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">{_t('auth.email').toUpperCase()}</label>
         <input
           type="email"
           value={email}
@@ -44,7 +46,7 @@ export default function Connexion() {
           autoFocus
         />
 
-        <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">MOT DE PASSE</label>
+        <label className="mb-1 block font-mono text-[10px] tracking-wide text-steel-light">{_t('auth.motdepasse').toUpperCase()}</label>
         <input
           type="password"
           value={motDePasse}
@@ -59,12 +61,12 @@ export default function Connexion() {
           disabled={enCours}
           className="w-full rounded-sm bg-signature px-4 py-2.5 text-xs font-medium text-white transition hover:bg-signature/90 disabled:opacity-50"
         >
-          {enCours ? 'Connexion...' : 'Se connecter'}
+          {enCours ? _t('auth.connexionEnCours') : _t('auth.seConnecter')}
         </button>
       </form>
 
       <p className="mt-6 text-center text-xs text-steel">
-        Pas encore de compte ? <Link to="/inscription" className="font-medium text-signature hover:underline">Creer un compte</Link>
+        {_t('auth.pasDeCompte')} <Link to="/inscription" className="font-medium text-signature hover:underline">{_t('auth.lienInscription')}</Link>
       </p>
     </LayoutAuth>
   )
