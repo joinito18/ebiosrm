@@ -5,6 +5,7 @@ import { AtelierChainCompact } from '../methodology/AtelierChain'
 import type { AtelierNode } from '../methodology/AtelierChain'
 import { effacerToken, getEtude, obtenirUtilisateurCourant } from '../../lib/api'
 import type { Etude, Utilisateur } from '../../lib/api'
+import { useT } from '../../lib/i18n'
 
 function NavItem(props: { to: string; icon: typeof LayoutDashboard; children: React.ReactNode; end?: boolean; onNavigate?: () => void }) {
   var Icon = props.icon
@@ -51,6 +52,7 @@ function ateliersDepuisEtude(etude: Etude | null): AtelierNode[] {
 }
 
 export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }) {
+  var t = useT()
   var navigate = useNavigate()
   var params = useParams()
   var etudeId = params.etudeId
@@ -105,18 +107,18 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
 
         <div className="flex-1 overflow-y-auto px-5 py-6">
           <nav className="space-y-0.5">
-            <NavItem to={etudeId ? '/etudes/' + etudeId : '/etudes'} icon={LayoutDashboard} end onNavigate={props.onFermer}>Tableau de bord</NavItem>
-            <NavItem to="/etudes" icon={FolderOpen} onNavigate={props.onFermer}>Etudes</NavItem>
-            <NavItem to="/portefeuille" icon={LineChart} onNavigate={props.onFermer}>Portefeuille</NavItem>
+            <NavItem to={etudeId ? '/etudes/' + etudeId : '/etudes'} icon={LayoutDashboard} end onNavigate={props.onFermer}>{t('nav.tableau')}</NavItem>
+            <NavItem to="/etudes" icon={FolderOpen} onNavigate={props.onFermer}>{t('nav.etudes')}</NavItem>
+            <NavItem to="/portefeuille" icon={LineChart} onNavigate={props.onFermer}>{t('nav.portefeuille')}</NavItem>
           </nav>
 
           {etudeId && (
             <>
               <div className="mb-4 mt-9 font-mono text-[10px] tracking-wide text-steel-light">
-                ETUDE EN COURS
+                {t('nav.etudeEnCours')}
               </div>
               <div className="mb-5 truncate font-display text-sm text-white">
-                {etude ? etude.nom : 'Chargement...'}
+                {etude ? etude.nom : t('commun.chargement')}
               </div>
 
               <AtelierChainCompact ateliers={ateliersDepuisEtude(etude)} etudeId={etudeId} />
@@ -126,9 +128,9 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
           <div className="my-7 border-t border-ink-line" />
 
           <nav className="space-y-0.5">
-            <NavItem to="/bibliotheque" icon={Library} onNavigate={props.onFermer}>Bibliotheque</NavItem>
-            <NavItem to="/rapports" icon={FileText} onNavigate={props.onFermer}>Rapports</NavItem>
-            <NavItem to="/parametres" icon={Settings} onNavigate={props.onFermer}>Parametres</NavItem>
+            <NavItem to="/bibliotheque" icon={Library} onNavigate={props.onFermer}>{t('nav.bibliotheque')}</NavItem>
+            <NavItem to="/rapports" icon={FileText} onNavigate={props.onFermer}>{t('nav.rapports')}</NavItem>
+            <NavItem to="/parametres" icon={Settings} onNavigate={props.onFermer}>{t('nav.parametres')}</NavItem>
           </nav>
         </div>
 
@@ -140,7 +142,7 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
             className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-steel-light hover:text-white"
           >
             <LogOut size={14} strokeWidth={1.75} />
-            Deconnexion
+            {t('nav.deconnexion')}
           </button>
         </div>
       </aside>

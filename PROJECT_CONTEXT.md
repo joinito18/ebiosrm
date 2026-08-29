@@ -2379,7 +2379,27 @@ Nouveau module **`Modules/Suivi/`**. Périmètre : les 3 sous-fonctionnalités d
 - Playwright : page portefeuille (compteurs + tableau trié), page suivi (indicateurs auto, création d'un KRI manuel + 2 points + sparkline SVG).
 
 ### Reste possible
-Export Excel du portefeuille, notifications sur dérive d'un KRI, historisation automatique des indicateurs auto (aujourd'hui recalculés, pas de série), gating lecture seule du formulaire d'indicateur.
+Notifications sur dérive d'un KRI, historisation automatique des indicateurs auto (aujourd'hui recalculés, pas de série), gating lecture seule du formulaire d'indicateur.
+
+## Mise à jour — Exports bureautiques + multi-langue (feuille de route point 8, 1ʳᵉ passe)
+
+### Exports Word / Excel — `Modules/Reporting/Exports/`
+- Paquets : **`ClosedXML` 0.104.2** (Excel) + **`DocumentFormat.OpenXml` 3.1.1** (Word, sinon transitif via ClosedXML).
+- **`RegistreRisquesExcelGenerator`** : classeur .xlsx à 5 feuilles (Synthèse, Scénarios de risque, Plan de traitement, Écosystème, Conformité), **état courant** (repos vivants + `ServiceConformite`), en-têtes bleu France, autofiltre, colonnes ajustées, cellules de niveau colorées.
+- **`WordBuilder`** (helper OpenXml : titres, paragraphes, tableaux) + **`SyntheseWordGenerator`** : .docx éditable (identité, chiffres clés, registre des risques, plan de traitement) à partir de `RapportCadreDeSuiviService`.
+- **`PortefeuilleExcelGenerator`** : une feuille, une ligne par étude (`ServicePortefeuille`).
+- Endpoints : `GET /etudes/{id}/exports/registre.xlsx`, `.../exports/synthese.docx`, `GET /portefeuille/export.xlsx`. Boutons de téléchargement sur le Dashboard et la page Portefeuille.
+
+### Multi-langue — `frontend/src/lib/i18n.tsx`
+- i18n **minimaliste, sans dépendance** : `ProviderLangue` (contexte + `localStorage['ebiosrm_langue']` + `document.documentElement.lang`), hooks `useT()` / `useLangue()`, dictionnaires `fr` / `en` en dur.
+- **Coquille traduite** : navigation (Sidebar), en-têtes des vues transverses (Portefeuille, Conformité, Suivi, Bibliothèque), liens du Dashboard, sélecteur FR/EN dans Paramètres.
+- Le contenu méthodologique détaillé des ateliers et les rapports PDF restent en français -> traduction progressive.
+
+### Vérifié
+- 262 tests backend (+4 : registre .xlsx avec les 5 feuilles et les données de l'étude, synthèse .docx avec le registre, portefeuille .xlsx, 404). 25 frontend, + Playwright (bascule FR/EN de la coquille + persistance au rechargement + `lang=en`, boutons d'export présents).
+
+### Reste possible
+Traduction du reste de l'app et des PDF, export Word du rapport complet des 5 ateliers, export du tableau de conformité en Excel dédié.
 
 *Fin du contexte.*
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
+import { useT } from '../lib/i18n'
 import EmptyState from '../components/shared/EmptyState'
 import Button from '../components/shared/Button'
 import Sparkline from '../components/shared/Sparkline'
@@ -28,6 +29,7 @@ function enAlerte(i: IndicateurSuivi): boolean {
 export default function SuiviEtude() {
   var params = useParams()
   var etudeId = params.etudeId as string
+  var _t = useT()
   var [etude, setEtude] = useState<Etude | null>(null)
   var [evolution, setEvolution] = useState<EvolutionEtude | null>(null)
   var [autos, setAutos] = useState<IndicateurAuto[]>([])
@@ -49,8 +51,8 @@ export default function SuiviEtude() {
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
-        eyebrow="CADRE DE SUIVI VIVANT"
-        titre="Suivi"
+        eyebrow={_t('suivi.eyebrow')}
+        titre={_t('suivi.titre')}
         description={etude ? etude.nom : 'Indicateurs de risque et évolution dans le temps.'}
       />
       <p className="mb-6 text-[11px] text-steel">

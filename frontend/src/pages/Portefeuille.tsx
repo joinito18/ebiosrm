@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
 import EmptyState from '../components/shared/EmptyState'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
+import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { chargerPortefeuille } from '../lib/api'
 import type { LignePortefeuille } from '../lib/api'
+import { useT } from '../lib/i18n'
 
 export default function Portefeuille() {
   var navigate = useNavigate()
+  var t = useT()
   var [lignes, setLignes] = useState<LignePortefeuille[]>([])
   var [chargement, setChargement] = useState(true)
   var [erreur, setErreur] = useState('')
@@ -26,13 +29,21 @@ export default function Portefeuille() {
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
-      <PageHeader
-        eyebrow="PILOTAGE MULTI-ETUDES"
-        titre="Portefeuille"
-        description="Vue consolidée de toutes les études : exposition résiduelle, avancement du traitement, conformité NIS2."
-      />
+      <PageHeader eyebrow={t('portefeuille.eyebrow')} titre={t('portefeuille.titre')} description={t('portefeuille.desc')} />
 
-      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {!chargement && !erreur && lignes.length > 0 && (
+        <div className="mb-4">
+          <BoutonTelechargerRapport
+            path="/portefeuille/export.xlsx"
+            nomFichier="portefeuille.xlsx"
+            className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature"
+          >
+            {t('portefeuille.export')}
+          </BoutonTelechargerRapport>
+        </div>
+      )}
+
+      {chargement && <p className="text-sm text-steel">{t('commun.chargement')}</p>}
       {!chargement && erreur && <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">{erreur}</div>}
 
       {!chargement && !erreur && (lignes.length === 0 ? (

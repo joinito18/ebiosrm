@@ -132,6 +132,11 @@ export default function Dashboard() {
           </h2>
           <AtelierChainExpanded ateliers={ateliers} etudeId={etudeId} />
 
+          <div className="mt-6 flex flex-wrap gap-2">
+            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/registre.xlsx'} nomFichier={'registre-risques-' + etudeId + '.xlsx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Exporter le registre (Excel)</BoutonTelechargerRapport>
+            <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/exports/synthese.docx'} nomFichier={'synthese-' + etudeId + '.docx'} className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature">Exporter la synthese (Word)</BoutonTelechargerRapport>
+          </div>
+
           {statutAtelier5 === 'done' && (
             <Card variant="elevated" className="mt-8 px-5 py-6">
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">

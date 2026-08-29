@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
+import { useT } from '../lib/i18n'
 import Button from '../components/shared/Button'
 import EmptyState from '../components/shared/EmptyState'
 import { toastSucces, toastErreur } from '../lib/toast'
@@ -16,13 +17,14 @@ var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeolo
 var CATEGORIES_OV = ['EspionnageEtatiqueOuIndustriel', 'PrePositionnementStrategique', 'InfluenceDestabilisation', 'EntraveAuFonctionnement', 'SabotageDestruction', 'Lucratif', 'DefiAmusement', 'Autre']
 
 export default function Bibliotheque() {
+  var _t = useT()
   var [onglet, setOnglet] = useState<'mesures' | 'sources'>('mesures')
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
-        eyebrow="ELEMENTS REUTILISABLES"
-        titre="Bibliotheque"
+        eyebrow={_t('biblio.eyebrow')}
+        titre={_t('biblio.titre')}
         description="Catalogues fournis (ISO 27002, hygiene ANSSI) et vos propres elements, a reutiliser d'une etude a l'autre."
       />
 

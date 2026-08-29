@@ -4,6 +4,7 @@ import AppLayout from './components/layout/AppLayout'
 import RouteProtegee from './components/auth/RouteProtegee'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import Toaster from './components/shared/Toaster'
+import { ProviderLangue } from './lib/i18n'
 import Connexion from './pages/Connexion'
 import Inscription from './pages/Inscription'
 import Etudes from './pages/Etudes'
@@ -31,6 +32,7 @@ function Chargement() {
 export default function App() {
   return (
     <ErrorBoundary>
+      <ProviderLangue>
       <Toaster />
       <BrowserRouter>
         <Suspense fallback={<Chargement />}>
@@ -56,6 +58,7 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+      </ProviderLangue>
     </ErrorBoundary>
   )
 }

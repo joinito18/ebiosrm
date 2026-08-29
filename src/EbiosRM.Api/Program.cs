@@ -179,6 +179,9 @@ builder.Services.AddScoped<ServiceMetriquesEtude>();
 builder.Services.AddScoped<ServicePortefeuille>();
 builder.Services.AddScoped<ServiceIndicateursAuto>();
 builder.Services.AddScoped<ServiceEvolutionEtude>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Reporting.Exports.RegistreRisquesExcelGenerator>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Reporting.Exports.PortefeuilleExcelGenerator>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Reporting.Exports.SyntheseWordGenerator>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -926,6 +929,36 @@ app.MapGet("/api/v1/portefeuille", async (
     var moiId = ObtenirUtilisateurId(principal);
     if (moiId is null) return Results.Unauthorized();
     return Results.Ok(await service.ConstruireAsync(moiId.Value, ct));
+});
+
+app.MapGet("/api/v1/portefeuille/export.xlsx", async (
+    EbiosRM.Api.Modules.Reporting.Exports.PortefeuilleExcelGenerator generateur,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    var octets = await generateur.GenererAsync(moiId.Value, ct);
+    return Results.File(octets, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "portefeuille.xlsx");
+});
+
+// --- Exports bureautiques d'une etude (Excel / Word) ---
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/exports/registre.xlsx", async (
+    Guid etudeId, EbiosRM.Api.Modules.Reporting.Exports.RegistreRisquesExcelGenerator generateur, CancellationToken ct) =>
+{
+    var octets = await generateur.GenererAsync(etudeId, ct);
+    return octets is null
+        ? Results.NotFound()
+        : Results.File(octets, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"registre-risques-{etudeId}.xlsx");
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/exports/synthese.docx", async (
+    Guid etudeId, EbiosRM.Api.Modules.Reporting.Exports.SyntheseWordGenerator generateur, CancellationToken ct) =>
+{
+    var octets = await generateur.GenererAsync(etudeId, ct);
+    return octets is null
+        ? Results.NotFound()
+        : Results.File(octets, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"synthese-{etudeId}.docx");
 });
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/evolution", async (

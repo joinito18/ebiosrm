@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
+import { useT } from '../lib/i18n'
 import EmptyState from '../components/shared/EmptyState'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { chargerConformiteEtude, getEtude } from '../lib/api'
@@ -23,6 +24,7 @@ var CLASSE_COUVERTURE: { [key in CouvertureConformite]: string } = {
 export default function ConformiteEtude() {
   var params = useParams()
   var etudeId = params.etudeId as string
+  var _t = useT()
   var [referentiel, setReferentiel] = useState<'Iso27001' | 'Nis2'>('Iso27001')
   var [rapport, setRapport] = useState<RapportConformite | null>(null)
   var [etude, setEtude] = useState<Etude | null>(null)
@@ -46,8 +48,8 @@ export default function ConformiteEtude() {
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
-        eyebrow="MAPPING DE CONFORMITE"
-        titre="Conformité"
+        eyebrow={_t('conformite.eyebrow')}
+        titre={_t('conformite.titre')}
         description={etude ? etude.nom : 'Couverture des exigences réglementaires par le contenu de l’étude.'}
       />
 
