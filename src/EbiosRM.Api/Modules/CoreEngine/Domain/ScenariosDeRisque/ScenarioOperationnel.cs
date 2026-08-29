@@ -20,9 +20,16 @@ public sealed class ActionElementaire
     public PhaseActionElementaire Phase { get; private set; }
     public Guid BienSupportId { get; private set; }
 
+    /// <summary>
+    /// Identifiant de la technique MITRE ATT&amp;CK associée (ex. « T1078 »),
+    /// optionnel -- aide à décrire le geste et à objectiver la vraisemblance.
+    /// Texte libre : accepte un identifiant du catalogue ou saisi à la main.
+    /// </summary>
+    public string? TechniqueMitre { get; private set; }
+
     private ActionElementaire() { }
 
-    internal static ActionElementaire Creer(string description, PhaseActionElementaire phase, Guid bienSupportId)
+    internal static ActionElementaire Creer(string description, PhaseActionElementaire phase, Guid bienSupportId, string? techniqueMitre = null)
     {
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException("La description de l'action élémentaire est obligatoire.", nameof(description));
@@ -34,7 +41,8 @@ public sealed class ActionElementaire
             // Id volontairement non assigné (ValueGeneratedOnAdd).
             Description = description.Trim(),
             Phase = phase,
-            BienSupportId = bienSupportId
+            BienSupportId = bienSupportId,
+            TechniqueMitre = string.IsNullOrWhiteSpace(techniqueMitre) ? null : techniqueMitre.Trim(),
         };
     }
 }
@@ -43,7 +51,7 @@ public sealed class ActionElementaire
 /// Entrée immuable pour construire/reconstruire la liste d'ActionElementaire
 /// d'un ModeOperatoire, sans exposer l'entité owned elle-même côté appelant.
 /// </summary>
-public readonly record struct ActionElementaireEntree(string Description, PhaseActionElementaire Phase, Guid BienSupportId);
+public readonly record struct ActionElementaireEntree(string Description, PhaseActionElementaire Phase, Guid BienSupportId, string? TechniqueMitre = null);
 
 /// <summary>
 /// Un mode opératoire technique possible pour réaliser un chemin d'attaque
@@ -99,7 +107,7 @@ public sealed class ModeOperatoire
             DifficulteTechnique = difficulteTechnique
         };
         foreach (var a in actions)
-            mode._actionsElementaires.Add(ActionElementaire.Creer(a.Description, a.Phase, a.BienSupportId));
+            mode._actionsElementaires.Add(ActionElementaire.Creer(a.Description, a.Phase, a.BienSupportId, a.TechniqueMitre));
 
         return mode;
     }
@@ -123,7 +131,7 @@ public sealed class ModeOperatoire
 
         _actionsElementaires.Clear();
         foreach (var a in actions)
-            _actionsElementaires.Add(ActionElementaire.Creer(a.Description, a.Phase, a.BienSupportId));
+            _actionsElementaires.Add(ActionElementaire.Creer(a.Description, a.Phase, a.BienSupportId, a.TechniqueMitre));
         // L'override (VraisemblanceRetenue/JustificationVraisemblance), s'il existe,
         // n'est jamais effacé par une modification des entrées -- sticky jusqu'à
         // DefinirVraisemblanceRetenue/ReinitialiserVraisemblance explicites.

@@ -58,7 +58,7 @@ public sealed class ServiceCreationSnapshotAtelier4
             s.VraisemblanceGlobale,
             s.ModesOperatoires.Select(m => new ModeOperatoireSnapshot(
                 m.Description,
-                m.ActionsElementaires.Select(a => new ActionElementaireSnapshotContenu(a.Description, a.Phase, a.BienSupportId)).ToList(),
+                m.ActionsElementaires.Select(a => new ActionElementaireSnapshotContenu(a.Description, a.Phase, a.BienSupportId, a.TechniqueMitre)).ToList(),
                 m.ProbabiliteSucces,
                 m.DifficulteTechnique,
                 m.Vraisemblance,

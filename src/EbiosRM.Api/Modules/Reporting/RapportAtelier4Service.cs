@@ -55,7 +55,10 @@ public sealed class RapportAtelier4Service
                 var actions = m.ActionsElementaires.Select(a =>
                 {
                     biensSupportParId.TryGetValue(a.BienSupportId, out var bien);
-                    return new ActionElementaireData(a.Description, a.Phase.ToString(), bien?.Description ?? "(bien support inconnu)");
+                    return new ActionElementaireData(
+                        a.Description, a.Phase.ToString(), bien?.Description ?? "(bien support inconnu)",
+                        a.TechniqueMitre,
+                        a.TechniqueMitre is null ? null : Modules.Bibliotheque.Domain.CatalogueMitre.Libelle(a.TechniqueMitre));
                 }).ToList();
                 return new ModeOperatoireData(
                     m.Description, actions, m.ProbabiliteSucces, m.DifficulteTechnique, m.Vraisemblance.ToString(),

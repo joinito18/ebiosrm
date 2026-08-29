@@ -763,12 +763,29 @@ export interface ActionElementaire {
   description: string
   phase: PhaseActionElementaire
   bienSupportId: string
+  techniqueMitre?: string | null
 }
 
 export interface ActionElementaireInput {
   description: string
   phase: PhaseActionElementaire
   bienSupportId: string
+  techniqueMitre?: string | null
+}
+
+export interface TechniqueMitre {
+  id: string
+  nom: string
+  tactique: string
+  phaseEbios: PhaseActionElementaire
+}
+
+export function listerTechniquesMitre(phase?: string, q?: string): Promise<TechniqueMitre[]> {
+  var params = new URLSearchParams()
+  if (phase) params.set('phase', phase)
+  if (q) params.set('q', q)
+  var suffixe = params.toString() ? '?' + params.toString() : ''
+  return apiFetch('/referentiels/mitre' + suffixe)
 }
 
 export interface ModeOperatoire {

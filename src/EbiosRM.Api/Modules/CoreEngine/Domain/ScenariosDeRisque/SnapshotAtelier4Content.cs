@@ -29,7 +29,7 @@ public record ModeOperatoireSnapshot(
     bool VraisemblanceEstJugementExpert,
     string? JustificationVraisemblance);
 
-public record ActionElementaireSnapshotContenu(string Description, PhaseActionElementaire Phase, Guid BienSupportId);
+public record ActionElementaireSnapshotContenu(string Description, PhaseActionElementaire Phase, Guid BienSupportId, string? TechniqueMitre = null);
 
 public record CheminAttaqueResumeSnapshot(Guid Id, string Description, Guid ScenarioStrategiqueId);
 

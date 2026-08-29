@@ -114,7 +114,9 @@ public sealed class RapportAtelier4PdfGenerator
                                                     {
                                                         var texte = string.Join("; ", mode.ActionsElementaires
                                                             .Where(a => a.Phase == phase)
-                                                            .Select(a => a.Description + " -> " + a.LibelleBienSupport));
+                                                            .Select(a => a.Description
+                                                                + (a.TechniqueMitre is null ? "" : " [ATT&CK " + a.TechniqueMitre + "]")
+                                                                + " -> " + a.LibelleBienSupport));
                                                         return texte.Length > 0 ? texte : "--";
                                                     }
 
@@ -129,6 +131,17 @@ public sealed class RapportAtelier4PdfGenerator
                                                         row.RelativeItem().Text(t => { t.Span("EXPLOITER ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Exploiter")).FontSize(7).FontColor(GrisTexte); });
                                                     });
                                                 }
+                                                var techniques = mode.ActionsElementaires
+                                                    .Where(a => a.LibelleTechniqueMitre is not null)
+                                                    .Select(a => a.LibelleTechniqueMitre!)
+                                                    .Distinct()
+                                                    .ToList();
+                                                if (techniques.Count > 0)
+                                                    mc.Item().PaddingLeft(6).PaddingTop(2).Text(t =>
+                                                    {
+                                                        t.Span("Techniques MITRE ATT&CK : ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte);
+                                                        t.Span(string.Join("  |  ", techniques)).FontSize(7).FontColor(GrisTexte);
+                                                    });
                                                 mc.Item().PaddingLeft(6).PaddingTop(2).Text("Probabilite de succes " + mode.ProbabiliteSucces + " -- Difficulte technique " + mode.DifficulteTechnique).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                                                 if (mode.VraisemblanceEstJugementExpert)
                                                 {

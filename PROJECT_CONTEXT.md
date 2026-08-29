@@ -2333,5 +2333,15 @@ Deux schémas, **générés côté serveur en SVG** pour une seule géométrie p
 - **Vérifié** : 250 tests backend (+3 : le SVG reflète le contenu de l'étude, 404 étude inconnue, non-membre 404), 25 frontend, + Playwright (radar + arbre rendus dans l'Atelier 3, bascule résiduelle) + relecture du rapport PDF A3 (radar cohérent avec le tableau, arbre lisible).
 - **Reste possible** : arbre détaillé A4 (modes opératoires / actions élémentaires par phase), interactivité (survol), export SVG autonome.
 
+## Mise à jour — Intégration MITRE ATT&CK dans l'Atelier 4 (feuille de route point 5, 1ʳᵉ passe)
+
+- **`ActionElementaire.TechniqueMitre`** (`string?`, ex. « T1078 ») : identifiant optionnel de technique ATT&CK, propagé dans `ActionElementaireEntree`, `ModeOperatoire.Creer`/`Modifier`, le snapshot A4 (`ActionElementaireSnapshotContenu`, param par défaut `= null` → anciens snapshots OK), et la désérialisation JSON (l'export/import et la duplication le portent gratuitement via les entités). Migration `AjoutTechniqueMitreActionElementaire` (colonne `character varying(20)` nullable). Texte libre : un identifiant hors catalogue est accepté.
+- **`Modules/Bibliotheque/Domain/CatalogueMitre.cs`** : ~150 techniques ATT&CK Enterprise de 1er niveau (sous-techniques exclues), chacune rattachée à sa tactique et à **l'une des 4 phases EBIOS RM** (`PhasePour` : Reconnaissance/Resource Development → Connaitre ; Initial Access/Execution → Rentrer ; Persistence/Priv Esc/Defense Evasion/Credential Access/Discovery/Lateral Movement → Trouver ; le reste → Exploiter). Embarqué dans le code, comme les autres catalogues. `Libelle("T1078")` → « T1078 — Valid Accounts ».
+- **`GET /api/v1/referentiels/mitre?phase=&q=`** : filtre optionnel par phase EBIOS + recherche (id / nom / tactique).
+- **Reporting A4** : `ActionElementaireData` porte `TechniqueMitre` + `LibelleTechniqueMitre` ; le PDF affiche `[ATT&CK T####]` après chaque action et une ligne « Techniques MITRE ATT&CK : ... » par mode opératoire.
+- **Frontend** : `components/shared/ChampTechniqueMitre.tsx` (bouton compact + liste déroulante filtrée sur la phase de l'action) ajouté comme colonne de l'`ActionElementaireListEditor` (formulaire d'ajout et d'édition d'un mode opératoire) ; badge `[T####]` sur la vue lecture du mode opératoire. `listerTechniquesMitre()` + types dans `api.ts`.
+- **Vérifié** : 252 tests backend (+2 : catalogue filtrable par phase, technique persistée sur une action + rapport A4 généré), 25 frontend, seed régénéré, + Playwright (sélecteur phase-aware : phase RENTRER + « phishing » → T1566 ; phase Exploiter → techniques Impact/Exfiltration/C2/Collection).
+- **Reste possible** : sous-techniques, matrice de couverture ATT&CK par étude, prise en compte dans le calcul de vraisemblance.
+
 *Fin du contexte.*
 

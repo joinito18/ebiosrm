@@ -15,6 +15,7 @@ import EmptyState from '../components/shared/EmptyState'
 import RowActions from '../components/shared/RowActions'
 import SelecteurBibliotheque from '../components/shared/SelecteurBibliotheque'
 import CartographieAtelier3 from '../components/shared/CartographieAtelier3'
+import ChampTechniqueMitre from '../components/shared/ChampTechniqueMitre'
 import { toastSucces, toastErreur } from '../lib/toast'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
@@ -2348,7 +2349,7 @@ function libelleBienSupport(biens: BienSupport[], bienSupportId: string) {
 // Au moins une action est obligatoire (methodologie EBIOS RM), donc la
 // derniere ligne restante ne peut pas etre supprimee.
 function ActionElementaireListEditor(props: { actions: ActionElementaireInput[]; biens: BienSupport[]; onChange: (actions: ActionElementaireInput[]) => void }) {
-  function modifier(index: number, champ: keyof ActionElementaireInput, valeur: string) {
+  function modifier(index: number, champ: keyof ActionElementaireInput, valeur: string | null) {
     var copie = props.actions.slice()
     copie[index] = { ...copie[index], [champ]: valeur }
     props.onChange(copie)
@@ -2356,7 +2357,7 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
 
   function ajouterLigne() {
     var bienParDefaut = props.biens.length > 0 ? props.biens[0].id : ''
-    props.onChange(props.actions.concat([{ description: '', phase: 'Connaitre', bienSupportId: bienParDefaut }]))
+    props.onChange(props.actions.concat([{ description: '', phase: 'Connaitre', bienSupportId: bienParDefaut, techniqueMitre: null }]))
   }
 
   function supprimerLigne(index: number) {
@@ -2369,7 +2370,7 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
       <span className="font-mono text-[10px] tracking-wide text-steel-light">ACTIONS ELEMENTAIRES (cible un bien support precis)</span>
       {props.actions.map(function (a, index) {
         return (
-          <div key={index} className="grid grid-cols-[100px_1fr_1fr_auto] items-center gap-2">
+          <div key={index} className="grid grid-cols-[90px_1.2fr_1fr_110px_auto] items-center gap-2">
             <select value={a.phase} onChange={function (e) { modifier(index, 'phase', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
               {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{LIBELLE_PHASE[p]}</option> })}
             </select>
@@ -2378,6 +2379,7 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
               {props.biens.length === 0 && <option value="">Aucun bien support</option>}
               {props.biens.map(function (b) { return <option key={b.id} value={b.id}>{b.description}</option> })}
             </select>
+            <ChampTechniqueMitre valeur={a.techniqueMitre} phase={a.phase} onChange={function (t) { modifier(index, 'techniqueMitre', t) }} />
             <button type="button" onClick={function () { supprimerLigne(index) }} disabled={props.actions.length <= 1} className="text-[11px] text-steel-light hover:text-risk-critical disabled:opacity-30">×</button>
           </div>
         )
@@ -2392,7 +2394,7 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
   var [edition, setEdition] = useState(false)
   var [description, setDescription] = useState(m.description)
   var [actions, setActions] = useState<ActionElementaireInput[]>(m.actionsElementaires.map(function (a) {
-    return { description: a.description, phase: a.phase, bienSupportId: a.bienSupportId }
+    return { description: a.description, phase: a.phase, bienSupportId: a.bienSupportId, techniqueMitre: a.techniqueMitre }
   }))
   var [probabiliteSucces, setProbabiliteSucces] = useState(String(m.probabiliteSucces))
   var [difficulteTechnique, setDifficulteTechnique] = useState(String(m.difficulteTechnique))
@@ -2460,7 +2462,14 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
               <span className="text-steel">{LIBELLE_PHASE[g.phase]}</span>
               {g.actions.length === 0
                 ? ' --'
-                : g.actions.map(function (a, i) { return <div key={i}>{a.description} → {libelleBienSupport(props.biens, a.bienSupportId)}</div> })}
+                : g.actions.map(function (a, i) {
+                    return (
+                      <div key={i}>
+                        {a.description} → {libelleBienSupport(props.biens, a.bienSupportId)}
+                        {a.techniqueMitre && <span className="ml-1 text-signature">[{a.techniqueMitre}]</span>}
+                      </div>
+                    )
+                  })}
             </div>
           )
         })}
@@ -2492,7 +2501,7 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
   function ouvrir() {
     setOuvert(true)
     if (actions.length === 0) {
-      setActions([{ description: '', phase: 'Connaitre', bienSupportId: props.biens.length > 0 ? props.biens[0].id : '' }])
+      setActions([{ description: '', phase: 'Connaitre', bienSupportId: props.biens.length > 0 ? props.biens[0].id : '', techniqueMitre: null }])
     }
   }
 

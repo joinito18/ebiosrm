@@ -22,4 +22,6 @@ public sealed record ModeOperatoireData(
 public sealed record ActionElementaireData(
     string Description,
     string Phase,
-    string LibelleBienSupport);
+    string LibelleBienSupport,
+    string? TechniqueMitre,
+    string? LibelleTechniqueMitre);

@@ -838,6 +838,28 @@ app.MapDelete("/api/v1/bibliotheque/sources-risque/{id:guid}", async (
     return Results.NoContent();
 });
 
+// Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans
+// le code. Filtre optionnel par phase EBIOS RM (Connaitre/Rentrer/Trouver/
+// Exploiter) et recherche plein texte sur l'identifiant / le nom / la tactique.
+app.MapGet("/api/v1/referentiels/mitre", (string? phase, string? q) =>
+{
+    IEnumerable<CatalogueMitre.Technique> techniques = CatalogueMitre.Techniques;
+
+    if (!string.IsNullOrWhiteSpace(phase))
+        techniques = techniques.Where(t => string.Equals(t.PhaseEbios, phase, StringComparison.OrdinalIgnoreCase));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        techniques = techniques.Where(t =>
+            t.Id.Contains(terme, StringComparison.OrdinalIgnoreCase)
+            || t.Nom.Contains(terme, StringComparison.OrdinalIgnoreCase)
+            || t.Tactique.Contains(terme, StringComparison.OrdinalIgnoreCase));
+    }
+
+    return Results.Ok(techniques.OrderBy(t => t.Id, StringComparer.OrdinalIgnoreCase));
+});
+
 app.MapGet("/api/v1/etudes", async (
     IEtudeRepository repo, IEtudeMembreRepository membreRepo,
     System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
@@ -2846,7 +2868,7 @@ static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> Par
         if (bien is null || bien.EtudeId != etudeId)
             return (null, Results.BadRequest(new { error = $"Bien support introuvable pour cette étude : {a.BienSupportId}." }));
 
-        actions.Add(new ActionElementaireEntree(a.Description, phase, a.BienSupportId));
+        actions.Add(new ActionElementaireEntree(a.Description, phase, a.BienSupportId, a.TechniqueMitre));
     }
     return (actions, null);
 }
@@ -2878,7 +2900,7 @@ record CreerCheminAttaqueRequest(string Description);
 record ModifierCheminAttaqueRequest(string Description);
 record CreerEvenementIntermediaireRequest(Guid PartiePrenanteId, string Description);
 record ModeOperatoireRequest(string Description, List<ActionElementaireInput> Actions, int ProbabiliteSucces, int DifficulteTechnique);
-record ActionElementaireInput(string Description, string Phase, Guid BienSupportId);
+record ActionElementaireInput(string Description, string Phase, Guid BienSupportId, string? TechniqueMitre = null);
 record DefinirVraisemblanceRetenueRequest(string VraisemblanceRetenue, string Justification);
 record ModifierEvenementIntermediaireRequest(string Description);
 record DefinirNiveauRisqueRetenuRequest(string NiveauRetenu, string Justification);

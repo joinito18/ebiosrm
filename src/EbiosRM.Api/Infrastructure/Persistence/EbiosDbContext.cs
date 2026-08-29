@@ -267,6 +267,7 @@ public class EbiosDbContext : DbContext
                     ae.Property(a => a.Description).IsRequired().HasMaxLength(1000);
                     ae.Property(a => a.Phase).IsRequired().HasConversion<string>().HasMaxLength(50);
                     ae.Property(a => a.BienSupportId).IsRequired();
+                    ae.Property(a => a.TechniqueMitre).HasMaxLength(20);
                     ae.HasIndex("ModeOperatoireId");
                     ae.HasIndex(a => a.BienSupportId);
                 });
