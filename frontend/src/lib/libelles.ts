@@ -36,8 +36,10 @@ var FR: { [categorie: string]: Table } = {
   coutComplexite: { Plus: '+ (Faible)', PlusPlus: '++ (Modere)', PlusPlusPlus: '+++ (Eleve)' },
   statutMesure: { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' },
   referentielMesure: { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' },
-  zoneDangerosite: { Veille: 'Veille', Controle: 'Controle', Danger: 'Danger' },
+  zoneDangerosite: { Veille: 'Zone de veille', Controle: 'Zone de controle', Danger: 'Zone de danger' },
   niveauRisque: { Faible: 'Faible', Moyen: 'Moyen', Eleve: 'Eleve' },
+  vraisemblance: { V1: 'V1', V2: 'V2', V3: 'V3', V4: 'V4' },
+  theme: { Organisationnel: 'Organisationnel', Personnes: 'Personnes', Physique: 'Physique', Technologique: 'Technologique' },
   axeMesure: { Gouvernance: 'Gouvernance', Protection: 'Protection', Defense: 'Defense', Resilience: 'Resilience' },
   statutAtelier: { Validee: 'Validee', EnCours: 'En cours', Brouillon: 'Brouillon' },
   motivation: {
@@ -96,8 +98,10 @@ var EN: { [categorie: string]: Table } = {
   coutComplexite: { Plus: '+ (Low)', PlusPlus: '++ (Moderate)', PlusPlusPlus: '+++ (High)' },
   statutMesure: { ALancer: 'To do', EnCours: 'In progress', Termine: 'Done' },
   referentielMesure: { Libre: 'Custom', Iso27002: 'ISO 27002', HygieneAnssi: 'ANSSI hygiene' },
-  zoneDangerosite: { Veille: 'Watch', Controle: 'Control', Danger: 'Danger' },
+  zoneDangerosite: { Veille: 'Watch zone', Controle: 'Control zone', Danger: 'Danger zone' },
   niveauRisque: { Faible: 'Low', Moyen: 'Medium', Eleve: 'High' },
+  vraisemblance: { V1: 'V1', V2: 'V2', V3: 'V3', V4: 'V4' },
+  theme: { Organisationnel: 'Organisational', Personnes: 'People', Physique: 'Physical', Technologique: 'Technological' },
   axeMesure: { Gouvernance: 'Governance', Protection: 'Protection', Defense: 'Defence', Resilience: 'Resilience' },
   statutAtelier: { Validee: 'Validated', EnCours: 'In progress', Brouillon: 'Draft' },
   motivation: {

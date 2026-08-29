@@ -60,21 +60,14 @@ import type {
   PhaseActionElementaire,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
+import { traduire, langueCourante } from '../lib/i18n'
+import { libelle, clesDe, optionsDe } from '../lib/libelles'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
 import type { ControleIso } from '../lib/iso27001'
 
-var NOMS_ATELIERS: { [key: number]: string } = {
-  1: 'Cadrage',
-  2: 'Sources de risque',
-  3: 'Scenarios strategiques',
-  4: 'Scenarios operationnels',
-  5: 'Traitement du risque',
-}
 
-var TYPES_BIEN_SUPPORT = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 'Local']
-var LIBELLE_TYPE_BIEN_SUPPORT: { [key: string]: string } = { SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local' }
-var ETATS_CONFORMITE = ['Conforme', 'NonConforme', 'NonApplicable']
-var LIBELLE_ETAT_CONFORMITE: { [key: string]: string } = { Conforme: 'Conforme', NonConforme: 'Non conforme', NonApplicable: 'Non applicable' }
+var TYPES_BIEN_SUPPORT = clesDe('typeBienSupport')
+var ETATS_CONFORMITE = clesDe('etatConformite')
 
 // Convertit une classe de couleur texte brute (couleurZone, couleurPertinence,
 // couleurGravite, couleurVraisemblance, couleurNiveauRisque -- toutes encore
@@ -111,7 +104,7 @@ function DepuisBiblio<T extends { id: string }>(props: {
   if (!ouvert) {
     return (
       <button type="button" onClick={function () { setOuvert(true) }} className="mb-2 font-mono text-[10px] text-signature hover:underline">
-        Depuis la bibliotheque
+        {traduire('ap.depuisBiblio')}
       </button>
     )
   }
@@ -216,7 +209,7 @@ export default function AtelierPage() {
     setAction('demarrage')
     setMessageErreur('')
     demarrerAtelier1(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -224,18 +217,18 @@ export default function AtelierPage() {
     setAction('validation')
     setMessageErreur('')
     validerAtelier1(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleRouvrir() {
-    if (!window.confirm('Rouvrir l atelier 1 ? Le rapport PDF deja genere restera consultable comme version figee, mais ne reflete plus l etat courant tant que l atelier n est pas revalide.')) {
+    if (!window.confirm(traduire('ap.confirmRouvrir1'))) {
       return
     }
     setAction('reouverture')
     setMessageErreur('')
     rouvrirAtelier1(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -243,7 +236,7 @@ export default function AtelierPage() {
     setAction('demarrage')
     setMessageErreur('')
     demarrerAtelier2(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -251,18 +244,18 @@ export default function AtelierPage() {
     setAction('validation')
     setMessageErreur('')
     validerAtelier2(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleRouvrirAtelier2() {
-    if (!window.confirm('Rouvrir l atelier 2 ?')) {
+    if (!window.confirm(traduire('ap.confirmRouvrir2'))) {
       return
     }
     setAction('reouverture')
     setMessageErreur('')
     rouvrirAtelier2(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -270,7 +263,7 @@ export default function AtelierPage() {
     setAction('demarrage')
     setMessageErreur('')
     demarrerAtelier3(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -278,18 +271,18 @@ export default function AtelierPage() {
     setAction('validation')
     setMessageErreur('')
     validerAtelier3(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleRouvrirAtelier3() {
-    if (!window.confirm('Rouvrir l atelier 3 ?')) {
+    if (!window.confirm(traduire('ap.confirmRouvrir3'))) {
       return
     }
     setAction('reouverture')
     setMessageErreur('')
     rouvrirAtelier3(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -297,7 +290,7 @@ export default function AtelierPage() {
     setAction('demarrage')
     setMessageErreur('')
     demarrerAtelier4(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -305,18 +298,18 @@ export default function AtelierPage() {
     setAction('validation')
     setMessageErreur('')
     validerAtelier4(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleRouvrirAtelier4() {
-    if (!window.confirm('Rouvrir l atelier 4 ?')) {
+    if (!window.confirm(traduire('ap.confirmRouvrir4'))) {
       return
     }
     setAction('reouverture')
     setMessageErreur('')
     rouvrirAtelier4(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
@@ -324,41 +317,41 @@ export default function AtelierPage() {
     setAction('demarrage')
     setMessageErreur('')
     demarrerAtelier5(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleValiderAtelier5() {
-    var saisie = window.prompt('Nom de ce point de suivi (optionnel, ex. "Revue annuelle 2026") :', '')
+    var saisie = window.prompt(traduire('ap.promptCampagne'), '')
     if (saisie === null) return
     var libelle = saisie.trim() || undefined
     setAction('validation')
     setMessageErreur('')
     validerAtelier5(etudeId, libelle).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   function handleRouvrirAtelier5() {
-    if (!window.confirm('Rouvrir l atelier 5 ?')) {
+    if (!window.confirm(traduire('ap.confirmRouvrir5'))) {
       return
     }
     setAction('reouverture')
     setMessageErreur('')
     rouvrirAtelier5(etudeId).then(function () { charger() }).catch(function (err) {
-      setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
+      setMessageErreur(err instanceof ApiError ? err.message : traduire('ap.err'))
     }).finally(function () { setAction('') })
   }
 
   if (chargement) {
-    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">Chargement...</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-steel">{traduire('ap.chargement')}</div>
   }
 
   if (!etude) {
-    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">Etude introuvable.</div>
+    return <div className="px-6 py-10 text-sm lg:px-10 lg:py-14 text-risk-critical">{traduire('ap.introuvable')}</div>
   }
 
-  var nom = NOMS_ATELIERS[numero] || 'Atelier'
+  var nom = traduire('atelier.' + numero + '.nom')
   var estAtelier1 = numero === 1
   var estAtelier2 = numero === 2
   var estAtelier3 = numero === 3
@@ -371,77 +364,77 @@ export default function AtelierPage() {
 
   var boutonAction = null
   if (estAtelier1 && etude.statut === 'Brouillon') {
-    boutonAction = <Button variante="primary" taille="md" onClick={handleDemarrer} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
+    boutonAction = <Button variante="primary" taille="md" onClick={handleDemarrer} disabled={action !== ''}>{action === 'demarrage' ? traduire('ap.demarrage') : traduire('ap.demarrer')}</Button>
   } else if (estAtelier1 && etude.statut === 'EnCours') {
-    boutonAction = <Button variante="primary" taille="md" onClick={handleValider} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
+    boutonAction = <Button variante="primary" taille="md" onClick={handleValider} disabled={action !== ''}>{action === 'validation' ? traduire('ap.validationpts') : traduire('ap.valider')}</Button>
   } else if (estAtelier1 && etude.statut === 'Validee') {
     boutonAction = (
       <>
-        <Button variante="danger" taille="md" onClick={handleRouvrir} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier1'} nomFichier={'rapport-atelier1-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrir} disabled={action !== ''}>{action === 'reouverture' ? traduire('ap.reouverture') : traduire('ap.rouvrir')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier1'} nomFichier={'rapport-atelier1-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerPdf')}</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier2 = null
   if (etude.statutAtelier2 === 'Brouillon') {
-    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier2} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
+    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier2} disabled={action !== ''}>{action === 'demarrage' ? traduire('ap.demarrage') : traduire('ap.demarrer')}</Button>
   } else if (etude.statutAtelier2 === 'EnCours') {
-    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleValiderAtelier2} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
+    boutonActionAtelier2 = <Button variante="primary" taille="md" onClick={handleValiderAtelier2} disabled={action !== ''}>{action === 'validation' ? traduire('ap.validationpts') : traduire('ap.valider')}</Button>
   } else if (etude.statutAtelier2 === 'Validee') {
     boutonActionAtelier2 = (
       <>
-        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier2} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier2'} nomFichier={'rapport-atelier2-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier2} disabled={action !== ''}>{action === 'reouverture' ? traduire('ap.reouverture') : traduire('ap.rouvrir')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier2'} nomFichier={'rapport-atelier2-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerPdf')}</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier3 = null
   if (etude.statutAtelier3 === 'Brouillon') {
-    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier3} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
+    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier3} disabled={action !== ''}>{action === 'demarrage' ? traduire('ap.demarrage') : traduire('ap.demarrer')}</Button>
   } else if (etude.statutAtelier3 === 'EnCours') {
-    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleValiderAtelier3} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
+    boutonActionAtelier3 = <Button variante="primary" taille="md" onClick={handleValiderAtelier3} disabled={action !== ''}>{action === 'validation' ? traduire('ap.validationpts') : traduire('ap.valider')}</Button>
   } else if (etude.statutAtelier3 === 'Validee') {
     boutonActionAtelier3 = (
       <>
-        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier3} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier3'} nomFichier={'rapport-atelier3-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier3} disabled={action !== ''}>{action === 'reouverture' ? traduire('ap.reouverture') : traduire('ap.rouvrir')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier3'} nomFichier={'rapport-atelier3-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerPdf')}</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier4 = null
   if (etude.statutAtelier4 === 'Brouillon') {
-    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier4} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
+    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier4} disabled={action !== ''}>{action === 'demarrage' ? traduire('ap.demarrage') : traduire('ap.demarrer')}</Button>
   } else if (etude.statutAtelier4 === 'EnCours') {
-    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleValiderAtelier4} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
+    boutonActionAtelier4 = <Button variante="primary" taille="md" onClick={handleValiderAtelier4} disabled={action !== ''}>{action === 'validation' ? traduire('ap.validationpts') : traduire('ap.valider')}</Button>
   } else if (etude.statutAtelier4 === 'Validee') {
     boutonActionAtelier4 = (
       <>
-        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier4} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier4'} nomFichier={'rapport-atelier4-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier4} disabled={action !== ''}>{action === 'reouverture' ? traduire('ap.reouverture') : traduire('ap.rouvrir')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier4'} nomFichier={'rapport-atelier4-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerPdf')}</BoutonTelechargerRapport>
       </>
     )
   }
 
   var boutonActionAtelier5 = null
   if (etude.statutAtelier5 === 'Brouillon') {
-    boutonActionAtelier5 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier5} disabled={action !== ''}>{action === 'demarrage' ? 'Demarrage...' : 'Demarrer l atelier'}</Button>
+    boutonActionAtelier5 = <Button variante="primary" taille="md" onClick={handleDemarrerAtelier5} disabled={action !== ''}>{action === 'demarrage' ? traduire('ap.demarrage') : traduire('ap.demarrer')}</Button>
   } else if (etude.statutAtelier5 === 'EnCours') {
     boutonActionAtelier5 = (
       <>
-        <Button variante="primary" taille="md" onClick={handleValiderAtelier5} disabled={action !== ''}>{action === 'validation' ? 'Validation...' : 'Valider l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le cadre de suivi</BoutonTelechargerRapport>
+        <Button variante="primary" taille="md" onClick={handleValiderAtelier5} disabled={action !== ''}>{action === 'validation' ? traduire('ap.validationpts') : traduire('ap.valider')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerCadre')}</BoutonTelechargerRapport>
       </>
     )
   } else if (etude.statutAtelier5 === 'Validee') {
     boutonActionAtelier5 = (
       <>
-        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier5} disabled={action !== ''}>{action === 'reouverture' ? 'Reouverture...' : 'Rouvrir l atelier'}</Button>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier5'} nomFichier={'rapport-atelier5-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le rapport PDF</BoutonTelechargerRapport>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger la synthese globale</BoutonTelechargerRapport>
-        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>Telecharger le cadre de suivi</BoutonTelechargerRapport>
+        <Button variante="danger" taille="md" onClick={handleRouvrirAtelier5} disabled={action !== ''}>{action === 'reouverture' ? traduire('ap.reouverture') : traduire('ap.rouvrir')}</Button>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/atelier5'} nomFichier={'rapport-atelier5-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerPdf')}</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/synthese'} nomFichier={'synthese-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerSynthese')}</BoutonTelechargerRapport>
+        <BoutonTelechargerRapport path={'/etudes/' + etudeId + '/rapports/cadre-de-suivi'} nomFichier={'cadre-de-suivi-' + etudeId + '.pdf'} className={CLASSE_TELECHARGEMENT}>{traduire('ap.telechargerCadre')}</BoutonTelechargerRapport>
       </>
     )
   }
@@ -451,11 +444,11 @@ export default function AtelierPage() {
   return (
     <LectureSeuleProvider valeur={lectureSeule}>
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
-      <PageHeader eyebrow={'ATELIER ' + (numero < 10 ? '0' + numero : numero) + ' / 05 -- ' + etude.nom} titre={nom} />
+      <PageHeader eyebrow={traduire('ap.eyebrowAtelier') + ' ' + (numero < 10 ? '0' + numero : numero) + ' / 05 -- ' + etude.nom} titre={nom} />
 
       {lectureSeule && (
         <div className="mb-6 inline-block border border-paper-line bg-paper-dim px-3 py-1.5 text-[11px] text-steel">
-          Vous consultez cet atelier en lecture seule. Les rapports restent telechargeables.
+          {traduire('ap.lectureSeule')}
         </div>
       )}
 
@@ -463,7 +456,7 @@ export default function AtelierPage() {
 
       {estVerrouille && (
         <div className="mb-10 border border-paper-line bg-paper-dim px-5 py-4">
-          <p className="text-xs text-steel">Numero d atelier invalide. La methode EBIOS RM compte 5 ateliers (1 a 5) &mdash; <Link to={'/etudes/' + etudeId} className="text-signature hover:underline">retour au tableau de bord de l etude</Link>.</p>
+          <p className="text-xs text-steel">{traduire('ap.numeroInvalide')} &mdash; <Link to={'/etudes/' + etudeId} className="text-signature hover:underline">{traduire('ap.retourTdb')}</Link>.</p>
         </div>
       )}
 
@@ -504,7 +497,7 @@ export default function AtelierPage() {
           <ScenariosStrategiquesSection etudeId={etudeId} couples={couples} scenarios={scenarios} evenements={evenements} valeurs={valeurs} onChange={charger} />
           <CheminsAttaqueSection etudeId={etudeId} scenarios={scenarios} couples={couples} chemins={cheminsAttaque} parties={parties} onChange={charger} />
           <section>
-            <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE GRAPHIQUE</h2>
+            <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.cartoGraphique')}</h2>
             <CartographieAtelier3 etudeId={etudeId} rafraichir={versionDonnees} />
           </section>
         </div>
@@ -532,7 +525,7 @@ export default function AtelierPage() {
       )}
 
       <div className="mt-14 border-t border-paper-line pt-6">
-        <Link to={lienRetour} className="font-mono text-[11px] text-steel hover:text-signature">Retour au dossier de l etude</Link>
+        <Link to={lienRetour} className="font-mono text-[11px] text-steel hover:text-signature">{traduire('ap.retourDossier')}</Link>
       </div>
     </div>
     </LectureSeuleProvider>
@@ -550,7 +543,7 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
 
   function soumettre(fermer: () => void) {
     if (!description.trim() || !entite.trim()) {
-      setErreur('Description et entite proprietaire obligatoires.')
+      setErreur(traduire('ap.a1.vmErr'))
       return
     }
     setEnCours(true)
@@ -562,7 +555,7 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
         fermer()
         props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -576,21 +569,21 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
     if (!descEdit.trim() || !entiteEdit.trim()) return
     updateValeurMetier(props.etudeId, id, descEdit, entiteEdit)
       .then(function () { setIdEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer(id: string) {
-    if (!window.confirm('Supprimer cette valeur metier ?')) return
+    if (!window.confirm(traduire('ap.a1.vmConfirm'))) return
     deleteValeurMetier(props.etudeId, id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">VALEURS METIER ({props.valeurs.length})</h2>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a1.vmTitre')} ({props.valeurs.length})</h2>
       {props.valeurs.length === 0 ? (
-        <EmptyState message="Aucune valeur metier renseignee." />
+        <EmptyState message={traduire('ap.a1.vmVide')} />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.valeurs.map(function (v) {
@@ -600,7 +593,7 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
                   <input type="text" value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <input type="text" value={entiteEdit} onChange={function (e) { setEntiteEdit(e.target.value) }} className="w-40 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <button onClick={function () { sauvegarderEdition(v.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                 </div>
               )
             }
@@ -617,12 +610,12 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
         </div>
       )}
 
-      <InlineForm label="Ajouter une valeur metier">
+      <InlineForm label={traduire('ap.a1.vmAdd')}>
         {function (fermer) {
           return (
             <div>
               <DepuisBiblio<ValeurMetierBiblio>
-                titre="Valeur metier de la bibliotheque"
+                titre={traduire('ap.a1.vmBiblio')}
                 charger={function (q) { return listerValeursMetierBiblio(q) }}
                 rendre={function (v) {
                   return (
@@ -634,10 +627,10 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
                 }}
                 onChoisir={function (v) { setDescription(v.intitule); if (v.entiteProprietaireTypique) setEntite(v.entiteProprietaireTypique) }}
               />
-              <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-              <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.description')} value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.entiteProp')} value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
             </div>
           )
         }}
@@ -664,7 +657,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
 
   function soumettre(fermer: () => void) {
     if (!valeurMetierId || !description.trim() || !entite.trim()) {
-      setErreur('Valeur metier, description et entite proprietaire obligatoires.')
+      setErreur(traduire('ap.a1.bsErr'))
       return
     }
     setEnCours(true)
@@ -676,7 +669,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
         fermer()
         props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -696,21 +689,21 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
     if (!descEdit.trim() || !entiteEdit.trim()) return
     updateBienSupport(props.etudeId, id, descEdit, typeEdit, entiteEdit)
       .then(function () { setIdEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer(id: string) {
-    if (!window.confirm('Supprimer ce bien support ?')) return
+    if (!window.confirm(traduire('ap.a1.bsConfirm'))) return
     deleteBienSupport(props.etudeId, id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">BIENS SUPPORT ({props.biens.length})</h2>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a1.bsTitre')} ({props.biens.length})</h2>
       {props.biens.length === 0 ? (
-        <EmptyState message="Aucun bien support renseigne." />
+        <EmptyState message={traduire('ap.a1.bsVide')} />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.biens.map(function (b) {
@@ -719,11 +712,11 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
                 <div key={b.id} className="flex items-center gap-2 border-l-2 border-signature py-2 pl-3">
                   <input type="text" value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <select value={typeEdit} onChange={function (e) { setTypeEdit(e.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                    {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BIEN_SUPPORT[t]}</option> })}
+                    {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{libelle('typeBienSupport', t)}</option> })}
                   </select>
                   <input type="text" value={entiteEdit} onChange={function (e) { setEntiteEdit(e.target.value) }} className="w-32 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <button onClick={function () { sauvegarderEdition(b.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                 </div>
               )
             }
@@ -731,7 +724,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
               <div key={b.id} className="flex items-center justify-between py-3">
                 <span className="text-sm text-ink">{b.description}</span>
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-[11px] text-steel-light">{LIBELLE_TYPE_BIEN_SUPPORT[b.type] || b.type} - {b.entiteProprietaire}</span>
+                  <span className="font-mono text-[11px] text-steel-light">{libelle('typeBienSupport', b.type) || b.type} - {b.entiteProprietaire}</span>
                   <RowActions onModifier={function () { ouvrirEdition(b) }} onSupprimer={function () { supprimer(b.id) }} />
                 </div>
               </div>
@@ -740,13 +733,13 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
         </div>
       )}
 
-      <InlineForm label="Ajouter un bien support">
+      <InlineForm label={traduire('ap.a1.bsAdd')}>
         {function (fermer) {
           return (
             <div>
               <DepuisBiblio<BienSupportBiblio>
-                titre="Bien support de la bibliotheque"
-                filtres={[{ valeur: '', libelle: 'Tous' }].concat(TYPES_BIEN_SUPPORT.map(function (t) { return { valeur: t, libelle: LIBELLE_TYPE_BIEN_SUPPORT[t] } }))}
+                titre={traduire('ap.a1.bsBiblio')}
+                filtres={[{ valeur: '', libelle: traduire('ap.commun.tous') }].concat(TYPES_BIEN_SUPPORT.map(function (t) { return { valeur: t, libelle: libelle('typeBienSupport', t) } }))}
                 filtreActif={filtreBiblioBs}
                 onFiltre={setFiltreBiblioBs}
                 charger={function (q) { return listerBiensSupportBiblio(filtreBiblioBs, q) }}
@@ -754,23 +747,23 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
                   return (
                     <div>
                       <div className="text-sm text-ink">{b.intitule}</div>
-                      <div className="text-[10px] text-steel-light">{metaBiblio(b.systeme, LIBELLE_TYPE_BIEN_SUPPORT[b.type] || b.type, b.entiteProprietaireTypique)}</div>
+                      <div className="text-[10px] text-steel-light">{metaBiblio(b.systeme, libelle('typeBienSupport', b.type) || b.type, b.entiteProprietaireTypique)}</div>
                     </div>
                   )
                 }}
                 onChoisir={function (b) { setDescription(b.intitule); setType(b.type); if (b.entiteProprietaireTypique) setEntite(b.entiteProprietaireTypique) }}
               />
               <select value={valeurMetierId} onChange={function (e) { setValeurMetierId(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                <option value="">Valeur metier associee</option>
+                <option value="">{traduire('ap.a1.vmAssociee')}</option>
                 {props.valeurs.map(function (v) { return <option key={v.id} value={v.id}>{v.description}</option> })}
               </select>
-              <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.description')} value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <select value={type} onChange={function (e) { setType(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BIEN_SUPPORT[t]}</option> })}
+                {TYPES_BIEN_SUPPORT.map(function (t) { return <option key={t} value={t}>{libelle('typeBienSupport', t)}</option> })}
               </select>
-              <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.entiteProp')} value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
             </div>
           )
         }}
@@ -795,7 +788,7 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
 
   function soumettre(fermer: () => void) {
     if (!valeurMetierId || !description.trim()) {
-      setErreur('Valeur metier et description obligatoires.')
+      setErreur(traduire('ap.a1.erErr'))
       return
     }
     setEnCours(true)
@@ -806,7 +799,7 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
         fermer()
         props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -824,21 +817,21 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
     if (!descEdit.trim()) return
     updateEvenementRedoute(props.etudeId, id, descEdit, Number(graviteEdit))
       .then(function () { setIdEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer(id: string) {
-    if (!window.confirm('Supprimer cet evenement redoute ?')) return
+    if (!window.confirm(traduire('ap.a1.erConfirm'))) return
     deleteEvenementRedoute(props.etudeId, id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVENEMENTS REDOUTES ({props.evenements.length})</h2>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a1.erTitre')} ({props.evenements.length})</h2>
       {props.evenements.length === 0 ? (
-        <EmptyState message="Aucun evenement redoute renseigne." />
+        <EmptyState message={traduire('ap.a1.erVide')} />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.evenements.map(function (e) {
@@ -847,10 +840,10 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
                 <div key={e.id} className="flex items-center gap-2 border-l-2 border-signature py-2 pl-3">
                   <input type="text" value={descEdit} onChange={function (ev) { setDescEdit(ev.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <select value={graviteEdit} onChange={function (ev) { setGraviteEdit(ev.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                    <option value="1">Gravite 1</option><option value="2">Gravite 2</option><option value="3">Gravite 3</option><option value="4">Gravite 4</option>
+                    <option value="1">{traduire('ap.a1.gravite1')}</option><option value="2">{traduire('ap.a1.gravite2')}</option><option value="3">{traduire('ap.a1.gravite3')}</option><option value="4">{traduire('ap.a1.gravite4')}</option>
                   </select>
                   <button onClick={function () { sauvegarderEdition(e.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                  <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                 </div>
               )
             }
@@ -858,7 +851,7 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
               <div key={e.id} className="flex items-start justify-between gap-6 py-3">
                 <span className="text-sm text-ink">{e.description}</span>
                 <div className="flex shrink-0 items-center gap-3">
-                  <Badge couleur="risk-high">GRAVITE {e.gravite}</Badge>
+                  <Badge couleur="risk-high">{traduire('ap.a1.graviteBadge')} {e.gravite}</Badge>
                   <RowActions onModifier={function () { ouvrirEdition(e) }} onSupprimer={function () { supprimer(e.id) }} />
                 </div>
               </div>
@@ -867,12 +860,12 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
         </div>
       )}
 
-      <InlineForm label="Ajouter un evenement redoute">
+      <InlineForm label={traduire('ap.a1.erAdd')}>
         {function (fermer) {
           return (
             <div>
               <DepuisBiblio<EvenementRedouteBiblio>
-                titre="Evenement redoute de la bibliotheque"
+                titre={traduire('ap.a1.erBiblio')}
                 charger={function (q) { return listerEvenementsRedoutesBiblio(q) }}
                 rendre={function (e) {
                   return (
@@ -885,18 +878,18 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
                 onChoisir={function (e) { setDescription(e.intitule); if (e.graviteIndicative) setGravite(String(e.graviteIndicative)) }}
               />
               <select value={valeurMetierId} onChange={function (e) { setValeurMetierId(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                <option value="">Valeur metier associee</option>
+                <option value="">{traduire('ap.a1.vmAssociee')}</option>
                 {props.valeurs.map(function (v) { return <option key={v.id} value={v.id}>{v.description}</option> })}
               </select>
-              <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.description')} value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <select value={gravite} onChange={function (e) { setGravite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                <option value="1">Gravite 1</option>
-                <option value="2">Gravite 2</option>
-                <option value="3">Gravite 3</option>
-                <option value="4">Gravite 4</option>
+                <option value="1">{traduire('ap.a1.gravite1')}</option>
+                <option value="2">{traduire('ap.a1.gravite2')}</option>
+                <option value="3">{traduire('ap.a1.gravite3')}</option>
+                <option value="4">{traduire('ap.a1.gravite4')}</option>
               </select>
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
             </div>
           )
         }}
@@ -933,14 +926,14 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
     if (!nomRefEdit.trim()) return
     updateReferentiel(props.etudeId, id, nomRefEdit, etatRefEdit, themeRefEdit, codeRefEdit, etatActuelRefEdit || undefined)
       .then(function () { setIdRefEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimerRef(id: string) {
-    if (!window.confirm('Supprimer ce referentiel ?')) return
+    if (!window.confirm(traduire('ap.a1.refConfirm'))) return
     deleteReferentiel(props.etudeId, id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function creerSocle() {
@@ -948,7 +941,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
     setErreur('')
     createSocleSecurite(props.etudeId)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -957,11 +950,11 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
     if (mode === 'iso') {
       controle = CATALOGUE_ISO_27001.filter(function (c) { return c.code === controleCode })[0]
       if (!controle) {
-        setErreur('Selectionnez un controle ISO 27001.')
+        setErreur(traduire('ap.a1.refErrIso'))
         return
       }
     } else if (!nomLibre.trim()) {
-      setErreur('Le nom du referentiel est obligatoire.')
+      setErreur(traduire('ap.a1.refErrNom'))
       return
     }
 
@@ -979,7 +972,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
         fermer()
         props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -1013,7 +1006,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
       return { theme: t, items: trierParCode(groupes[t]) }
     })
     if (sansTheme.length > 0) {
-      resultat.push({ theme: 'Autres referentiels', items: sansTheme })
+      resultat.push({ theme: traduire('ap.a1.autresRef'), items: sansTheme })
     }
     return resultat
   }
@@ -1022,20 +1015,20 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SOCLE DE SECURITE (ISO/IEC 27001:2022, Annexe A)</h2>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a1.socleTitre')}</h2>
 
       {!props.socle ? (
         <div>
-          <EmptyState message="Aucun socle de securite cree pour cette etude." />
+          <EmptyState message={traduire('ap.a1.socleVide')} />
           {erreur && <p className="mb-2 mt-3 text-xs text-risk-critical">{erreur}</p>}
           <div className="mt-3">
-            <Button variante="primary" onClick={creerSocle} disabled={enCours}>{enCours ? 'Creation...' : 'Creer le socle de securite'}</Button>
+            <Button variante="primary" onClick={creerSocle} disabled={enCours}>{enCours ? traduire('ap.creation') : traduire('ap.a1.socleCreer')}</Button>
           </div>
         </div>
       ) : (
         <div>
           {groupes.length === 0 ? (
-            <EmptyState message="Aucun controle renseigne." />
+            <EmptyState message={traduire('ap.a1.ctrlVide')} />
           ) : (
             <div className="space-y-6">
               {groupes.map(function (groupe) {
@@ -1051,11 +1044,11 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                               <input type="text" value={nomRefEdit} onChange={function (ev) { setNomRefEdit(ev.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                               <div className="flex items-center gap-2">
                                 <select value={etatRefEdit} onChange={function (ev) { setEtatRefEdit(ev.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                                  {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{LIBELLE_ETAT_CONFORMITE[e]}</option> })}
+                                  {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{libelle('etatConformite', e)}</option> })}
                                 </select>
-                                <input type="text" value={etatActuelRefEdit} onChange={function (ev) { setEtatActuelRefEdit(ev.target.value) }} placeholder="Etat actuel observe" className="flex-1 border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
+                                <input type="text" value={etatActuelRefEdit} onChange={function (ev) { setEtatActuelRefEdit(ev.target.value) }} placeholder={traduire('ap.a1.etatActuel')} className="flex-1 border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
                                 <button onClick={function () { sauvegarderEditionRef(r.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                                <button onClick={function () { setIdRefEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                                <button onClick={function () { setIdRefEnEdition('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                               </div>
                             </div>
                           )
@@ -1068,7 +1061,7 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                                 {r.nom}
                               </span>
                               <div className="flex shrink-0 items-center gap-3">
-                                <Badge couleur={couleur}>{(LIBELLE_ETAT_CONFORMITE[r.etat] || r.etat).toUpperCase()}</Badge>
+                                <Badge couleur={couleur}>{(libelle('etatConformite', r.etat) || r.etat).toUpperCase()}</Badge>
                                 <RowActions onModifier={function () { ouvrirEditionRef(r) }} onSupprimer={function () { supprimerRef(r.id) }} />
                               </div>
                             </div>
@@ -1085,24 +1078,24 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
             </div>
           )}
 
-          <InlineForm label="Ajouter un controle">
+          <InlineForm label={traduire('ap.a1.ctrlAdd')}>
             {function (fermer) {
               return (
                 <div>
                   <div className="mb-3 flex gap-4">
                     <label className="flex items-center gap-1.5 text-xs text-ink">
                       <input type="radio" checked={mode === 'iso'} onChange={function () { setMode('iso') }} />
-                      Controle ISO 27001
+                      {traduire('ap.a1.ctrlIso')}
                     </label>
                     <label className="flex items-center gap-1.5 text-xs text-ink">
                       <input type="radio" checked={mode === 'libre'} onChange={function () { setMode('libre') }} />
-                      Autre referentiel
+                      {traduire('ap.a1.autreRefRadio')}
                     </label>
                   </div>
 
                   {mode === 'iso' ? (
                     <select value={controleCode} onChange={function (e) { setControleCode(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                      <option value="">Choisir un controle</option>
+                      <option value="">{traduire('ap.a1.choisirCtrl')}</option>
                       {THEMES_ISO.map(function (theme) {
                         return (
                           <optgroup key={theme} label={theme}>
@@ -1114,17 +1107,17 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
                       })}
                     </select>
                   ) : (
-                    <input type="text" placeholder="Nom du referentiel (ex: PSSI, RGPD)" value={nomLibre} onChange={function (e) { setNomLibre(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+                    <input type="text" placeholder={traduire('ap.a1.refNomPh')} value={nomLibre} onChange={function (e) { setNomLibre(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
                   )}
 
                   <select value={etat} onChange={function (e) { setEtat(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                    {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{LIBELLE_ETAT_CONFORMITE[e]}</option> })}
+                    {ETATS_CONFORMITE.map(function (e) { return <option key={e} value={e}>{libelle('etatConformite', e)}</option> })}
                   </select>
 
-                  <textarea placeholder="Etat actuel observe (ex: Supports amovibles non chiffres)" value={etatActuel} onChange={function (e) { setEtatActuel(e.target.value) }} rows={2} className="mb-3 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+                  <textarea placeholder={traduire('ap.a1.etatActuelPh')} value={etatActuel} onChange={function (e) { setEtatActuel(e.target.value) }} rows={2} className="mb-3 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
 
                   {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-                  <Button variante="primary" onClick={function () { ajouterReferentiel(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+                  <Button variante="primary" onClick={function () { ajouterReferentiel(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
                 </div>
               )
             }}
@@ -1137,22 +1130,12 @@ function SocleSection(props: { etudeId: string; socle: SocleSecurite | null; onC
 
 var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeologique', 'OfficineSpecialisee', 'Amateur', 'Vengeur', 'MalveillantPathologique', 'Autre']
 var CATEGORIES_OV = ['EspionnageEtatiqueOuIndustriel', 'PrePositionnementStrategique', 'InfluenceDestabilisation', 'EntraveAuFonctionnement', 'SabotageDestruction', 'Lucratif', 'DefiAmusement', 'Autre']
-var LIBELLE_CATEGORIE_SR: { [key: string]: string } = {
-  Etatique: 'Etatique', CrimeOrganise: 'Crime organise', Terroriste: 'Terroriste',
-  ActivisteIdeologique: 'Activiste ideologique', OfficineSpecialisee: 'Officine specialisee',
-  Amateur: 'Amateur', Vengeur: 'Vengeur', MalveillantPathologique: 'Malveillant pathologique', Autre: 'Autre',
-}
-var LIBELLE_CATEGORIE_OV: { [key: string]: string } = {
-  EspionnageEtatiqueOuIndustriel: 'Espionnage etatique ou industriel', PrePositionnementStrategique: 'Pre-positionnement strategique',
-  InfluenceDestabilisation: 'Influence / destabilisation', EntraveAuFonctionnement: 'Entrave au fonctionnement',
-  SabotageDestruction: 'Sabotage / destruction', Lucratif: 'Lucratif', DefiAmusement: 'Defi / amusement', Autre: 'Autre',
-}
-var THEMES_SR_OV = ['Organisationnel', 'Personnes', 'Physique', 'Technologique']
+var THEMES_SR_OV = clesDe('theme')
 
-var CATEGORIES_PP = ['Client', 'Partenaire', 'Prestataire', 'Autre']
+var CATEGORIES_PP = clesDe('categoriePP')
 
 function libelleCategoriePP(p: { categorie: string; descriptionCategorie?: string | null }) {
-  return p.categorie === 'Autre' && p.descriptionCategorie ? p.descriptionCategorie : p.categorie
+  return p.categorie === 'Autre' && p.descriptionCategorie ? p.descriptionCategorie : libelle('categoriePP', p.categorie)
 }
 
 function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenante[]; onChange: () => void }) {
@@ -1173,14 +1156,14 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
 
   function soumettre(fermer: () => void) {
     if (!nom.trim() || !roles.trim() || !representant.trim() || (categorie === 'Autre' && !descCategorie.trim())) {
-      setErreur('Tous les champs sont obligatoires (dont la precision de categorie si "Autre").')
+      setErreur(traduire('ap.a2.ppErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     createPartiePrenante(props.etudeId, nom, roles, representant, categorie, descCategorie)
       .then(function () { setNom(''); setRoles(''); setRepresentant(''); setDescCategorie(''); fermer(); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -1193,21 +1176,21 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
     if (!nomEdit.trim() || !rolesEdit.trim() || !repEdit.trim() || (categorieEdit === 'Autre' && !descCategorieEdit.trim())) return
     updatePartiePrenante(props.etudeId, id, nomEdit, rolesEdit, repEdit, categorieEdit, descCategorieEdit)
       .then(function () { setIdEdit(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer(id: string) {
-    if (!window.confirm('Supprimer cette partie prenante ?')) return
+    if (!window.confirm(traduire('ap.a2.ppConfirm'))) return
     deletePartiePrenante(props.etudeId, id).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PARTIES PRENANTES IMPORTANTES ({props.parties.length})</h2>
-      <p className="mb-4 text-xs text-steel">Identifiez les parties prenantes de l ecosysteme ; leur niveau de menace s evalue juste en dessous.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a2.ppTitre')} ({props.parties.length})</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a2.ppIntro')}</p>
       {props.parties.length === 0 ? (
-        <EmptyState message="Aucune partie prenante renseignee." />
+        <EmptyState message={traduire('ap.a2.ppVide')} />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.parties.map(function (p) {
@@ -1219,15 +1202,15 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
                   <div className="flex items-center gap-2">
                     <input type="text" value={repEdit} onChange={function (e) { setRepEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
                     <select value={categorieEdit} onChange={function (e) { setCategorieEdit(e.target.value) }} className="border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
-                      {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+                      {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{libelle('categoriePP', c)}</option> })}
                     </select>
                   </div>
                   {categorieEdit === 'Autre' && (
-                    <input type="text" placeholder="Precisez la categorie" value={descCategorieEdit} onChange={function (e) { setDescCategorieEdit(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
+                    <input type="text" placeholder={traduire('ap.a2.precisezCat')} value={descCategorieEdit} onChange={function (e) { setDescCategorieEdit(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
                   )}
                   <div className="flex items-center gap-2">
                     <button onClick={function () { sauvegarder(p.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                    <button onClick={function () { setIdEdit('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                    <button onClick={function () { setIdEdit('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                   </div>
                 </div>
               )
@@ -1249,7 +1232,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
         </div>
       )}
       <PanneauSuggestions<PartiePrenanteBiblio>
-        titre="Suggestions de parties prenantes de la bibliotheque"
+        titre={traduire('ap.a2.ppSugg')}
         rafraichir={props.parties.length}
         charger={function () { return suggererPartiesPrenantesBiblio(props.etudeId) }}
         rendre={function (pp) { return { titre: pp.nom, sousTitre: pp.descriptionCategorie || pp.categorie } }}
@@ -1261,12 +1244,12 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
           setGraine(Date.now())
         }}
       />
-      <InlineForm label="Ajouter une partie prenante" signalOuvrir={graine || undefined}>
+      <InlineForm label={traduire('ap.a2.ppAdd')} signalOuvrir={graine || undefined}>
         {function (fermer) {
           return (
             <div>
               <DepuisBiblio<PartiePrenanteBiblio>
-                titre="Partie prenante de la bibliotheque"
+                titre={traduire('ap.a2.ppBiblio')}
                 charger={function (q) { return listerPartiesPrenantesBiblio(q) }}
                 rendre={function (pp) {
                   return (
@@ -1284,17 +1267,17 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
                   if (pp.descriptionCategorie) setDescCategorie(pp.descriptionCategorie)
                 }}
               />
-              <input type="text" placeholder="Nom" value={nom} onChange={function (e) { setNom(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-              <input type="text" placeholder="Roles et attentes" value={roles} onChange={function (e) { setRoles(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-              <input type="text" placeholder="Representant" value={representant} onChange={function (e) { setRepresentant(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.commun.nom')} value={nom} onChange={function (e) { setNom(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.a2.rolesPh')} value={roles} onChange={function (e) { setRoles(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.a2.representant')} value={representant} onChange={function (e) { setRepresentant(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <select value={categorie} onChange={function (e) { setCategorie(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+                {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{libelle('categoriePP', c)}</option> })}
               </select>
               {categorie === 'Autre' && (
-                <input type="text" placeholder="Precisez la categorie" value={descCategorie} onChange={function (e) { setDescCategorie(e.target.value) }} className="mb-2 w-full border-b border-signature bg-transparent py-1.5 text-sm text-ink focus:outline-none" />
+                <input type="text" placeholder={traduire('ap.a2.precisezCat')} value={descCategorie} onChange={function (e) { setDescCategorie(e.target.value) }} className="mb-2 w-full border-b border-signature bg-transparent py-1.5 text-sm text-ink focus:outline-none" />
               )}
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+              <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
             </div>
           )
         }}
@@ -1303,18 +1286,6 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
   )
 }
 
-var MOTIVATION_LABELS: { [key: string]: string } = {
-  '1': '1 -- Tres peu motive (interet limite, attaque opportuniste)',
-  '2': '2 -- Significatif (gain limite, abandonne facilement)',
-  '3': '3 -- Motive (objectif clair, investit temps et ressources)',
-  '4': '4 -- Fortement motive (cible prioritaire, volonte durable)',
-}
-var RESSOURCES_LABELS: { [key: string]: string } = {
-  '1': '1 -- Limitees (outils gratuits, attaques simples)',
-  '2': '2 -- Moderees (outils specialises, petite equipe)',
-  '3': '3 -- Importantes (attaques complexes et prolongees)',
-  '4': '4 -- Illimitees (experts, operations de longue duree)',
-}
 
 function couleurPertinence(p: string) {
   if (p === 'TresPertinent') return 'text-risk-critical'
@@ -1323,13 +1294,7 @@ function couleurPertinence(p: string) {
   return 'text-steel-light'
 }
 
-var OPTIONS_PERTINENCE = [
-  { value: 'PeuPertinent', label: 'Peu pertinent' },
-  { value: 'MoyennementPertinent', label: 'Moyennement pertinent' },
-  { value: 'PlutotPertinent', label: 'Plutot pertinent' },
-  { value: 'TresPertinent', label: 'Tres pertinent' },
-]
-var LIBELLE_PERTINENCE: { [key: string]: string } = { PeuPertinent: 'Peu pertinent', MoyennementPertinent: 'Moyennement pertinent', PlutotPertinent: 'Plutot pertinent', TresPertinent: 'Tres pertinent' }
+var OPTIONS_PERTINENCE = optionsDe('pertinence')
 
 function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifVise; onChange: () => void }) {
   var c = props.couple
@@ -1346,18 +1311,18 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
 
   function sauvegarder() {
     if (!descSr.trim() || !descOv.trim() || !contexte.trim()) {
-      setErreur('Description SR, OV et contexte obligatoires.')
+      setErreur(traduire('ap.a2.coupleErr'))
       return
     }
     updateCoupleSrOv(props.etudeId, c.id, sourceRisque, descSr, objectifVise, descOv, contexte, theme, Number(motivation), Number(ressources))
       .then(function () { setEdition(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer() {
-    if (!window.confirm('Supprimer ce couple SR/OV ?')) return
+    if (!window.confirm(traduire('ap.a2.coupleConfirm'))) return
     deleteCoupleSrOv(props.etudeId, c.id).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function versBibliotheque() {
@@ -1366,38 +1331,38 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
       objectifVise: c.objectifVise, descriptionObjectifVise: c.descriptionObjectifVise,
       theme: c.theme, motivationTypique: c.motivation, ressourcesTypiques: c.ressources,
     })
-      .then(function () { toastSucces('Source de risque ajoutee a votre bibliotheque.') })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('ap.a2.srVersBiblio')) })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   if (edition) {
     return (
       <div className="border-l-2 border-signature space-y-1.5 py-2.5 pl-3">
         <select value={sourceRisque} onChange={function (e) { setSourceRisque(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none">
-          {CATEGORIES_SR.map(function (cc) { return <option key={cc} value={cc}>{LIBELLE_CATEGORIE_SR[cc]}</option> })}
+          {CATEGORIES_SR.map(function (cc) { return <option key={cc} value={cc}>{libelle('categorieSR', cc)}</option> })}
         </select>
         <input type="text" value={descSr} onChange={function (e) { setDescSr(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
         <select value={objectifVise} onChange={function (e) { setObjectifVise(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none">
-          {CATEGORIES_OV.map(function (cc) { return <option key={cc} value={cc}>{LIBELLE_CATEGORIE_OV[cc]}</option> })}
+          {CATEGORIES_OV.map(function (cc) { return <option key={cc} value={cc}>{libelle('categorieOV', cc)}</option> })}
         </select>
         <input type="text" value={descOv} onChange={function (e) { setDescOv(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
         <textarea value={contexte} onChange={function (e) { setContexte(e.target.value) }} rows={2} className="w-full resize-none border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
         <select value={theme} onChange={function (e) { setTheme(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none">
-          {THEMES_SR_OV.map(function (t) { return <option key={t} value={t}>{t}</option> })}
+          {THEMES_SR_OV.map(function (t) { return <option key={t} value={t}>{libelle('theme', t)}</option> })}
         </select>
         <div className="flex gap-3">
           <select value={motivation} onChange={function (e) { setMotivation(e.target.value) }} className="flex-1 border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{MOTIVATION_LABELS[v]}</option> })}
+            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('motivation', v)}</option> })}
           </select>
           <select value={ressources} onChange={function (e) { setRessources(e.target.value) }} className="flex-1 border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{RESSOURCES_LABELS[v]}</option> })}
+            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('ressources', v)}</option> })}
           </select>
         </div>
-        <GrilleMatrice matrice={MATRICE_PERTINENCE} ligneLabels={['1 -- Tres peu motive', '2 -- Significatif', '3 -- Motive', '4 -- Fortement motive']} colonneLabels={['1 -- Limitees', '2 -- Moderees', '3 -- Importantes', '4 -- Illimitees']} ligneTitre="Motivation" colonneTitre="Ressources" ligneSelectionnee={Number(motivation) - 1} colonneSelectionnee={Number(ressources) - 1} couleurCellule={couleurPertinence} />
+        <GrilleMatrice matrice={MATRICE_PERTINENCE} ligneLabels={traduire('ap.mx.motiv').split('|')} colonneLabels={traduire('ap.mx.ress').split('|')} ligneTitre={traduire('ap.a2.motivation')} colonneTitre={traduire('ap.a2.ressources')} ligneSelectionnee={Number(motivation) - 1} colonneSelectionnee={Number(ressources) - 1} couleurCellule={couleurPertinence} />
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
           <button onClick={sauvegarder} className="text-xs font-medium text-signature hover:underline">OK</button>
-          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
         </div>
       </div>
     )
@@ -1408,13 +1373,13 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
       <div className="flex items-center justify-between gap-6">
         <span className="text-sm text-ink">{libelleCouple(c)}</span>
         <div className="flex shrink-0 items-center gap-3">
-          <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</Badge>
-          <button onClick={versBibliotheque} title="Ajouter a ma bibliotheque" className="text-[11px] text-steel-light hover:text-signature">&rarr; biblio.</button>
+          <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{libelle('pertinence', c.pertinence) || c.pertinence}</Badge>
+          <button onClick={versBibliotheque} title={traduire('ap.ajouterMaBiblio')} className="text-[11px] text-steel-light hover:text-signature">{traduire('ap.versBiblioLien')}</button>
           <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
       <div className="mt-1 text-xs text-steel">{c.contexteVulnerabilite}</div>
-      <div className="mt-1 font-mono text-[10px] text-steel-light">Motivation {c.motivation} -- Ressources {c.ressources}</div>
+      <div className="mt-1 font-mono text-[10px] text-steel-light">{traduire('ap.a2.motivationLbl')} {c.motivation} -- {traduire('ap.a2.ressourcesLbl')} {c.ressources}</div>
       <div className="mt-1.5">
         <OverrideJugementExpert
           valeurCalculee={c.pertinenceCalculee}
@@ -1445,14 +1410,14 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
 
   function soumettre(fermer: () => void) {
     if (!descSr.trim() || !descOv.trim() || !contexte.trim()) {
-      setErreur('Description SR, OV et contexte obligatoires.')
+      setErreur(traduire('ap.a2.coupleErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     createCoupleSrOv(props.etudeId, sourceRisque, descSr, objectifVise, descOv, contexte, theme, Number(motivation), Number(ressources))
       .then(function () { setDescSr(''); setDescOv(''); setContexte(''); fermer(); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -1462,10 +1427,10 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">COUPLES SOURCE DE RISQUE / OBJECTIF VISE ({props.couples.length})</h2>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a2.couplesTitre')} ({props.couples.length})</h2>
 
       {props.couples.length === 0 ? (
-        <EmptyState message="Aucun couple SR/OV renseigne." />
+        <EmptyState message={traduire('ap.a2.coupleVide')} />
       ) : (
         <div className="space-y-6">
           {groupesTheme.map(function (g) {
@@ -1473,7 +1438,7 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
               return (
                 <div key={g.theme}>
                   <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{g.theme.toUpperCase()} (0)</div>
-                  <EmptyState message="Aucun couple renseigne pour ce theme." />
+                  <EmptyState message={traduire('ap.a2.coupleVideTheme')} />
                 </div>
               )
             }
@@ -1491,17 +1456,17 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
         </div>
       )}
 
-      <InlineForm label="Ajouter un couple SR/OV">
+      <InlineForm label={traduire('ap.a2.coupleAdd')}>
         {function (fermer) {
           return (
             <div>
               {!selecteurBiblio ? (
                 <button type="button" onClick={function () { setSelecteurBiblio(true) }} className="mb-2 font-mono text-[10px] text-signature hover:underline">
-                  Depuis la bibliotheque
+                  {traduire('ap.depuisBiblio')}
                 </button>
               ) : (
                 <SelecteurBibliotheque<SourceRisqueBiblio>
-                  titre="Sources de risque"
+                  titre={traduire('ap.a2.srBiblioTitre')}
                   charger={function (q) { return listerSourcesRisqueBiblio(q) }}
                   cle={function (s) { return s.id }}
                   rendre={function (s) {
@@ -1526,29 +1491,29 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
                 />
               )}
               <select value={sourceRisque} onChange={function (e) { setSourceRisque(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{LIBELLE_CATEGORIE_SR[c]}</option> })}
+                {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{libelle('categorieSR', c)}</option> })}
               </select>
-              <input type="text" placeholder={sourceRisque === 'Autre' ? 'Precisez la categorie de source de risque' : 'Description de la source de risque'} value={descSr} onChange={function (e) { setDescSr(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (sourceRisque === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
+              <input type="text" placeholder={sourceRisque === 'Autre' ? traduire('ap.a2.precisezSr') : traduire('ap.a2.descSr')} value={descSr} onChange={function (e) { setDescSr(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (sourceRisque === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
               <select value={objectifVise} onChange={function (e) { setObjectifVise(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{LIBELLE_CATEGORIE_OV[c]}</option> })}
+                {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{libelle('categorieOV', c)}</option> })}
               </select>
-              <input type="text" placeholder={objectifVise === 'Autre' ? 'Precisez la categorie d objectif vise' : 'Description de l objectif vise'} value={descOv} onChange={function (e) { setDescOv(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (objectifVise === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
-              <textarea placeholder="Contexte / vulnerabilite associee" value={contexte} onChange={function (e) { setContexte(e.target.value) }} rows={2} className="mb-2 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={objectifVise === 'Autre' ? traduire('ap.a2.precisezOv') : traduire('ap.a2.descOv')} value={descOv} onChange={function (e) { setDescOv(e.target.value) }} className={'mb-2 w-full bg-transparent py-1.5 text-sm text-ink focus:outline-none ' + (objectifVise === 'Autre' ? 'border-b border-signature' : 'border-b border-paper-line focus:border-signature')} />
+              <textarea placeholder={traduire('ap.a2.contextePh')} value={contexte} onChange={function (e) { setContexte(e.target.value) }} rows={2} className="mb-2 w-full resize-none border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <select value={theme} onChange={function (e) { setTheme(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                {THEMES_SR_OV.map(function (t) { return <option key={t} value={t}>{t}</option> })}
+                {THEMES_SR_OV.map(function (t) { return <option key={t} value={t}>{libelle('theme', t)}</option> })}
               </select>
               <div className="mb-3 flex gap-3">
                 <select value={motivation} onChange={function (e) { setMotivation(e.target.value) }} className="flex-1 border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                  {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{MOTIVATION_LABELS[v]}</option> })}
+                  {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('motivation', v)}</option> })}
                 </select>
                 <select value={ressources} onChange={function (e) { setRessources(e.target.value) }} className="flex-1 border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-                  {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{RESSOURCES_LABELS[v]}</option> })}
+                  {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('ressources', v)}</option> })}
                 </select>
               </div>
-              <GrilleMatrice matrice={MATRICE_PERTINENCE} ligneLabels={['1 -- Tres peu motive', '2 -- Significatif', '3 -- Motive', '4 -- Fortement motive']} colonneLabels={['1 -- Limitees', '2 -- Moderees', '3 -- Importantes', '4 -- Illimitees']} ligneTitre="Motivation" colonneTitre="Ressources" ligneSelectionnee={Number(motivation) - 1} colonneSelectionnee={Number(ressources) - 1} couleurCellule={couleurPertinence} />
+              <GrilleMatrice matrice={MATRICE_PERTINENCE} ligneLabels={traduire('ap.mx.motiv').split('|')} colonneLabels={traduire('ap.mx.ress').split('|')} ligneTitre={traduire('ap.a2.motivation')} colonneTitre={traduire('ap.a2.ressources')} ligneSelectionnee={Number(motivation) - 1} colonneSelectionnee={Number(ressources) - 1} couleurCellule={couleurPertinence} />
               {erreur && <p className="mb-2 mt-2 text-xs text-risk-critical">{erreur}</p>}
               <div className="mt-2">
-                <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+                <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
               </div>
             </div>
           )
@@ -1586,9 +1551,7 @@ var ECHELLE_DANGEROSITE: { [key: string]: string[] } = {
 }
 
 function libelleZone(zone: string) {
-  if (zone === 'Danger') return 'Zone de danger'
-  if (zone === 'Controle') return 'Zone de controle'
-  return 'Zone de veille'
+  return libelle('zoneDangerosite', zone || 'Veille')
 }
 
 function couleurZone(zone: string) {
@@ -1615,23 +1578,23 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE DE LA DANGEROSITE DE L ECOSYSTEME</h2>
-      <p className="mb-4 text-xs text-steel">Niveau = (Dependance x Penetration) / (Maturite cyber x Confiance), calcule automatiquement. En zone de controle ou de danger, une partie est dite <span className="font-medium text-ink">critique</span>.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.cartoDgTitre')}</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a3.dgFormule')} <span className="font-medium text-ink">{traduire('ap.a3.critiqueMot')}</span>.</p>
       {props.parties.length === 0 ? (
-        <div className="mb-8"><EmptyState message="Aucune partie prenante renseignee ci-dessus pour l instant." /></div>
+        <div className="mb-8"><EmptyState message={traduire('ap.a3.ppVideDessus')} /></div>
       ) : (
         <div className="mb-8 overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr className="border-b border-paper-line text-left font-mono text-[9px] tracking-wide text-steel-light">
-                <th className="py-1.5 pr-2 font-medium">PARTIE PRENANTE</th>
-                <th className="py-1.5 pr-2 font-medium">CATEGORIE</th>
-                <th className="py-1.5 pr-2 font-medium">REPRESENTANT</th>
-                <th className="py-1.5 pr-2 text-center font-medium">DEP.</th>
-                <th className="py-1.5 pr-2 text-center font-medium">PEN.</th>
-                <th className="py-1.5 pr-2 text-center font-medium">MAT.</th>
-                <th className="py-1.5 pr-2 text-center font-medium">CONF.</th>
-                <th className="py-1.5 font-medium">NIVEAU / ZONE</th>
+                <th className="py-1.5 pr-2 font-medium">{traduire('ap.a3.thPp')}</th>
+                <th className="py-1.5 pr-2 font-medium">{traduire('ap.a3.thCat')}</th>
+                <th className="py-1.5 pr-2 font-medium">{traduire('ap.a3.thRep')}</th>
+                <th className="py-1.5 pr-2 text-center font-medium">{traduire('ap.dg.dependance')}</th>
+                <th className="py-1.5 pr-2 text-center font-medium">{traduire('ap.dg.penetration')}</th>
+                <th className="py-1.5 pr-2 text-center font-medium">{traduire('ap.dg.maturite')}</th>
+                <th className="py-1.5 pr-2 text-center font-medium">{traduire('ap.dg.confiance')}</th>
+                <th className="py-1.5 font-medium">{traduire('ap.a3.thNiveauZone')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1649,7 +1612,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
                       {p.niveauDangerosite != null && p.zone ? (
                         <Badge couleur={badgeCouleur(couleurZone(p.zone))}>{libelleZone(p.zone)} ({p.niveauDangerosite})</Badge>
                       ) : (
-                        <span className="font-mono text-steel-light">Non evaluee</span>
+                        <span className="font-mono text-steel-light">{traduire('ap.a3.nonEvaluee')}</span>
                       )}
                     </td>
                   </tr>
@@ -1660,9 +1623,9 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
         </div>
       )}
 
-      <h3 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">EVALUATION PAR PARTIE PRENANTE ({props.parties.length})</h3>
+      <h3 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.evalParPp')} ({props.parties.length})</h3>
       {props.parties.length === 0 ? (
-        <EmptyState message="Aucune partie prenante renseignee ci-dessus pour l instant." />
+        <EmptyState message={traduire('ap.a3.ppVideDessus')} />
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
           {props.parties.map(function (p) {
@@ -1672,7 +1635,7 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
       )}
       {critiques.length > 0 && (
         <p className="mt-4 text-xs text-steel">
-          <span className="font-medium text-ink">{critiques.length} partie(s) prenante(s) critique(s)</span> (zone de controle ou de danger) : {critiques.map(function (p) { return p.nom }).join(', ')}.
+          <span className="font-medium text-ink">{critiques.length} {traduire('ap.a3.ppCritiquesN')}</span> {traduire('ap.a3.zoneCtrlDanger')} {critiques.map(function (p) { return p.nom }).join(', ')}.
         </p>
       )}
     </section>
@@ -1705,7 +1668,7 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
     setErreur('')
     evaluerDangerosite(props.etudeId, p.id, Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))
       .then(function () { setEdition(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -1713,23 +1676,23 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
     return (
       <div className="space-y-2 py-3">
         <div className="text-sm text-ink">{p.nom}</div>
-        <div className="font-mono text-[9px] tracking-wide text-steel-light">EVALUER LA DANGEROSITE</div>
+        <div className="font-mono text-[9px] tracking-wide text-steel-light">{traduire('ap.a3.evaluerDg')}</div>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <ChampEchelleDangerosite label="DEPENDANCE" critere="dependance" valeur={dependance} onChange={setDependance} />
-          <ChampEchelleDangerosite label="PENETRATION" critere="penetration" valeur={penetration} onChange={setPenetration} />
-          <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
-          <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
+          <ChampEchelleDangerosite label={traduire('ap.dg.dependance')} critere="dependance" valeur={dependance} onChange={setDependance} />
+          <ChampEchelleDangerosite label={traduire('ap.dg.penetration')} critere="penetration" valeur={penetration} onChange={setPenetration} />
+          <ChampEchelleDangerosite label={traduire('ap.dg.maturite')} critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
+          <ChampEchelleDangerosite label={traduire('ap.dg.confiance')} critere="confiance" valeur={confiance} onChange={setConfiance} />
         </div>
         <div className="flex items-center gap-2 font-mono text-[11px] text-steel-light">
-          Apercu :
+          {traduire('ap.apercu')}
           <Badge couleur={badgeCouleur(couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance)))))}>
             {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
           </Badge>
         </div>
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
-          <Button variante="primary" onClick={soumettre} disabled={enCours}>{enCours ? 'Enregistrement...' : 'Enregistrer l evaluation'}</Button>
-          {!jamaisEvaluee && <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>}
+          <Button variante="primary" onClick={soumettre} disabled={enCours}>{enCours ? traduire('ap.enregistrementpts') : traduire('ap.a3.enregistrerEval')}</Button>
+          {!jamaisEvaluee && <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>}
         </div>
       </div>
     )
@@ -1741,11 +1704,11 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
         <div className="text-sm text-ink">{p.nom}</div>
         <div className="flex shrink-0 items-center gap-3">
           {p.niveauDangerosite == null ? (
-            <span className="font-mono text-[11px] text-steel-light">Non evaluee</span>
+            <span className="font-mono text-[11px] text-steel-light">{traduire('ap.a3.nonEvaluee')}</span>
           ) : (
             <Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</Badge>
           )}
-          {!lectureSeule && <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>}
+          {!lectureSeule && <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">{traduire('ap.a3.reevaluer')}</button>}
         </div>
       </div>
       {p.niveauDangerositeCalcule != null && (
@@ -1770,10 +1733,10 @@ function MesuresEcosystemeSection(props: { etudeId: string; parties: PartiePrena
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">MESURES DE SECURITE SUR L ECOSYSTEME</h2>
-      <p className="mb-4 text-xs text-steel">Proposez des mesures pour chaque partie critique, puis reevaluez sa dangerosite residuelle.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.mesuresEcoTitre')}</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a3.mesuresEcoIntro')}</p>
       {critiques.length === 0 ? (
-        <EmptyState message="Aucune partie prenante critique (zone de controle ou de danger) -- rien a traiter ici pour l instant." />
+        <EmptyState message={traduire('ap.a3.critiqueVide')} />
       ) : (
         <div className="space-y-6">
           {critiques.map(function (p) {
@@ -1799,21 +1762,21 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
   function creerMesure() {
     if (!descMesure.trim()) {
-      setErreur('La description de la mesure est obligatoire.')
+      setErreur(traduire('ap.a3.mesureErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     ajouterMesureEcosysteme(props.etudeId, p.id, descMesure)
       .then(function () { setDescMesure(''); setAjoutMesure(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
   function supprimerMesure(mesureId: string) {
-    if (!window.confirm('Supprimer cette mesure ?')) return
+    if (!window.confirm(traduire('ap.a3.mesureConfirm'))) return
     supprimerMesureEcosysteme(props.etudeId, p.id, mesureId).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function soumettreReevaluation() {
@@ -1821,7 +1784,7 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
     setErreur('')
     evaluerDangerositeResiduelle(props.etudeId, p.id, Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))
       .then(function () { setReevaluation(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -1834,16 +1797,16 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
       <div className="mb-3 flex items-center gap-4 border-y border-paper-line py-2">
         <div>
-          <div className="font-mono text-[9px] text-steel-light">DANGEROSITE INITIALE</div>
+          <div className="font-mono text-[9px] text-steel-light">{traduire('ap.a3.dgInitiale')}</div>
           <div className="mt-1"><Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{p.niveauDangerosite} -- {libelleZone(p.zone || '')}</Badge></div>
         </div>
         <div className="text-steel-light">&#8594;</div>
         <div>
-          <div className="font-mono text-[9px] text-steel-light">DANGEROSITE RESIDUELLE</div>
+          <div className="font-mono text-[9px] text-steel-light">{traduire('ap.a3.dgResiduelle')}</div>
           {p.niveauDangerositeResiduel != null && p.zoneResiduelle ? (
             <div className="mt-1"><Badge couleur={badgeCouleur(couleurZone(p.zoneResiduelle))}>{p.niveauDangerositeResiduel} -- {libelleZone(p.zoneResiduelle)}</Badge></div>
           ) : (
-            <div className="font-mono text-sm text-steel-light">Non reevaluee</div>
+            <div className="font-mono text-sm text-steel-light">{traduire('ap.a3.nonReevaluee')}</div>
           )}
         </div>
       </div>
@@ -1875,9 +1838,9 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
         </div>
       )}
 
-      <h3 className="mb-2 font-display text-sm text-ink">MESURES PROPOSEES ({p.mesures.length})</h3>
+      <h3 className="mb-2 font-display text-sm text-ink">{traduire('ap.a3.mesuresProposees')} ({p.mesures.length})</h3>
       {p.mesures.length === 0 ? (
-        <div className="mb-2"><EmptyState message="Aucune mesure proposee." /></div>
+        <div className="mb-2"><EmptyState message={traduire('ap.a3.mesureVide')} /></div>
       ) : (
         <ul className="mb-2 space-y-1.5">
           {p.mesures.map(function (m) {
@@ -1895,38 +1858,38 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 
       {ajoutMesure && (
         <div className="mb-3 space-y-1.5">
-          <textarea placeholder="Description de la mesure (ex: reduire la dependance a ce sous-traitant)" value={descMesure} onChange={function (e) { setDescMesure(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
+          <textarea placeholder={traduire('ap.a3.mesureDescPh')} value={descMesure} onChange={function (e) { setDescMesure(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
           <div className="flex gap-3">
-            <button onClick={creerMesure} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Ajout...' : 'Ajouter'}</button>
-            <button onClick={function () { setAjoutMesure(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+            <button onClick={creerMesure} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</button>
+            <button onClick={function () { setAjoutMesure(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
           </div>
         </div>
       )}
 
       {!ajoutMesure && !reevaluation && (
         <div className="mb-3 flex flex-wrap gap-4">
-          <Button variante="ghost" onClick={function () { setAjoutMesure(true) }}>+ Ajouter une mesure</Button>
-          <Button variante="ghost" onClick={function () { setReevaluation(true) }}>{p.niveauDangerositeResiduel != null ? 'Reevaluer la dangerosite residuelle' : 'Evaluer la dangerosite residuelle'}</Button>
+          <Button variante="ghost" onClick={function () { setAjoutMesure(true) }}>{traduire('ap.a3.addMesure')}</Button>
+          <Button variante="ghost" onClick={function () { setReevaluation(true) }}>{p.niveauDangerositeResiduel != null ? traduire('ap.a3.reevalResid') : traduire('ap.a3.evalResid')}</Button>
         </div>
       )}
 
       {reevaluation && (
         <div className="space-y-2 border-t border-paper-line pt-3">
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <ChampEchelleDangerosite label="DEPENDANCE" critere="dependance" valeur={dependance} onChange={setDependance} />
-            <ChampEchelleDangerosite label="PENETRATION" critere="penetration" valeur={penetration} onChange={setPenetration} />
-            <ChampEchelleDangerosite label="MATURITE CYBER" critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
-            <ChampEchelleDangerosite label="CONFIANCE" critere="confiance" valeur={confiance} onChange={setConfiance} />
+            <ChampEchelleDangerosite label={traduire('ap.dg.dependance')} critere="dependance" valeur={dependance} onChange={setDependance} />
+            <ChampEchelleDangerosite label={traduire('ap.dg.penetration')} critere="penetration" valeur={penetration} onChange={setPenetration} />
+            <ChampEchelleDangerosite label={traduire('ap.dg.maturite')} critere="maturiteCyber" valeur={maturiteCyber} onChange={setMaturiteCyber} />
+            <ChampEchelleDangerosite label={traduire('ap.dg.confiance')} critere="confiance" valeur={confiance} onChange={setConfiance} />
           </div>
           <div className="flex items-center gap-2 font-mono text-[11px] text-steel-light">
-            Apercu :
+            {traduire('ap.apercu')}
             <Badge couleur={badgeCouleur(couleurZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance)))))}>
               {libelleZone(determinerZoneDangerosite(calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))))} ({calculerNiveauDangerosite(Number(dependance), Number(penetration), Number(maturiteCyber), Number(confiance))})
             </Badge>
           </div>
           <div className="flex gap-3">
-            <button onClick={soumettreReevaluation} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Enregistrement...' : 'OK'}</button>
-            <button onClick={function () { setReevaluation(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+            <button onClick={soumettreReevaluation} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.enregistrementpts') : 'OK'}</button>
+            <button onClick={function () { setReevaluation(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
           </div>
         </div>
       )}
@@ -1935,8 +1898,8 @@ function MesuresPartiePrenante(props: { etudeId: string; partie: PartiePrenante;
 }
 
 function libelleCouple(c: CoupleSourceRisqueObjectifVise) {
-  var sr = c.sourceRisque === 'Autre' ? c.descriptionSourceRisque : (LIBELLE_CATEGORIE_SR[c.sourceRisque] || c.sourceRisque)
-  var ov = c.objectifVise === 'Autre' ? c.descriptionObjectifVise : (LIBELLE_CATEGORIE_OV[c.objectifVise] || c.objectifVise)
+  var sr = c.sourceRisque === 'Autre' ? c.descriptionSourceRisque : (libelle('categorieSR', c.sourceRisque) || c.sourceRisque)
+  var ov = c.objectifVise === 'Autre' ? c.descriptionObjectifVise : (libelle('categorieOV', c.objectifVise) || c.objectifVise)
   return sr + ' -- ' + ov
 }
 
@@ -1971,7 +1934,7 @@ function ScenariosStrategiquesSection(props: {
 
   function libelleEr(erId: string) {
     var er = props.evenements.filter(function (e) { return e.id === erId })[0]
-    if (!er) return 'Evenement redoute introuvable'
+    if (!er) return traduire('ap.a3.erIntrouvable')
     return libelleValeurMetier(er.valeurMetierId) + ' -- ' + er.description + ' (gravite ' + er.gravite + ')'
   }
 
@@ -1994,14 +1957,14 @@ function ScenariosStrategiquesSection(props: {
 
   function creer(coupleId: string) {
     if (!description.trim() || !evenementRedouteId) {
-      setErreur('La description et l evenement redoute cible sont obligatoires.')
+      setErreur(traduire('ap.a3.scenErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     createScenarioStrategique(props.etudeId, coupleId, evenementRedouteId, description)
       .then(function () { setCoupleEnCreation(''); setDescription(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -2015,23 +1978,23 @@ function ScenariosStrategiquesSection(props: {
     if (!descEdit.trim() || !erEdit) return
     updateScenarioStrategique(props.etudeId, id, erEdit, descEdit)
       .then(function () { setIdEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer(id: string) {
-    if (!window.confirm('Supprimer ce scenario strategique ? Les chemins d attaque associes seront egalement supprimes.')) return
+    if (!window.confirm(traduire('ap.a3.scenConfirm'))) return
     deleteScenarioStrategique(props.etudeId, id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS STRATEGIQUES ({props.scenarios.length})</h2>
-      <p className="mb-4 text-xs text-steel">Chaque couple retenu donne un scenario stratégique, cible sur un evenement redoute dont il herite la gravite.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.scenTitre')} ({props.scenarios.length})</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a3.scenIntro')}</p>
 
       {props.scenarios.length === 0 ? (
-        <EmptyState message="Aucun scenario strategique cree." />
+        <EmptyState message={traduire('ap.a3.scenVide')} />
       ) : (
         <div className="mb-6 divide-y divide-paper-line border-y border-paper-line">
           {props.scenarios.map(function (s) {
@@ -2047,7 +2010,7 @@ function ScenariosStrategiquesSection(props: {
                   <textarea value={descEdit} onChange={function (e) { setDescEdit(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <div className="flex gap-2">
                     <button onClick={function () { sauvegarder(s.id) }} className="text-xs font-medium text-signature hover:underline">OK</button>
-                    <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                    <button onClick={function () { setIdEnEdition('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                   </div>
                 </div>
               )
@@ -2058,7 +2021,7 @@ function ScenariosStrategiquesSection(props: {
                   {couple ? (
                     <span className="text-sm text-ink">{libelleCouple(couple)}</span>
                   ) : (
-                    <span className="text-sm text-steel-light">Couple introuvable</span>
+                    <span className="text-sm text-steel-light">{traduire('ap.a3.coupleIntrouvable')}</span>
                   )}
                   <div className="flex shrink-0 items-center gap-3">
                     {er && <Badge couleur={badgeCouleur(couleurGravite(er.gravite))}>Gravite {er.gravite}</Badge>}
@@ -2066,32 +2029,32 @@ function ScenariosStrategiquesSection(props: {
                   </div>
                 </div>
                 <div className="mt-1 text-xs text-steel">{s.description}</div>
-                <div className="mt-1 font-mono text-[10px] text-steel-light">Cible : {er ? libelleEr(er.id) : 'evenement redoute introuvable'}</div>
+                <div className="mt-1 font-mono text-[10px] text-steel-light">{traduire('ap.a3.cible')} {er ? libelleEr(er.id) : traduire('ap.a3.erIntrouvableMin')}</div>
               </div>
             )
           })}
         </div>
       )}
 
-      <h3 className="mb-3 font-mono text-[10px] tracking-wide text-steel-light">COUPLES RETENUS EN ATTENTE DE SCENARIO ({couplesSansScenario.length})</h3>
+      <h3 className="mb-3 font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a3.couplesEnAttente')} ({couplesSansScenario.length})</h3>
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
       {couplesSansScenario.length === 0 ? (
         couplesNonRetenus.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-xs text-steel">Ces couples existent mais ne sont pas retenus (pertinence insuffisante) : un scenario stratégique ne peut etre cree qu a partir d un couple juge "Plutot pertinent" ou "Tres pertinent". Retournez a l Atelier 2 pour ajuster la motivation/ressources de la source de risque, ou forcez la pertinence via le jugement d expert sur le couple concerne.</p>
+            <p className="text-xs text-steel">{traduire('ap.a3.couplesNonRetenus')}</p>
             <ul className="space-y-1">
               {couplesNonRetenus.map(function (c) {
                 return (
                   <li key={c.id} className="flex items-center justify-between gap-4 font-mono text-[11px] text-steel">
                     <span>{libelleCouple(c)}</span>
-                    <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</Badge>
+                    <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{libelle('pertinence', c.pertinence) || c.pertinence}</Badge>
                   </li>
                 )
               })}
             </ul>
           </div>
         ) : (
-          <EmptyState message="Aucun couple retenu (Atelier 2) en attente -- tous ont deja un scenario." />
+          <EmptyState message={traduire('ap.a3.couplesTousScenario')} />
         )
       ) : (
         <div className="divide-y divide-paper-line border-y border-paper-line">
@@ -2101,16 +2064,16 @@ function ScenariosStrategiquesSection(props: {
                 <div key={c.id} className="space-y-1.5 border-l-2 border-signature py-2.5 pl-3">
                   <div className="font-mono text-[11px] text-steel-light">{libelleCouple(c)}</div>
                   {props.evenements.length === 0 ? (
-                    <p className="text-xs text-risk-critical">Aucun evenement redoute disponible (Atelier 1) -- impossible de creer un scenario.</p>
+                    <p className="text-xs text-risk-critical">{traduire('ap.a3.aucunErDispo')}</p>
                   ) : (
                     <select value={evenementRedouteId} onChange={function (e) { setEvenementRedouteId(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
                       {props.evenements.map(function (e) { return <option key={e.id} value={e.id}>{libelleEr(e.id)}</option> })}
                     </select>
                   )}
-                  <textarea placeholder="Description du scenario (de la source de risque vers l objectif vise)" value={description} onChange={function (e) { setDescription(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
+                  <textarea placeholder={traduire('ap.a3.scenDescPh')} value={description} onChange={function (e) { setDescription(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
                   <div className="flex gap-2">
-                    <button onClick={function () { creer(c.id) }} disabled={enCours || props.evenements.length === 0} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Creation...' : 'Creer le scenario'}</button>
-                    <button onClick={function () { setCoupleEnCreation(''); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+                    <button onClick={function () { creer(c.id) }} disabled={enCours || props.evenements.length === 0} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.creation') : traduire('ap.a3.creerScenario')}</button>
+                    <button onClick={function () { setCoupleEnCreation(''); setErreur('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                   </div>
                 </div>
               )
@@ -2118,7 +2081,7 @@ function ScenariosStrategiquesSection(props: {
             return (
               <div key={c.id} className="flex items-center justify-between gap-6 py-2.5">
                 <span className="text-sm text-ink">{libelleCouple(c)}</span>
-                <Button variante="ghost" onClick={function () { ouvrirCreation(c.id) }}>Creer un scenario</Button>
+                <Button variante="ghost" onClick={function () { ouvrirCreation(c.id) }}>{traduire('ap.a3.creerUnScenario')}</Button>
               </div>
             )
           })}
@@ -2138,10 +2101,10 @@ function CheminsAttaqueSection(props: {
 }) {
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CHEMINS D ATTAQUE ({props.chemins.length})</h2>
-      <p className="mb-4 text-xs text-steel">Un chemin d attaque decrit comment la source de risque atteint son objectif -- direct, ou via une ou plusieurs parties prenantes de l ecosysteme.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a3.cheminsTitre')} ({props.chemins.length})</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a3.cheminsIntro')}</p>
       {props.scenarios.length === 0 ? (
-        <EmptyState message="Aucun scenario stratégique -- creez-en un ci-dessus avant d ajouter des chemins d attaque." />
+        <EmptyState message={traduire('ap.a3.cheminsScenVide')} />
       ) : (
         <div className="space-y-6">
           {props.scenarios.map(function (scenario) {
@@ -2180,14 +2143,14 @@ function CheminsParScenario(props: {
 
   function creer() {
     if (!description.trim()) {
-      setErreur('La description est obligatoire.')
+      setErreur(traduire('ap.a3.cheminErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     createCheminAttaque(props.etudeId, props.scenarioId, description)
       .then(function () { setDescription(''); setEnCreation(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -2195,11 +2158,11 @@ function CheminsParScenario(props: {
     <Card variant="elevated" className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{props.libelleScenario}</span>
-        <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.chemins.length} CHEMIN{props.chemins.length > 1 ? 'S' : ''}</span>
+        <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.chemins.length} {props.chemins.length > 1 ? traduire('ap.a3.cheminsMaj') : traduire('ap.a3.cheminMaj')}</span>
       </div>
 
       {props.chemins.length === 0 ? (
-        <div className="mb-3"><EmptyState message="Aucun chemin d attaque pour ce scenario." /></div>
+        <div className="mb-3"><EmptyState message={traduire('ap.a3.cheminVide')} /></div>
       ) : (
         <div className="mb-3 space-y-4">
           {props.chemins.map(function (chemin) {
@@ -2210,15 +2173,15 @@ function CheminsParScenario(props: {
 
       {enCreation ? (
         <div className="space-y-1.5">
-          <textarea placeholder="Description du chemin (ex: canal d exfiltration direct, ou via tel prestataire)" value={description} onChange={function (e) { setDescription(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
+          <textarea placeholder={traduire('ap.a3.cheminDescPh')} value={description} onChange={function (e) { setDescription(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
           {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
           <div className="flex gap-3">
-            <button onClick={creer} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Creation...' : 'Creer le chemin'}</button>
-            <button onClick={function () { setEnCreation(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+            <button onClick={creer} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.creation') : traduire('ap.a3.creerChemin')}</button>
+            <button onClick={function () { setEnCreation(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
           </div>
         </div>
       ) : (
-        <Button variante="ghost" onClick={function () { setEnCreation(true) }}>+ Ajouter un chemin d attaque</Button>
+        <Button variante="ghost" onClick={function () { setEnCreation(true) }}>{traduire('ap.a3.addChemin')}</Button>
       )}
     </Card>
   )
@@ -2243,28 +2206,28 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
   }, [props.parties])
 
   function supprimerChemin() {
-    if (!window.confirm('Supprimer ce chemin d attaque et ses evenements intermediaires ?')) return
+    if (!window.confirm(traduire('ap.a3.cheminConfirm'))) return
     deleteCheminAttaque(props.etudeId, props.chemin.id).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function sauvegarderChemin() {
     if (!descCheminEdit.trim()) return
     updateCheminAttaque(props.etudeId, props.chemin.id, descCheminEdit)
       .then(function () { setEditionChemin(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function ajouterEi() {
     if (!descEi.trim() || !ppId) {
-      setErreur('La partie prenante et la description sont obligatoires.')
+      setErreur(traduire('ap.a3.eiErr'))
       return
     }
     setEnCours(true)
     setErreur('')
     createEvenementIntermediaire(props.etudeId, props.chemin.id, ppId, descEi)
       .then(function () { setDescEi(''); setAjoutEi(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -2277,18 +2240,18 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
     if (!descEiEdit.trim()) return
     updateEvenementIntermediaire(props.etudeId, props.chemin.id, eiId, descEiEdit)
       .then(function () { setEiEnEdition(''); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimerEi(eiId: string) {
-    if (!window.confirm('Supprimer cet evenement intermediaire ?')) return
+    if (!window.confirm(traduire('ap.a3.eiConfirm'))) return
     deleteEvenementIntermediaire(props.etudeId, props.chemin.id, eiId).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function libellePartie(id: string) {
     var pp = props.parties.filter(function (p) { return p.id === id })[0]
-    return pp ? pp.nom : 'Partie prenante introuvable'
+    return pp ? pp.nom : traduire('ap.a3.ppIntrouvable')
   }
 
   return (
@@ -2298,7 +2261,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
           <textarea value={descCheminEdit} onChange={function (e) { setDescCheminEdit(e.target.value) }} rows={2} className="w-full resize-none border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
           <div className="flex gap-3">
             <button onClick={sauvegarderChemin} className="text-xs font-medium text-signature hover:underline">OK</button>
-            <button onClick={function () { setEditionChemin(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+            <button onClick={function () { setEditionChemin(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
           </div>
         </div>
       ) : (
@@ -2309,7 +2272,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
       )}
 
       {props.chemin.evenementsIntermediaires.length === 0 ? (
-        <p className="mt-1 text-xs italic text-steel">Chemin direct -- aucune partie prenante traversee.</p>
+        <p className="mt-1 text-xs italic text-steel">{traduire('ap.a3.cheminDirect')}</p>
       ) : (
         <ol className="mt-2 space-y-1">
           {props.chemin.evenementsIntermediaires.map(function (ei, i) {
@@ -2319,7 +2282,7 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
                   <span className="font-mono text-[11px] text-steel-light">{i + 1}. {libellePartie(ei.partiePrenanteId)} --</span>
                   <input type="text" value={descEiEdit} onChange={function (e) { setDescEiEdit(e.target.value) }} className="flex-1 border-b border-signature bg-transparent py-0.5 text-xs text-ink focus:outline-none" />
                   <button onClick={function () { sauvegarderEi(ei.id) }} className="shrink-0 text-[11px] font-medium text-signature hover:underline">OK</button>
-                  <button onClick={function () { setEiEnEdition('') }} className="shrink-0 text-[11px] text-steel-light hover:text-ink">Annuler</button>
+                  <button onClick={function () { setEiEnEdition('') }} className="shrink-0 text-[11px] text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
                 </li>
               )
             }
@@ -2340,14 +2303,14 @@ function CheminRow(props: { etudeId: string; chemin: CheminAttaque; parties: Par
           <select value={ppId} onChange={function (e) { setPpId(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none">
             {props.parties.map(function (p) { return <option key={p.id} value={p.id}>{p.nom}</option> })}
           </select>
-          <input type="text" placeholder="Description de l evenement intermediaire (ex: compromission de l acces distant)" value={descEi} onChange={function (e) { setDescEi(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
+          <input type="text" placeholder={traduire('ap.a3.eiDescPh')} value={descEi} onChange={function (e) { setDescEi(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-xs text-ink focus:outline-none" />
           <div className="flex gap-3">
-            <button onClick={ajouterEi} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Ajout...' : 'Ajouter'}</button>
-            <button onClick={function () { setAjoutEi(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+            <button onClick={ajouterEi} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</button>
+            <button onClick={function () { setAjoutEi(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
           </div>
         </div>
       ) : (
-        <Button variante="ghost" onClick={function () { setAjoutEi(true) }} disabled={props.parties.length === 0}>+ Ajouter une partie prenante traversee</Button>
+        <Button variante="ghost" onClick={function () { setAjoutEi(true) }} disabled={props.parties.length === 0}>{traduire('ap.a3.addPp')}</Button>
       )}
     </div>
   )
@@ -2360,18 +2323,6 @@ function couleurVraisemblance(v: string) {
   return 'text-risk-low'
 }
 
-var PROBABILITE_LABELS: { [key: string]: string } = {
-  '1': '1 -- Faible (< 10% de reussite)',
-  '2': '2 -- Significative (> 10%)',
-  '3': '3 -- Tres elevee (> 40%)',
-  '4': '4 -- Quasi-certaine (> 90%)',
-}
-var DIFFICULTE_LABELS: { [key: string]: string } = {
-  '1': '1 -- Faible (ressources engagees par l attaquant faibles)',
-  '2': '2 -- Moderee (ressources significatives)',
-  '3': '3 -- Elevee (ressources importantes)',
-  '4': '4 -- Tres elevee (ressources tres importantes)',
-}
 
 function ScenariosOperationnelsSection(props: {
   etudeId: string
@@ -2384,10 +2335,10 @@ function ScenariosOperationnelsSection(props: {
 }) {
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS OPERATIONNELS ({props.scenariosOperationnels.length})</h2>
-      <p className="mb-4 text-xs text-steel">Chaque chemin d attaque a un scenario operationnel, decrit par un ou plusieurs modes operatoires (Connaitre / Rentrer / Trouver / Exploiter).</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a4.scenTitre')} ({props.scenariosOperationnels.length})</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a4.scenIntro')}</p>
       {props.scenarios.length === 0 ? (
-        <EmptyState message="Aucun scenario stratégique -- rien a traiter ici pour l instant." />
+        <EmptyState message={traduire('ap.a4.scenVide')} />
       ) : (
         <div className="space-y-8">
           {props.scenarios.map(function (scenario) {
@@ -2422,15 +2373,15 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
     setErreur('')
     createScenarioOperationnel(props.etudeId, props.chemin.id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
   function supprimer() {
     if (!props.scenarioOperationnel) return
-    if (!window.confirm('Supprimer ce scenario operationnel et ses modes operatoires ?')) return
+    if (!window.confirm(traduire('ap.a4.scenConfirm'))) return
     deleteScenarioOperationnel(props.etudeId, props.scenarioOperationnel.id).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
@@ -2445,12 +2396,12 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
 
       {!props.scenarioOperationnel ? (
-        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le scenario operationnel'}</Button>
+        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? traduire('ap.creation') : traduire('ap.a4.creerScenOp')}</Button>
       ) : (
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.scenarioOperationnel.modesOperatoires.length} MODE(S) OPERATOIRE(S)</span>
-            <RowActions onSupprimer={supprimer} labelSupprimer="Suppr. le scenario" />
+            <span className="font-mono text-[10px] tracking-wide text-steel-light">{props.scenarioOperationnel.modesOperatoires.length} {traduire('ap.a4.modesMaj')}</span>
+            <RowActions onSupprimer={supprimer} labelSupprimer={traduire('ap.a4.supprScen')} />
           </div>
           <div className="space-y-3">
             {props.scenarioOperationnel.modesOperatoires.map(function (mode) {
@@ -2459,7 +2410,7 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
           </div>
           <div className="mt-3">
             <PanneauSuggestions<ModeOperatoireBiblio>
-              titre="Suggestions de modes operatoires de la bibliotheque"
+              titre={traduire('ap.a4.moSugg')}
               rafraichir={props.scenarioOperationnel.modesOperatoires.length}
               charger={function () { return suggererModesOperatoiresBiblio(props.etudeId) }}
               rendre={function (mo) { return { titre: mo.nom, sousTitre: mo.actions.length + ' actions' } }}
@@ -2473,7 +2424,6 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
   )
 }
 
-var LIBELLE_PHASE: { [key: string]: string } = { Connaitre: 'CONNAITRE', Rentrer: 'RENTRER', Trouver: 'TROUVER', Exploiter: 'EXPLOITER' }
 
 function libelleBienSupport(biens: BienSupport[], bienSupportId: string) {
   var bien = biens.filter(function (b) { return b.id === bienSupportId })[0]
@@ -2502,16 +2452,16 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
 
   return (
     <div className="space-y-1.5">
-      <span className="font-mono text-[10px] tracking-wide text-steel-light">ACTIONS ELEMENTAIRES (cible un bien support precis)</span>
+      <span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a4.actionsTitre')}</span>
       {props.actions.map(function (a, index) {
         return (
           <div key={index} className="grid grid-cols-[90px_1.2fr_1fr_110px_auto] items-center gap-2">
             <select value={a.phase} onChange={function (e) { modifier(index, 'phase', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-              {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{LIBELLE_PHASE[p]}</option> })}
+              {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{libelle('phase', p)}</option> })}
             </select>
-            <input type="text" placeholder="Description de l action" value={a.description} onChange={function (e) { modifier(index, 'description', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+            <input type="text" placeholder={traduire('ap.a4.actionDescPh')} value={a.description} onChange={function (e) { modifier(index, 'description', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             <select value={a.bienSupportId} onChange={function (e) { modifier(index, 'bienSupportId', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-              {props.biens.length === 0 && <option value="">Aucun bien support</option>}
+              {props.biens.length === 0 && <option value="">{traduire('ap.a4.aucunBs')}</option>}
               {props.biens.map(function (b) { return <option key={b.id} value={b.id}>{b.description}</option> })}
             </select>
             <ChampTechniqueMitre valeur={a.techniqueMitre} phase={a.phase} onChange={function (t) { modifier(index, 'techniqueMitre', t) }} />
@@ -2519,7 +2469,7 @@ function ActionElementaireListEditor(props: { actions: ActionElementaireInput[];
           </div>
         )
       })}
-      <Button variante="ghost" type="button" onClick={ajouterLigne}>+ Action elementaire</Button>
+      <Button variante="ghost" type="button" onClick={ajouterLigne}>{traduire('ap.a4.addAction')}</Button>
     </div>
   )
 }
@@ -2537,20 +2487,20 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
 
   function sauvegarder() {
     if (!description.trim()) return
-    if (actions.length === 0) { setErreur('Au moins une action elementaire est requise.'); return }
+    if (actions.length === 0) { setErreur(traduire('ap.a4.moErrAction')); return }
     var input: ModeOperatoireInput = {
       description: description, actions: actions,
       probabiliteSucces: Number(probabiliteSucces), difficulteTechnique: Number(difficulteTechnique),
     }
     modifierModeOperatoire(props.etudeId, props.scenarioOperationnelId, m.id, input)
       .then(function () { setEdition(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer() {
-    if (!window.confirm('Supprimer ce mode operatoire ?')) return
+    if (!window.confirm(traduire('ap.a4.moConfirm'))) return
     supprimerModeOperatoire(props.etudeId, props.scenarioOperationnelId, m.id).then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   if (edition) {
@@ -2558,20 +2508,20 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
       <div className="border-l-2 border-signature space-y-1.5 pl-3">
         <input type="text" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
         <ActionElementaireListEditor actions={actions} biens={props.biens} onChange={setActions} />
-        <p className="text-[11px] leading-snug text-steel">Probabilite de succes : chance que cette action reussisse une fois tentee (defense/resilience). Difficulte technique : effort que l attaquant doit fournir pour la tenter (protection) -- plus elle est elevee, plus la vraisemblance baisse.</p>
+        <p className="text-[11px] leading-snug text-steel">{traduire('ap.a4.probaNote')}</p>
         <div className="grid grid-cols-2 gap-2">
           <select value={probabiliteSucces} onChange={function (e) { setProbabiliteSucces(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{PROBABILITE_LABELS[v]}</option> })}
+            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('probabilite', v)}</option> })}
           </select>
           <select value={difficulteTechnique} onChange={function (e) { setDifficulteTechnique(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{DIFFICULTE_LABELS[v]}</option> })}
+            {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('difficulte', v)}</option> })}
           </select>
         </div>
-        <GrilleMatrice matrice={MATRICE_VRAISEMBLANCE} ligneLabels={['1 -- Faible', '2 -- Significative', '3 -- Tres elevee', '4 -- Quasi-certaine']} colonneLabels={['1 -- Faible', '2 -- Moderee', '3 -- Elevee', '4 -- Tres elevee']} ligneTitre="Probabilite" colonneTitre="Difficulte" ligneSelectionnee={Number(probabiliteSucces) - 1} colonneSelectionnee={Number(difficulteTechnique) - 1} couleurCellule={couleurVraisemblance} />
+        <GrilleMatrice matrice={MATRICE_VRAISEMBLANCE} ligneLabels={traduire('ap.mx.proba').split('|')} colonneLabels={traduire('ap.mx.diff').split('|')} ligneTitre={traduire('ap.dg.probabilite')} colonneTitre={traduire('ap.dg.difficulte')} ligneSelectionnee={Number(probabiliteSucces) - 1} colonneSelectionnee={Number(difficulteTechnique) - 1} couleurCellule={couleurVraisemblance} />
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
           <button onClick={sauvegarder} className="text-xs font-medium text-signature hover:underline">OK</button>
-          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
         </div>
       </div>
     )
@@ -2594,7 +2544,7 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
         {actionsParPhase.map(function (g) {
           return (
             <div key={g.phase}>
-              <span className="text-steel">{LIBELLE_PHASE[g.phase]}</span>
+              <span className="text-steel">{libelle('phase', g.phase)}</span>
               {g.actions.length === 0
                 ? ' --'
                 : g.actions.map(function (a, i) {
@@ -2609,7 +2559,7 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
           )
         })}
       </div>
-      <div className="mt-1 font-mono text-[10px] text-steel-light">Probabilite {m.probabiliteSucces} -- Difficulte {m.difficulteTechnique}</div>
+      <div className="mt-1 font-mono text-[10px] text-steel-light">{traduire('ap.dg.probabiliteLbl')} {m.probabiliteSucces} -- {traduire('ap.dg.difficulteLbl')} {m.difficulteTechnique}</div>
       <div className="mt-1.5">
         <OverrideJugementExpert
           valeurCalculee={m.vraisemblanceCalculee}
@@ -2656,11 +2606,11 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
 
   function creer() {
     if (!description.trim()) {
-      setErreur('La description est obligatoire.')
+      setErreur(traduire('ap.a3.cheminErr'))
       return
     }
     if (actions.length === 0 || actions.some(function (a) { return !a.description.trim() || !a.bienSupportId })) {
-      setErreur('Chaque action elementaire doit avoir une description et un bien support cible.')
+      setErreur(traduire('ap.a4.moErrActions'))
       return
     }
     setEnCours(true)
@@ -2674,18 +2624,18 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
         setDescription(''); setActions([])
         setOuvert(false); props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
   if (!ouvert) {
-    return <div className="mt-3"><Button variante="ghost" onClick={ouvrir}>+ Ajouter un mode operatoire</Button></div>
+    return <div className="mt-3"><Button variante="ghost" onClick={ouvrir}>{traduire('ap.a4.addMo')}</Button></div>
   }
 
   return (
     <div className="mt-3 space-y-1.5 border-l-2 border-signature pl-3">
       <DepuisBiblio<ModeOperatoireBiblio>
-        titre="Mode operatoire de la bibliotheque"
+        titre={traduire('ap.a4.moBiblio')}
         charger={function (q) { return listerModesOperatoiresBiblio(q) }}
         rendre={function (mo) {
           return (
@@ -2698,25 +2648,25 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
         }}
         onChoisir={appliquerMode}
       />
-      <input type="text" placeholder="Description du mode operatoire" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
+      <input type="text" placeholder={traduire('ap.a4.moDescPh')} value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
       {actions.some(function (a) { return /\(cible : /.test(a.description) }) && (
-        <p className="text-[11px] text-risk-high">Associez chaque action au bon bien support (le libelle de cible n est qu un repere).</p>
+        <p className="text-[11px] text-risk-high">{traduire('ap.a4.associerBs')}</p>
       )}
       <ActionElementaireListEditor actions={actions} biens={props.biens} onChange={setActions} />
-      <p className="text-[11px] leading-snug text-steel">Probabilite de succes : chance que cette action reussisse une fois tentee (defense/resilience). Difficulte technique : effort que l attaquant doit fournir pour la tenter (protection) -- plus elle est elevee, plus la vraisemblance baisse.</p>
+      <p className="text-[11px] leading-snug text-steel">{traduire('ap.a4.probaNote')}</p>
       <div className="grid grid-cols-2 gap-2">
         <select value={probabiliteSucces} onChange={function (e) { setProbabiliteSucces(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-          {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{PROBABILITE_LABELS[v]}</option> })}
+          {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('probabilite', v)}</option> })}
         </select>
         <select value={difficulteTechnique} onChange={function (e) { setDifficulteTechnique(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-          {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{DIFFICULTE_LABELS[v]}</option> })}
+          {['1', '2', '3', '4'].map(function (v) { return <option key={v} value={v}>{libelle('difficulte', v)}</option> })}
         </select>
       </div>
-      <GrilleMatrice matrice={MATRICE_VRAISEMBLANCE} ligneLabels={['1 -- Faible', '2 -- Significative', '3 -- Tres elevee', '4 -- Quasi-certaine']} colonneLabels={['1 -- Faible', '2 -- Moderee', '3 -- Elevee', '4 -- Tres elevee']} ligneTitre="Probabilite" colonneTitre="Difficulte" ligneSelectionnee={Number(probabiliteSucces) - 1} colonneSelectionnee={Number(difficulteTechnique) - 1} couleurCellule={couleurVraisemblance} />
+      <GrilleMatrice matrice={MATRICE_VRAISEMBLANCE} ligneLabels={traduire('ap.mx.proba').split('|')} colonneLabels={traduire('ap.mx.diff').split('|')} ligneTitre={traduire('ap.dg.probabilite')} colonneTitre={traduire('ap.dg.difficulte')} ligneSelectionnee={Number(probabiliteSucces) - 1} colonneSelectionnee={Number(difficulteTechnique) - 1} couleurCellule={couleurVraisemblance} />
       {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
       <div className="flex gap-3">
-        <button onClick={creer} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? 'Ajout...' : 'Ajouter'}</button>
-        <button onClick={function () { setOuvert(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+        <button onClick={creer} disabled={enCours} className="text-xs font-medium text-signature hover:underline">{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</button>
+        <button onClick={function () { setOuvert(false); setErreur('') }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
       </div>
     </div>
   )
@@ -2730,21 +2680,10 @@ export function couleurNiveauRisque(niveau?: string | null) {
   return 'text-risk-low'
 }
 
-var LIBELLE_CLASSE_ACCEPTATION: { [key: string]: string } = {
-  AcceptableEnLEtat: 'Acceptable en l etat',
-  TolerableSousControle: 'Tolerable sous controle',
-  Inacceptable: 'Inacceptable',
-}
 
-var OPTIONS_NIVEAU_RISQUE = [
-  { value: 'Faible', label: 'Faible' },
-  { value: 'Moyen', label: 'Moyen' },
-  { value: 'Eleve', label: 'Eleve' },
-]
+var OPTIONS_NIVEAU_RISQUE = optionsDe('niveauRisque')
 
-var OPTIONS_VRAISEMBLANCE = [
-  { value: 'V1', label: 'V1' }, { value: 'V2', label: 'V2' }, { value: 'V3', label: 'V3' }, { value: 'V4', label: 'V4' },
-]
+var OPTIONS_VRAISEMBLANCE = optionsDe('vraisemblance')
 
 export function ScenariosDeRisqueSection(props: {
   etudeId: string
@@ -2757,10 +2696,10 @@ export function ScenariosDeRisqueSection(props: {
 }) {
   return (
     <section>
-      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS DE RISQUE ({props.scenariosDeRisque.length})</h2>
-      <p className="mb-4 text-xs text-steel">Le niveau initial se deduit automatiquement (Gravite x Vraisemblance) ; le residuel s evalue apres application du plan de traitement.</p>
+      <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">{traduire('ap.a5.scenTitre')} ({props.scenariosDeRisque.length})</h2>
+      <p className="mb-4 text-xs text-steel">{traduire('ap.a5.scenIntro')}</p>
       {props.scenarios.length === 0 ? (
-        <EmptyState message="Aucun scenario stratégique -- rien a traiter ici pour l instant." />
+        <EmptyState message={traduire('ap.a4.scenVide')} />
       ) : (
         <div className="space-y-8">
           {props.scenarios.map(function (scenario) {
@@ -2797,7 +2736,7 @@ export function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque;
     setErreur('')
     creerScenarioDeRisque(props.etudeId, props.chemin.id)
       .then(function () { props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
@@ -2806,7 +2745,7 @@ export function RisqueParChemin(props: { etudeId: string; chemin: CheminAttaque;
       <Card variant="elevated" className="p-4">
         <div className="mb-2 text-sm text-ink">{props.chemin.description}</div>
         {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
-        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? 'Materialisation...' : '+ Materialiser le scenario de risque'}</Button>
+        <Button variante="ghost" onClick={creer} disabled={enCours}>{enCours ? traduire('ap.a5.materialisation') : traduire('ap.a5.materialiser')}</Button>
       </Card>
     )
   }
@@ -2822,14 +2761,14 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
   var indexVraisemblanceResiduelle = OPTIONS_VRAISEMBLANCE.map(function (o) { return o.value }).indexOf(vraisemblanceResiduelle)
 
   function supprimer() {
-    if (!window.confirm('Supprimer ce scenario de risque ?')) return
-    supprimerScenarioDeRisque(props.etudeId, s.id).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+    if (!window.confirm(traduire('ap.a5.scenConfirm'))) return
+    supprimerScenarioDeRisque(props.etudeId, s.id).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function evaluerResiduel() {
     evaluerRisqueResiduel(props.etudeId, s.id, Number(graviteResiduelle), vraisemblanceResiduelle)
       .then(props.onChange)
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   return (
@@ -2847,7 +2786,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
       <div className="grid gap-6 border-t border-paper-line pt-3 md:grid-cols-2">
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-wide text-steel-light">NIVEAU INITIAL (derive : gravite {s.gravite} x vraisemblance {s.vraisemblanceInitiale || '?'})</span>
+            <span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a5.niveauInitPre')} {s.gravite} {traduire('ap.a5.xVrais')} {s.vraisemblanceInitiale || '?'})</span>
             {s.niveauRisqueInitial && <Badge couleur={badgeCouleur(couleurNiveauRisque(s.niveauRisqueInitial))}>{s.niveauRisqueInitial}</Badge>}
             {!s.niveauRisqueInitial && <span className="font-mono text-xs text-steel-light">--</span>}
           </div>
@@ -2863,7 +2802,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <span className="font-mono text-[10px] tracking-wide text-steel-light">RISQUE RESIDUEL (apres plan de traitement)</span>
+            <span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a5.risqueResiduelTitre')}</span>
             {s.niveauRisqueResiduel && <Badge couleur={badgeCouleur(couleurNiveauRisque(s.niveauRisqueResiduel))}>{s.niveauRisqueResiduel}</Badge>}
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -2875,9 +2814,9 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
             </select>
           </div>
           <div className="mt-1.5">
-            <GrilleMatrice matrice={MATRICE_RISQUE} ligneLabels={['1', '2', '3', '4']} colonneLabels={['V1', 'V2', 'V3', 'V4']} ligneTitre="Gravite" colonneTitre="Vraisemblance" ligneSelectionnee={Number(graviteResiduelle) - 1} colonneSelectionnee={indexVraisemblanceResiduelle} couleurCellule={couleurNiveauRisque} />
+            <GrilleMatrice matrice={MATRICE_RISQUE} ligneLabels={['1', '2', '3', '4']} colonneLabels={['V1', 'V2', 'V3', 'V4']} ligneTitre={traduire('ap.dg.gravite')} colonneTitre={traduire('ap.dg.vraisemblance')} ligneSelectionnee={Number(graviteResiduelle) - 1} colonneSelectionnee={indexVraisemblanceResiduelle} couleurCellule={couleurNiveauRisque} />
           </div>
-          <Button variante="ghost" onClick={evaluerResiduel} className="mt-1.5">Evaluer le risque residuel</Button>
+          <Button variante="ghost" onClick={evaluerResiduel} className="mt-1.5">{traduire('ap.a5.evaluerResiduel')}</Button>
 
           {s.niveauRisqueResiduel && (
             <>
@@ -2891,7 +2830,7 @@ export function ScenarioDeRisqueCard(props: { etudeId: string; description: stri
                   onReinitialiser={function () { return reinitialiserNiveauRisqueResiduel(props.etudeId, s.id).then(props.onChange) }}
                 />
               </div>
-              <div className="mt-1 font-mono text-[10px] text-steel-light">Classe d acceptation : {LIBELLE_CLASSE_ACCEPTATION[s.classeAcceptationResiduelle || ''] || '--'}</div>
+              <div className="mt-1 font-mono text-[10px] text-steel-light">{traduire('ap.a5.classeAcceptLbl')} {libelle('classeAcceptation', s.classeAcceptationResiduelle || '') || '--'}</div>
             </>
           )}
         </div>
@@ -2916,67 +2855,65 @@ export function AcceptationFormelleSection(props: { etudeId: string; scenario: S
 
   function accepter() {
     if (!proprietaire.trim() || !validateur.trim()) {
-      setErreur('Le proprietaire du risque et le validateur securite sont obligatoires.')
+      setErreur(traduire('ap.a5.accepterErr1'))
       return
     }
     if (risqueEleve && (!sponsor.trim() || !justification.trim())) {
-      setErreur('Un risque residuel eleve exige un sponsor executif et une justification ecrite.')
+      setErreur(traduire('ap.a5.accepterErr2'))
       return
     }
     setEnCours(true)
     setErreur('')
     accepterRisqueResiduel(props.etudeId, s.id, proprietaire, validateur, sponsor || undefined, justification || undefined)
       .then(props.onChange)
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
   function retirer() {
-    if (!window.confirm('Retirer l acceptation formelle de ce risque residuel ?')) return
+    if (!window.confirm(traduire('ap.a5.retirerConfirm'))) return
     retirerAcceptation(props.etudeId, s.id).then(props.onChange)
   }
 
   return (
     <div className="mt-4 border-t border-paper-line pt-3">
-      <span className="font-mono text-[10px] tracking-wide text-steel-light">ACCEPTATION FORMELLE DU RISQUE RESIDUEL PAR LA DIRECTION</span>
+      <span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a5.acceptationTitre')}</span>
       {s.accepteParDirection ? (
         <div className="mt-1.5 space-y-1 text-xs text-ink">
-          <div>Proprietaire du risque : <span className="font-medium">{s.nomProprietaireRisque}</span></div>
-          <div>Validateur securite : <span className="font-medium">{s.nomValidateurSecurite}</span></div>
-          {s.nomSponsorExecutif && <div>Sponsor executif : <span className="font-medium">{s.nomSponsorExecutif}</span></div>}
+          <div>{traduire('ap.a5.proprioLbl')} <span className="font-medium">{s.nomProprietaireRisque}</span></div>
+          <div>{traduire('ap.a5.validateurLbl')} <span className="font-medium">{s.nomValidateurSecurite}</span></div>
+          {s.nomSponsorExecutif && <div>{traduire('ap.a5.sponsorLbl')} <span className="font-medium">{s.nomSponsorExecutif}</span></div>}
           {s.justificationAcceptation && <div className="italic text-steel">{s.justificationAcceptation}</div>}
-          {s.dateAcceptationUtc && <div className="font-mono text-[10px] text-steel-light">Accepte le {new Date(s.dateAcceptationUtc).toLocaleDateString('fr-FR')}</div>}
-          {!lectureSeule && <button onClick={retirer} className="text-[11px] text-steel-light hover:text-risk-critical">Retirer l acceptation</button>}
+          {s.dateAcceptationUtc && <div className="font-mono text-[10px] text-steel-light">{traduire('ap.a5.accepteLe')} {new Date(s.dateAcceptationUtc).toLocaleDateString(langueCourante() === 'en' ? 'en-GB' : 'fr-FR')}</div>}
+          {!lectureSeule && <button onClick={retirer} className="text-[11px] text-steel-light hover:text-risk-critical">{traduire('ap.a5.retirerAcceptation')}</button>}
         </div>
       ) : lectureSeule ? (
-        <div className="mt-1.5 font-mono text-[11px] text-steel-light">Risque residuel pas encore accepte formellement.</div>
+        <div className="mt-1.5 font-mono text-[11px] text-steel-light">{traduire('ap.a5.pasAcceptee')}</div>
       ) : (
         <div className="mt-1.5 space-y-1.5">
           <div className="grid grid-cols-2 gap-2">
-            <input type="text" placeholder="Proprietaire du risque" value={proprietaire} onChange={function (e) { setProprietaire(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
-            <input type="text" placeholder="Validateur securite" value={validateur} onChange={function (e) { setValidateur(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+            <input type="text" placeholder={traduire('ap.a5.proprioPh')} value={proprietaire} onChange={function (e) { setProprietaire(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+            <input type="text" placeholder={traduire('ap.a5.validateurPh')} value={validateur} onChange={function (e) { setValidateur(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
           </div>
           {risqueEleve && (
             <>
-              <input type="text" placeholder="Sponsor executif (obligatoire, risque eleve)" value={sponsor} onChange={function (e) { setSponsor(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
-              <textarea placeholder="Justification (obligatoire, risque eleve)" value={justification} onChange={function (e) { setJustification(e.target.value) }} rows={2} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.a5.sponsorPh')} value={sponsor} onChange={function (e) { setSponsor(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <textarea placeholder={traduire('ap.a5.justifPh')} value={justification} onChange={function (e) { setJustification(e.target.value) }} rows={2} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             </>
           )}
           {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
-          <Button variante="primary" onClick={accepter} disabled={enCours}>{enCours ? 'Enregistrement...' : 'Accepter formellement'}</Button>
+          <Button variante="primary" onClick={accepter} disabled={enCours}>{enCours ? traduire('ap.enregistrementpts') : traduire('ap.a5.accepterFormellement')}</Button>
         </div>
       )}
     </div>
   )
 }
 
-var AXES_MESURE = ['Gouvernance', 'Protection', 'Defense', 'Resilience']
+var AXES_MESURE = clesDe('axeMesure')
 // Symbole officiel "+/++/+++" (seule forme trouvee dans la doc officielle,
 // aucune legende associee) -- le mot entre parentheses est un choix
 // d'interpretation du projet pour rester comprehensible hors contexte,
 // pas une terminologie ANSSI.
-var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+ (Faible)', PlusPlus: '++ (Modere)', PlusPlusPlus: '+++ (Eleve)' }
-var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' }
 
 /**
  * Panneau depliable de suggestions de bibliotheque, croisant le contenu de
@@ -3012,9 +2949,9 @@ function PanneauSuggestions<T extends { id: string }>(props: {
       {ouvert && (
         <div className="mt-2">
           {!charge ? (
-            <p className="text-xs text-steel">Analyse du contenu de l etude...</p>
+            <p className="text-xs text-steel">{traduire('ap.a5.suggAnalyse')}</p>
           ) : suggestions.length === 0 ? (
-            <p className="text-xs text-steel-light">Aucune suggestion (renseignez d abord les evenements redoutes, biens support et couples SR/OV).</p>
+            <p className="text-xs text-steel-light">{traduire('ap.a5.suggAucune')}</p>
           ) : (
             <ul className="divide-y divide-paper-line">
               {suggestions.map(function (s) {
@@ -3024,11 +2961,11 @@ function PanneauSuggestions<T extends { id: string }>(props: {
                     <div className="min-w-0">
                       <div className="text-xs text-ink">{r.titre}</div>
                       <div className="mt-0.5 font-mono text-[9px] text-steel-light">
-                        {r.sousTitre ? r.sousTitre + ' -- ' : ''}lie a : {s.motsCles.join(', ')}
+                        {r.sousTitre ? r.sousTitre + ' -- ' : ''}{traduire('ap.lieA')} {s.motsCles.join(', ')}
                       </div>
                     </div>
                     <button type="button" onClick={function () { props.onUtiliser(s.entree) }} className="shrink-0 border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">
-                      Utiliser
+                      {traduire('ap.a5.suggPpUtiliser')}
                     </button>
                   </li>
                 )
@@ -3050,7 +2987,7 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
   function creerPlan() {
     setEnCours(true)
     setErreur('')
-    creerPlanTraitementRisque(props.etudeId).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') }).finally(function () { setEnCours(false) })
+    creerPlanTraitementRisque(props.etudeId).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) }).finally(function () { setEnCours(false) })
   }
 
   return (
@@ -3059,8 +2996,8 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
       {!props.plan ? (
         <>
-          <Button variante="ghost" onClick={creerPlan} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le plan de traitement du risque'}</Button>
-          {lectureSeulePlan && <p className="text-xs text-steel-light">Aucun plan de traitement n a encore ete cree.</p>}
+          <Button variante="ghost" onClick={creerPlan} disabled={enCours}>{enCours ? traduire('ap.creation') : traduire('ap.a5.planCreation')}</Button>
+          {lectureSeulePlan && <p className="text-xs text-steel-light">{traduire('ap.a5.planVide')}</p>}
         </>
       ) : (
         <div className="space-y-6">
@@ -3068,9 +3005,9 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
             var mesuresAxe = props.plan!.mesures.filter(function (m) { return m.axe === axe })
             return (
               <div key={axe}>
-                <h3 className="mb-2 font-mono text-[10px] tracking-wide text-steel">{axe.toUpperCase()}</h3>
+                <h3 className="mb-2 font-mono text-[10px] tracking-wide text-steel">{libelle('axeMesure', axe).toUpperCase()}</h3>
                 {mesuresAxe.length === 0 ? (
-                  <EmptyState message="Aucune mesure." />
+                  <EmptyState message={traduire('ap.a5.mesureVide')} />
                 ) : (
                   <div className="space-y-2">
                     {mesuresAxe.map(function (m) {
@@ -3082,13 +3019,13 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
             )
           })}
           <PanneauSuggestions<MesureBiblio>
-            titre="Suggestions de mesures de la bibliotheque"
+            titre={traduire('ap.a5.suggMesures')}
             rafraichir={props.plan.mesures.length}
             charger={function () { return suggererMesuresBiblio(props.etudeId) }}
             rendre={function (m) {
               return {
                 titre: (m.code ? m.code + ' -- ' : '') + m.titre,
-                sousTitre: LIBELLE_REFERENTIEL_MESURE[m.referentiel] || m.referentiel,
+                sousTitre: libelle('referentielMesure', m.referentiel) || m.referentiel,
               }
             }}
             onUtiliser={function (m) { setGraine({ titre: m.code ? m.titre + ' (' + m.code + ')' : m.titre, n: Date.now() }) }}
@@ -3117,7 +3054,7 @@ export function SelectionScenariosDeRisque(props: { scenariosDeRisque: ScenarioD
   }
 
   if (props.scenariosDeRisque.length === 0) {
-    return <EmptyState message="Aucun scenario de risque materialise pour l instant." />
+    return <EmptyState message={traduire('ap.a5.scenNonMateria')} />
   }
 
   return (
@@ -3150,7 +3087,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
 
   function sauvegarder() {
     if (!description.trim() || !responsable.trim() || scenariosIds.length === 0) {
-      setErreur('Description, responsable et au moins un scenario de risque sont obligatoires.')
+      setErreur(traduire('ap.a5.mesureErr'))
       return
     }
     var input: MesureTraitementRisqueInput = {
@@ -3159,18 +3096,18 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
       codesConformite: codesConformite,
     }
     modifierMesureTraitementRisque(props.etudeId, m.id, input).then(function () { setEdition(false); props.onChange() })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function supprimer() {
-    if (!window.confirm('Supprimer cette mesure ?')) return
-    supprimerMesureTraitementRisque(props.etudeId, m.id).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+    if (!window.confirm(traduire('ap.a3.mesureConfirm'))) return
+    supprimerMesureTraitementRisque(props.etudeId, m.id).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   function versBibliotheque() {
     ajouterMesureBiblio({ titre: m.description, categorie: m.axe })
-      .then(function () { toastSucces('Mesure ajoutee a votre bibliotheque.') })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('ap.a5.mesureVersBiblio')) })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
   }
 
   if (edition) {
@@ -3179,26 +3116,26 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
         <input type="text" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-signature bg-transparent py-1 text-sm text-ink focus:outline-none" />
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <select value={axe} onChange={function (e) { setAxe(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{a}</option> })}
+            {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{libelle('axeMesure', a)}</option> })}
           </select>
           <select value={coutComplexite} onChange={function (e) { setCoutComplexite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {Object.keys(LIBELLE_COUT_COMPLEXITE).map(function (c) { return <option key={c} value={c}>{LIBELLE_COUT_COMPLEXITE[c]}</option> })}
+            {clesDe('coutComplexite').map(function (c) { return <option key={c} value={c}>{libelle('coutComplexite', c)}</option> })}
           </select>
           <select value={statut} onChange={function (e) { setStatut(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-            {Object.keys(LIBELLE_STATUT_MESURE).map(function (s) { return <option key={s} value={s}>{LIBELLE_STATUT_MESURE[s]}</option> })}
+            {clesDe('statutMesure').map(function (s) { return <option key={s} value={s}>{libelle('statutMesure', s)}</option> })}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <input type="text" placeholder="Responsable" value={responsable} onChange={function (e) { setResponsable(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
-          <input type="text" placeholder="Echeance (ex. 6 mois)" value={echeance} onChange={function (e) { setEcheance(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+          <input type="text" placeholder={traduire('ap.a5.responsablePh')} value={responsable} onChange={function (e) { setResponsable(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+          <input type="text" placeholder={traduire('ap.a5.echeancePh')} value={echeance} onChange={function (e) { setEcheance(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
         </div>
-        <input type="text" placeholder="Freins et difficultes" value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+        <input type="text" placeholder={traduire('ap.a5.freinsPh')} value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
         <SelectionScenariosDeRisque scenariosDeRisque={props.scenariosDeRisque} selection={scenariosIds} onChange={setScenariosIds} />
-        <div><span className="font-mono text-[10px] tracking-wide text-steel-light">CONFORMITE COUVERTE</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
+        <div><span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a5.conformiteCouverte')}</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
           <button onClick={sauvegarder} className="text-xs font-medium text-signature hover:underline">OK</button>
-          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">Annuler</button>
+          <button onClick={function () { setEdition(false) }} className="text-xs text-steel-light hover:text-ink">{traduire('ap.annuler')}</button>
         </div>
       </div>
     )
@@ -3209,14 +3146,14 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
       <div className="flex items-center justify-between gap-4">
         <span className="text-sm text-ink">{m.description}</span>
         <div className="flex shrink-0 items-center gap-3">
-          <span className="font-mono text-[11px] text-steel-light">{LIBELLE_STATUT_MESURE[m.statut]}</span>
-          <button onClick={versBibliotheque} title="Ajouter a ma bibliotheque" className="text-[11px] text-steel-light hover:text-signature">&rarr; biblio.</button>
+          <span className="font-mono text-[11px] text-steel-light">{libelle('statutMesure', m.statut)}</span>
+          <button onClick={versBibliotheque} title={traduire('ap.ajouterMaBiblio')} className="text-[11px] text-steel-light hover:text-signature">{traduire('ap.versBiblioLien')}</button>
           <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
-      <div className="mt-1 font-mono text-[10px] text-steel-light">Responsable {m.responsable} -- Cout {LIBELLE_COUT_COMPLEXITE[m.coutComplexite]} -- Echeance {m.echeance || '--'}</div>
+      <div className="mt-1 font-mono text-[10px] text-steel-light">{traduire('ap.a5.responsableLbl')} {m.responsable} -- {traduire('ap.a5.coutLbl')} {libelle('coutComplexite', m.coutComplexite)} -- {traduire('ap.a5.echeanceLbl')} {m.echeance || '--'}</div>
       {m.freinsEtDifficultes && <div className="mt-0.5 text-[11px] italic text-steel">{m.freinsEtDifficultes}</div>}
-      <div className="mt-0.5 text-[11px] text-steel-light">Scenarios : {libellesScenarios(props.scenariosDeRisque, m.scenariosDeRisqueIds).join('; ')}</div>
+      <div className="mt-0.5 text-[11px] text-steel-light">{traduire('ap.a5.scenariosLbl')} {libellesScenarios(props.scenariosDeRisque, m.scenariosDeRisqueIds).join('; ')}</div>
       {m.codesConformite && m.codesConformite.length > 0 && (
         <div className="mt-0.5 flex flex-wrap gap-1">
           {m.codesConformite.map(function (c) { return <span key={c} className="border border-paper-line px-1 font-mono text-[10px] text-signature">{c}</span> })}
@@ -3226,7 +3163,6 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
   )
 }
 
-var LIBELLE_REFERENTIEL_MESURE: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
 
 export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void; graine?: { titre: string; n: number } | null }) {
   var [description, setDescription] = useState('')
@@ -3249,7 +3185,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
 
   function soumettre(fermer: () => void) {
     if (!description.trim() || !responsable.trim() || scenariosIds.length === 0) {
-      setErreur('Description, responsable et au moins un scenario de risque sont obligatoires.')
+      setErreur(traduire('ap.a5.mesureErr'))
       return
     }
     setEnCours(true)
@@ -3264,23 +3200,23 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
         setDescription(''); setScenariosIds([]); setResponsable(''); setFreins(''); setEcheance(''); setCodesConformite([])
         fermer(); props.onChange()
       })
-      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { setErreur(err instanceof ApiError ? err.message : traduire('ap.err')) })
       .finally(function () { setEnCours(false) })
   }
 
   return (
-    <InlineForm label="Ajouter une mesure de traitement" signalOuvrir={props.graine ? props.graine.n : undefined}>
+    <InlineForm label={traduire('ap.a5.mesureAdd')} signalOuvrir={props.graine ? props.graine.n : undefined}>
       {function (fermer) {
         return (
           <div className="space-y-1.5">
             {!selecteurBiblio ? (
               <button type="button" onClick={function () { setSelecteurBiblio(true) }} className="font-mono text-[10px] text-signature hover:underline">
-                Depuis la bibliotheque
+                {traduire('ap.depuisBiblio')}
               </button>
             ) : (
               <SelecteurBibliotheque<MesureBiblio>
-                titre="Mesures de securite"
-                filtres={[{ valeur: '', libelle: 'Tous' }, { valeur: 'Iso27002', libelle: 'ISO 27002' }, { valeur: 'HygieneAnssi', libelle: 'Hygiene ANSSI' }, { valeur: 'Libre', libelle: 'Ma bibliotheque' }]}
+                titre={traduire('ap.a5.mesuresBiblioTitre')}
+                filtres={[{ valeur: '', libelle: traduire('ap.commun.tous') }, { valeur: 'Iso27002', libelle: 'ISO 27002' }, { valeur: 'HygieneAnssi', libelle: 'Hygiene ANSSI' }, { valeur: 'Libre', libelle: traduire('ap.a5.maBibliotheque') }]}
                 filtreActif={refBiblio}
                 onFiltre={setRefBiblio}
                 charger={function (q) { return listerMesuresBiblio(refBiblio, q) }}
@@ -3289,7 +3225,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
                   return (
                     <>
                       <div className="font-medium">{m.code ? m.code + ' -- ' : ''}{m.titre}</div>
-                      <div className="text-[10px] text-steel-light">{LIBELLE_REFERENTIEL_MESURE[m.referentiel] || m.referentiel}{m.categorie ? ' -- ' + m.categorie : ''}</div>
+                      <div className="text-[10px] text-steel-light">{libelle('referentielMesure', m.referentiel) || m.referentiel}{m.categorie ? ' -- ' + m.categorie : ''}</div>
                     </>
                   )
                 }}
@@ -3300,27 +3236,27 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
                 onFermer={function () { setSelecteurBiblio(false) }}
               />
             )}
-            <input type="text" placeholder="Description de la mesure" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+            <input type="text" placeholder={traduire('ap.a5.mesureDescPh')} value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <select value={axe} onChange={function (e) { setAxe(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-                {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{a}</option> })}
+                {AXES_MESURE.map(function (a) { return <option key={a} value={a}>{libelle('axeMesure', a)}</option> })}
               </select>
               <select value={coutComplexite} onChange={function (e) { setCoutComplexite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-                {Object.keys(LIBELLE_COUT_COMPLEXITE).map(function (c) { return <option key={c} value={c}>{LIBELLE_COUT_COMPLEXITE[c]}</option> })}
+                {clesDe('coutComplexite').map(function (c) { return <option key={c} value={c}>{libelle('coutComplexite', c)}</option> })}
               </select>
               <select value={statut} onChange={function (e) { setStatut(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-                {Object.keys(LIBELLE_STATUT_MESURE).map(function (s) { return <option key={s} value={s}>{LIBELLE_STATUT_MESURE[s]}</option> })}
+                {clesDe('statutMesure').map(function (s) { return <option key={s} value={s}>{libelle('statutMesure', s)}</option> })}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input type="text" placeholder="Responsable" value={responsable} onChange={function (e) { setResponsable(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
-              <input type="text" placeholder="Echeance (ex. 6 mois)" value={echeance} onChange={function (e) { setEcheance(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.a5.responsablePh')} value={responsable} onChange={function (e) { setResponsable(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('ap.a5.echeancePh')} value={echeance} onChange={function (e) { setEcheance(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             </div>
-            <input type="text" placeholder="Freins et difficultes (optionnel)" value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+            <input type="text" placeholder={traduire('ap.a5.freinsPhOpt')} value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             <SelectionScenariosDeRisque scenariosDeRisque={props.scenariosDeRisque} selection={scenariosIds} onChange={setScenariosIds} />
-            <div><span className="font-mono text-[10px] tracking-wide text-steel-light">CONFORMITE COUVERTE (ISO 27001 / NIS2)</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
+            <div><span className="font-mono text-[10px] tracking-wide text-steel-light">{traduire('ap.a5.conformiteCouverteNis2')}</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
             {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
-            <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
+            <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? traduire('ap.ajout') : traduire('ap.ajouter')}</Button>
           </div>
         )
       }}
