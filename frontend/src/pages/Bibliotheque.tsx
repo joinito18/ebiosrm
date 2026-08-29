@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
-import { useT } from '../lib/i18n'
+import { useT, traduire } from '../lib/i18n'
+import { libelle } from '../lib/libelles'
 import Button from '../components/shared/Button'
 import EmptyState from '../components/shared/EmptyState'
 import { toastSucces, toastErreur } from '../lib/toast'
@@ -23,16 +24,11 @@ import type {
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 
-var LIBELLE_REFERENTIEL: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
 var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeologique', 'OfficineSpecialisee', 'Amateur', 'Vengeur', 'MalveillantPathologique', 'Autre']
 var CATEGORIES_OV = ['EspionnageEtatiqueOuIndustriel', 'PrePositionnementStrategique', 'InfluenceDestabilisation', 'EntraveAuFonctionnement', 'SabotageDestruction', 'Lucratif', 'DefiAmusement', 'Autre']
 var CATEGORIES_PP = ['Client', 'Partenaire', 'Prestataire', 'Autre']
 var TYPES_BS = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 'Local']
-var LIBELLE_TYPE_BS: { [key: string]: string } = {
-  SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local',
-}
 
-var LIBELLE_PHASE_AE: { [key: string]: string } = { Connaitre: 'CONNAITRE', Rentrer: 'RENTRER', Trouver: 'TROUVER', Exploiter: 'EXPLOITER' }
 
 type Onglet = 'mesures' | 'sources' | 'parties-prenantes' | 'valeurs-metier' | 'biens-support' | 'evenements-redoutes' | 'modes-operatoires'
 
@@ -67,14 +63,14 @@ export default function Bibliotheque() {
       <PageHeader
         eyebrow={_t('biblio.eyebrow')}
         titre={_t('biblio.titre')}
-        description="Catalogues fournis (ISO 27002, hygiene ANSSI, exemples EBIOS RM), vos propres elements et ceux partages par la communaute."
+        description={traduire('bib.desc')}
       />
 
       <div className="mb-4 inline-flex rounded-sm border border-paper-line p-0.5">
-        {([['perso', 'Ma bibliotheque'], ['communaute', 'Communaute']] as [typeof portee, string][]).map(function (o) {
+        {([['perso', ''], ['communaute', '']] as [typeof portee, string][]).map(function (o) {
           var actif = portee === o[0]
           return (
-            <button key={o[0]} onClick={function () { setPortee(o[0]) }} className={'px-3 py-1 text-xs font-medium transition ' + (actif ? 'bg-signature text-white' : 'text-steel hover:text-ink')}>{o[1]}</button>
+            <button key={o[0]} onClick={function () { setPortee(o[0]) }} className={'px-3 py-1 text-xs font-medium transition ' + (actif ? 'bg-signature text-white' : 'text-steel hover:text-ink')}>{traduire(o[0] === 'perso' ? 'bib.maBiblio' : 'bib.communaute')}</button>
           )
         })}
       </div>
@@ -88,7 +84,7 @@ export default function Bibliotheque() {
               onClick={function () { setOnglet(o[0]) }}
               className={'-mb-px border-b-2 px-3 py-2 text-xs font-medium transition ' + (actif ? 'border-signature text-signature' : 'border-transparent text-steel hover:text-ink')}
             >
-              {o[1]}
+              {traduire('bib.onglet.' + o[0])}
             </button>
           )
         })}
@@ -117,10 +113,10 @@ function texteEntree(onglet: Onglet, e: Record<string, unknown>): { titre: strin
   if (onglet === 'sources') return { titre: s('descriptionSourceRisque') + ' -> ' + s('descriptionObjectifVise'), sous: s('theme') }
   if (onglet === 'parties-prenantes') return { titre: s('nom'), sous: [s('descriptionCategorie') || s('categorie'), s('rolesEtAttentes')].filter(Boolean).join(' -- ') }
   if (onglet === 'valeurs-metier') return { titre: s('intitule'), sous: [s('natureOuFinalite'), s('entiteProprietaireTypique')].filter(Boolean).join(' -- ') }
-  if (onglet === 'biens-support') return { titre: s('intitule'), sous: [LIBELLE_TYPE_BS[s('type')] || s('type'), s('entiteProprietaireTypique')].filter(Boolean).join(' -- ') }
+  if (onglet === 'biens-support') return { titre: s('intitule'), sous: [libelle('typeBienSupport', s('type')), s('entiteProprietaireTypique')].filter(Boolean).join(' -- ') }
   if (onglet === 'evenements-redoutes') return { titre: s('intitule'), sous: [(e['graviteIndicative'] ? 'G' + e['graviteIndicative'] : ''), s('impactsTypes')].filter(Boolean).join(' -- ') }
   var actions = (e['actions'] as unknown[]) || []
-  return { titre: s('nom'), sous: [actions.length + ' actions', s('description')].filter(Boolean).join(' -- ') }
+  return { titre: s('nom'), sous: [actions.length + ' ' + traduire('bib.mo.actionsN'), s('description')].filter(Boolean).join(' -- ') }
 }
 
 function VueCommunaute(props: { slug: string; onglet: Onglet }) {
@@ -132,7 +128,7 @@ function VueCommunaute(props: { slug: string; onglet: Onglet }) {
     setChargement(true)
     listerCommunaute(props.slug, q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque communautaire indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.communauteIndispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -143,28 +139,28 @@ function VueCommunaute(props: { slug: string; onglet: Onglet }) {
 
   function importer(e: EntreeCommunaute) {
     importerCommunaute(props.slug, e.id)
-      .then(function () { toastSucces('Importe dans votre bibliotheque.') })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.com.importe')) })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function signaler(e: EntreeCommunaute) {
-    var motif = window.prompt('Motif du signalement (optionnel) :') || ''
+    var motif = window.prompt(traduire('bib.com.promptMotif')) || ''
     if (motif === null) return
     signalerCommunaute(props.slug, e.id, motif)
-      .then(function () { toastSucces('Signalement enregistre.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.com.signalEnr')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <p className="mb-3 border border-paper-line bg-paper-dim px-3 py-2 text-[11px] text-steel">
-        Elements publies par d'autres comptes. « Importer » en cree une copie privee dans votre bibliotheque. Une entree signalee par 3 comptes distincts est masquee automatiquement.
+        {traduire('bib.com.intro')}
       </p>
-      <Champ valeur={q} onChange={setQ} placeholder="Rechercher..." className="mb-3" />
+      <Champ valeur={q} onChange={setQ} placeholder={traduire('bib.rechercher')} className="mb-3" />
       {chargement ? (
-        <p className="text-sm text-steel">Chargement...</p>
+        <p className="text-sm text-steel">{traduire('bib.chargement')}</p>
       ) : items.length === 0 ? (
-        <EmptyState message="Aucun element partage pour l'instant." />
+        <EmptyState message={traduire('bib.com.vide')} />
       ) : (
         <ul className="divide-y divide-paper-line border-y border-paper-line">
           {items.map(function (e) {
@@ -174,13 +170,13 @@ function VueCommunaute(props: { slug: string; onglet: Onglet }) {
                 <div className="min-w-0">
                   <div className="text-sm text-ink">{t.titre}</div>
                   <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                    {['par ' + (e.publieParMoi ? 'vous' : e.proprietaire), t.sous, e.signalements > 0 ? e.signalements + ' signalement' + (e.signalements > 1 ? 's' : '') : ''].filter(Boolean).join(' -- ')}
+                    {[traduire('bib.com.par') + ' ' + (e.publieParMoi ? traduire('bib.com.vous') : e.proprietaire), t.sous, e.signalements > 0 ? e.signalements + ' ' + (e.signalements > 1 ? traduire('bib.com.signalementsN') : traduire('bib.com.signalementN')) : ''].filter(Boolean).join(' -- ')}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <button onClick={function () { importer(e) }} className="border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">Importer</button>
+                  <button onClick={function () { importer(e) }} className="border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">{traduire('bib.com.importer')}</button>
                   {!e.publieParMoi && (
-                    <button onClick={function () { signaler(e) }} className="font-mono text-[10px] text-steel-light hover:text-risk-critical">Signaler</button>
+                    <button onClick={function () { signaler(e) }} className="font-mono text-[10px] text-steel-light hover:text-risk-critical">{traduire('bib.com.signaler')}</button>
                   )}
                 </div>
               </li>
@@ -238,16 +234,16 @@ function Liste<T extends { id: string; systeme: boolean }>(props: {
     action
       .then(function () {
         setPubliees(function (p) { var c = { ...p }; if (estPublie) delete c[item.id]; else c[item.id] = true; return c })
-        toastSucces(estPublie ? 'Retire du partage.' : 'Publie dans la communaute.')
+        toastSucces(estPublie ? traduire('bib.retireDuPartage') : traduire('bib.publieCommunaute'))
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
-      <Champ valeur={props.q} onChange={props.onQ} placeholder="Rechercher..." className="mb-3" />
+      <Champ valeur={props.q} onChange={props.onQ} placeholder={traduire('bib.rechercher')} className="mb-3" />
       {props.chargement ? (
-        <p className="text-sm text-steel">Chargement...</p>
+        <p className="text-sm text-steel">{traduire('bib.chargement')}</p>
       ) : items.length === 0 ? (
         <EmptyState message={props.vide} />
       ) : (
@@ -260,7 +256,7 @@ function Liste<T extends { id: string; systeme: boolean }>(props: {
                   <div className="flex shrink-0 items-center gap-2">
                     {props.slug && (
                       <button onClick={function () { basculerPartage(item) }} className={'font-mono text-[10px] transition ' + (publiees[item.id] ? 'text-signature hover:text-steel' : 'text-steel-light hover:text-signature')}>
-                        {publiees[item.id] ? 'Publie ✓' : 'Publier'}
+                        {publiees[item.id] ? traduire('bib.publieCheck') : traduire('bib.publier')}
                       </button>
                     )}
                     <button onClick={function () { props.onSupprimer(item) }} aria-label="Retirer" className="text-steel-light transition hover:text-risk-critical">
@@ -294,7 +290,7 @@ function OngletMesures() {
     setChargement(true)
     listerMesuresBiblio(referentiel, q)
       .then(setMesures)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -307,18 +303,18 @@ function OngletMesures() {
     if (!titre.trim()) return
     ajouterMesureBiblio({ titre: titre, description: description, categorie: categorie })
       .then(function () {
-        toastSucces('Mesure ajoutee.')
+        toastSucces(traduire('bib.mes.ajoutee'))
         setTitre(''); setDescription(''); setCategorie('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(m: MesureBiblio) {
-    if (!window.confirm('Retirer "' + m.titre + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + m.titre + '" ' + traduire('bib.retirerPost'))) return
     supprimerMesureBiblio(m.id)
-      .then(function () { toastSucces('Mesure retiree.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.mes.retiree')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   var filtres = [['', 'Tous'], ['Iso27002', 'ISO 27002'], ['HygieneAnssi', 'Hygiene ANSSI'], ['Libre', 'Ma bibliotheque']]
@@ -326,24 +322,24 @@ function OngletMesures() {
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE MESURE A MA BIBLIOTHEQUE</div>
-        <Champ valeur={titre} onChange={setTitre} placeholder="Titre de la mesure" className="mb-2" />
-        <Champ valeur={description} onChange={setDescription} placeholder="Description (optionnel)" className="mb-2" />
-        <Champ valeur={categorie} onChange={setCategorie} placeholder="Categorie / axe (optionnel)" className="mb-3" />
-        <Button variante="primary" onClick={ajouter} disabled={!titre.trim()}>Ajouter</Button>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.mes.formTitre')}</div>
+        <Champ valeur={titre} onChange={setTitre} placeholder={traduire('bib.mes.titrePh')} className="mb-2" />
+        <Champ valeur={description} onChange={setDescription} placeholder={traduire('bib.mes.descPh')} className="mb-2" />
+        <Champ valeur={categorie} onChange={setCategorie} placeholder={traduire('bib.mes.catPh')} className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!titre.trim()}>{traduire('bib.ajouter')}</Button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {filtres.map(function (f) {
           var actif = referentiel === f[0]
           return (
-            <button key={f[0]} onClick={function () { setReferentiel(f[0]) }} className={'border px-2 py-1 font-mono text-[10px] transition ' + (actif ? 'border-signature bg-signature text-white' : 'border-paper-line text-steel hover:border-signature')}>{f[1]}</button>
+            <button key={f[0]} onClick={function () { setReferentiel(f[0]) }} className={'border px-2 py-1 font-mono text-[10px] transition ' + (actif ? 'border-signature bg-signature text-white' : 'border-paper-line text-steel hover:border-signature')}>{f[0] === '' ? traduire('commun.tous') : f[1]}</button>
           )
         })}
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={mesures} vide="Aucune mesure."
+        q={q} onQ={setQ} chargement={chargement} items={mesures} vide={traduire('bib.mes.vide')}
         onSupprimer={supprimer}
         slug="mesure"
         rendre={function (m) {
@@ -351,7 +347,7 @@ function OngletMesures() {
             <>
               <div className="text-sm text-ink">{m.code ? m.code + ' -- ' : ''}{m.titre}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(LIBELLE_REFERENTIEL[m.referentiel] || m.referentiel, m.categorie, !m.systeme && 'ma bibliotheque')}
+                {meta(libelle('referentielMesure', m.referentiel), m.categorie, !m.systeme && traduire('bib.metaMaBiblio'))}
               </div>
               {m.description && <div className="mt-0.5 text-xs text-steel">{m.description}</div>}
             </>
@@ -375,7 +371,7 @@ function OngletSources() {
     setChargement(true)
     listerSourcesRisqueBiblio(q)
       .then(setSources)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -388,39 +384,39 @@ function OngletSources() {
     if (!dsr.trim() || !dov.trim()) return
     ajouterSourceRisqueBiblio({ sourceRisque: sr, descriptionSourceRisque: dsr, objectifVise: ov, descriptionObjectifVise: dov })
       .then(function () {
-        toastSucces('Source de risque ajoutee.')
+        toastSucces(traduire('bib.src.ajoutee'))
         setDsr(''); setDov('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(s: SourceRisqueBiblio) {
-    if (!window.confirm('Retirer cette source de risque de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.src.confirm'))) return
     supprimerSourceRisqueBiblio(s.id)
-      .then(function () { toastSucces('Source retiree.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.src.retiree')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN COUPLE SOURCE DE RISQUE / OBJECTIF VISE</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.src.formTitre')}</div>
         <div className="mb-2 grid gap-2 sm:grid-cols-2">
           <select value={sr} onChange={function (e) { setSr(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+            {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{libelle('categorieSR', c)}</option> })}
           </select>
           <select value={ov} onChange={function (e) { setOv(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+            {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{libelle('categorieOV', c)}</option> })}
           </select>
         </div>
-        <Champ valeur={dsr} onChange={setDsr} placeholder="Description de la source de risque" className="mb-2" />
-        <Champ valeur={dov} onChange={setDov} placeholder="Description de l objectif vise" className="mb-3" />
-        <Button variante="primary" onClick={ajouter} disabled={!dsr.trim() || !dov.trim()}>Ajouter</Button>
+        <Champ valeur={dsr} onChange={setDsr} placeholder={traduire('bib.src.dsrPh')} className="mb-2" />
+        <Champ valeur={dov} onChange={setDov} placeholder={traduire('bib.src.dovPh')} className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!dsr.trim() || !dov.trim()}>{traduire('bib.ajouter')}</Button>
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={sources} vide="Aucune source de risque."
+        q={q} onQ={setQ} chargement={chargement} items={sources} vide={traduire('bib.src.vide')}
         onSupprimer={supprimer}
         slug="source-risque"
         rendre={function (s) {
@@ -428,7 +424,7 @@ function OngletSources() {
             <>
               <div className="text-sm text-ink">{s.descriptionSourceRisque} &rarr; {s.descriptionObjectifVise}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(s.theme, s.motivationTypique && 'motivation ' + s.motivationTypique, s.ressourcesTypiques && 'ressources ' + s.ressourcesTypiques, !s.systeme && 'ma bibliotheque')}
+                {meta(s.theme, s.motivationTypique && traduire('bib.src.motivation') + s.motivationTypique, s.ressourcesTypiques && traduire('bib.src.ressources') + s.ressourcesTypiques, !s.systeme && traduire('bib.metaMaBiblio'))}
               </div>
             </>
           )
@@ -450,7 +446,7 @@ function OngletPartiesPrenantes() {
     setChargement(true)
     listerPartiesPrenantesBiblio(q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -463,36 +459,36 @@ function OngletPartiesPrenantes() {
     if (!nom.trim() || !roles.trim()) return
     ajouterPartiePrenanteBiblio({ nom: nom, categorie: categorie, rolesEtAttentes: roles })
       .then(function () {
-        toastSucces('Partie prenante ajoutee.')
+        toastSucces(traduire('bib.pp.ajoutee'))
         setNom(''); setRoles('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(p: PartiePrenanteBiblio) {
-    if (!window.confirm('Retirer "' + p.nom + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + p.nom + '" ' + traduire('bib.retirerPost'))) return
     supprimerPartiePrenanteBiblio(p.id)
-      .then(function () { toastSucces('Partie prenante retiree.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.pp.retiree')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE PARTIE PRENANTE A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.pp.formTitre')}</div>
         <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_180px]">
-          <Champ valeur={nom} onChange={setNom} placeholder="Nom (ex. Infogereur)" />
+          <Champ valeur={nom} onChange={setNom} placeholder={traduire('bib.pp.nomPh')} />
           <select value={categorie} onChange={function (e) { setCategorie(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+            {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{libelle('categoriePP', c)}</option> })}
           </select>
         </div>
-        <Champ valeur={roles} onChange={setRoles} placeholder="Roles et attentes dans l ecosysteme" className="mb-3" />
-        <Button variante="primary" onClick={ajouter} disabled={!nom.trim() || !roles.trim()}>Ajouter</Button>
+        <Champ valeur={roles} onChange={setRoles} placeholder={traduire('bib.pp.rolesPh')} className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!nom.trim() || !roles.trim()}>{traduire('bib.ajouter')}</Button>
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune partie prenante."
+        q={q} onQ={setQ} chargement={chargement} items={items} vide={traduire('bib.pp.vide')}
         onSupprimer={supprimer}
         slug="partie-prenante"
         rendre={function (p) {
@@ -502,7 +498,7 @@ function OngletPartiesPrenantes() {
             <>
               <div className="text-sm text-ink">{p.nom}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(p.descriptionCategorie || p.categorie, aNiveaux && 'dep/pen/mat/conf ' + niveaux.map(function (n) { return n == null ? '-' : n }).join('/'), !p.systeme && 'ma bibliotheque')}
+                {meta(p.descriptionCategorie || p.categorie, aNiveaux && traduire('bib.pp.niveauxMeta') + niveaux.map(function (n) { return n == null ? '-' : n }).join('/'), !p.systeme && traduire('bib.metaMaBiblio'))}
               </div>
               <div className="mt-0.5 text-xs text-steel">{p.rolesEtAttentes}</div>
             </>
@@ -525,7 +521,7 @@ function OngletValeursMetier() {
     setChargement(true)
     listerValeursMetierBiblio(q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -538,34 +534,34 @@ function OngletValeursMetier() {
     if (!intitule.trim()) return
     ajouterValeurMetierBiblio({ intitule: intitule, natureOuFinalite: nature, entiteProprietaireTypique: entite })
       .then(function () {
-        toastSucces('Valeur metier ajoutee.')
+        toastSucces(traduire('bib.vm.ajoutee'))
         setIntitule(''); setNature(''); setEntite('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(v: ValeurMetierBiblio) {
-    if (!window.confirm('Retirer "' + v.intitule + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + v.intitule + '" ' + traduire('bib.retirerPost'))) return
     supprimerValeurMetierBiblio(v.id)
-      .then(function () { toastSucces('Valeur metier retiree.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.vm.retiree')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE VALEUR METIER A MA BIBLIOTHEQUE</div>
-        <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule (ex. Processus de paie)" className="mb-2" />
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.vm.formTitre')}</div>
+        <Champ valeur={intitule} onChange={setIntitule} placeholder={traduire('bib.vm.intitulePh')} className="mb-2" />
         <div className="grid gap-2 sm:grid-cols-2">
-          <Champ valeur={nature} onChange={setNature} placeholder="Nature / finalite (Processus, Information...)" />
-          <Champ valeur={entite} onChange={setEntite} placeholder="Entite proprietaire type (optionnel)" />
+          <Champ valeur={nature} onChange={setNature} placeholder={traduire('bib.vm.naturePh')} />
+          <Champ valeur={entite} onChange={setEntite} placeholder={traduire('bib.vm.entitePh')} />
         </div>
-        <div className="mt-3"><Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button></div>
+        <div className="mt-3"><Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>{traduire('bib.ajouter')}</Button></div>
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune valeur metier."
+        q={q} onQ={setQ} chargement={chargement} items={items} vide={traduire('bib.vm.vide')}
         onSupprimer={supprimer}
         slug="valeur-metier"
         rendre={function (v) {
@@ -573,7 +569,7 @@ function OngletValeursMetier() {
             <>
               <div className="text-sm text-ink">{v.intitule}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(v.natureOuFinalite, v.entiteProprietaireTypique, !v.systeme && 'ma bibliotheque')}
+                {meta(v.natureOuFinalite, v.entiteProprietaireTypique, !v.systeme && traduire('bib.metaMaBiblio'))}
               </div>
             </>
           )
@@ -596,7 +592,7 @@ function OngletBiensSupport() {
     setChargement(true)
     listerBiensSupportBiblio(type, q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -609,47 +605,47 @@ function OngletBiensSupport() {
     if (!intitule.trim()) return
     ajouterBienSupportBiblio({ intitule: intitule, type: typeForm, entiteProprietaireTypique: entite })
       .then(function () {
-        toastSucces('Bien support ajoute.')
+        toastSucces(traduire('bib.bs.ajoute'))
         setIntitule(''); setEntite('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(b: BienSupportBiblio) {
-    if (!window.confirm('Retirer "' + b.intitule + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + b.intitule + '" ' + traduire('bib.retirerPost'))) return
     supprimerBienSupportBiblio(b.id)
-      .then(function () { toastSucces('Bien support retire.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.bs.retire')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
-  var filtres = [['', 'Tous']].concat(TYPES_BS.map(function (t) { return [t, LIBELLE_TYPE_BS[t]] }))
+  var filtres = [['', 'Tous']].concat(TYPES_BS.map(function (t) { return [t, libelle('typeBienSupport', t)] }))
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN BIEN SUPPORT A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.bs.formTitre')}</div>
         <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_200px]">
-          <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule (ex. Active Directory)" />
+          <Champ valeur={intitule} onChange={setIntitule} placeholder={traduire('bib.bs.intitulePh')} />
           <select value={typeForm} onChange={function (e) { setTypeForm(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {TYPES_BS.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BS[t]}</option> })}
+            {TYPES_BS.map(function (t) { return <option key={t} value={t}>{libelle('typeBienSupport', t)}</option> })}
           </select>
         </div>
-        <Champ valeur={entite} onChange={setEntite} placeholder="Entite proprietaire type (optionnel)" className="mb-3" />
-        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button>
+        <Champ valeur={entite} onChange={setEntite} placeholder={traduire('bib.vm.entitePh')} className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>{traduire('bib.ajouter')}</Button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {filtres.map(function (f) {
           var actif = type === f[0]
           return (
-            <button key={f[0]} onClick={function () { setType(f[0]) }} className={'border px-2 py-1 font-mono text-[10px] transition ' + (actif ? 'border-signature bg-signature text-white' : 'border-paper-line text-steel hover:border-signature')}>{f[1]}</button>
+            <button key={f[0]} onClick={function () { setType(f[0]) }} className={'border px-2 py-1 font-mono text-[10px] transition ' + (actif ? 'border-signature bg-signature text-white' : 'border-paper-line text-steel hover:border-signature')}>{f[0] === '' ? traduire('commun.tous') : f[1]}</button>
           )
         })}
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun bien support."
+        q={q} onQ={setQ} chargement={chargement} items={items} vide={traduire('bib.bs.vide')}
         onSupprimer={supprimer}
         slug="bien-support"
         rendre={function (b) {
@@ -657,7 +653,7 @@ function OngletBiensSupport() {
             <>
               <div className="text-sm text-ink">{b.intitule}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(LIBELLE_TYPE_BS[b.type] || b.type, b.entiteProprietaireTypique, !b.systeme && 'ma bibliotheque')}
+                {meta(libelle('typeBienSupport', b.type), b.entiteProprietaireTypique, !b.systeme && traduire('bib.metaMaBiblio'))}
               </div>
               {b.description && <div className="mt-0.5 text-xs text-steel">{b.description}</div>}
             </>
@@ -680,7 +676,7 @@ function OngletEvenementsRedoutes() {
     setChargement(true)
     listerEvenementsRedoutesBiblio(q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -694,37 +690,37 @@ function OngletEvenementsRedoutes() {
     var g = gravite ? parseInt(gravite, 10) : null
     ajouterEvenementRedouteBiblio({ intitule: intitule, graviteIndicative: g, impactsTypes: impacts })
       .then(function () {
-        toastSucces('Evenement redoute ajoute.')
+        toastSucces(traduire('bib.er.ajoute'))
         setIntitule(''); setGravite(''); setImpacts('')
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(e: EvenementRedouteBiblio) {
-    if (!window.confirm('Retirer "' + e.intitule + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + e.intitule + '" ' + traduire('bib.retirerPost'))) return
     supprimerEvenementRedouteBiblio(e.id)
-      .then(function () { toastSucces('Evenement redoute retire.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.er.retire')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN EVENEMENT REDOUTE A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.er.formTitre')}</div>
         <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_120px]">
-          <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule de l evenement redoute" />
+          <Champ valeur={intitule} onChange={setIntitule} placeholder={traduire('bib.er.intitulePh')} />
           <select value={gravite} onChange={function (e) { setGravite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            <option value="">Gravite ?</option>
+            <option value="">{traduire('bib.er.graviteQ')}</option>
             {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>G{n}</option> })}
           </select>
         </div>
-        <Champ valeur={impacts} onChange={setImpacts} placeholder="Types d impacts (ex. Financier, Juridique, Image)" className="mb-3" />
-        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button>
+        <Champ valeur={impacts} onChange={setImpacts} placeholder={traduire('bib.er.impactsPh')} className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>{traduire('bib.ajouter')}</Button>
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun evenement redoute."
+        q={q} onQ={setQ} chargement={chargement} items={items} vide={traduire('bib.er.vide')}
         onSupprimer={supprimer}
         slug="evenement-redoute"
         rendre={function (e) {
@@ -732,7 +728,7 @@ function OngletEvenementsRedoutes() {
             <>
               <div className="text-sm text-ink">{e.intitule}</div>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(e.graviteIndicative && 'gravite indicative G' + e.graviteIndicative, e.impactsTypes, !e.systeme && 'ma bibliotheque')}
+                {meta(e.graviteIndicative && traduire('bib.er.graviteIndic') + e.graviteIndicative, e.impactsTypes, !e.systeme && traduire('bib.metaMaBiblio'))}
               </div>
             </>
           )
@@ -759,7 +755,7 @@ function OngletModesOperatoires() {
     setChargement(true)
     listerModesOperatoiresBiblio(q)
       .then(setItems)
-      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .catch(function () { toastErreur(traduire('bib.indispo')) })
       .finally(function () { setChargement(false) })
   }
 
@@ -785,55 +781,55 @@ function OngletModesOperatoires() {
       }),
     })
       .then(function () {
-        toastSucces('Mode operatoire ajoute.')
+        toastSucces(traduire('bib.mo.ajoute'))
         setNom(''); setDescription('')
         setActions([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])
         charger()
       })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   function supprimer(m: ModeOperatoireBiblio) {
-    if (!window.confirm('Retirer "' + m.nom + '" de votre bibliotheque ?')) return
+    if (!window.confirm(traduire('bib.retirerPre') + '"' + m.nom + '" ' + traduire('bib.retirerPost'))) return
     supprimerModeOperatoireBiblio(m.id)
-      .then(function () { toastSucces('Mode operatoire retire.'); charger() })
-      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+      .then(function () { toastSucces(traduire('bib.mo.retire')); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : traduire('bib.err')) })
   }
 
   return (
     <div>
       <div className="mb-4 border border-paper-line p-4">
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN MODE OPERATOIRE A MA BIBLIOTHEQUE</div>
-        <Champ valeur={nom} onChange={setNom} placeholder="Nom (ex. Rançongiciel par hameçonnage)" className="mb-2" />
-        <Champ valeur={description} onChange={setDescription} placeholder="Description courte (optionnel)" className="mb-2" />
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.mo.formTitre')}</div>
+        <Champ valeur={nom} onChange={setNom} placeholder={traduire('bib.mo.nomPh')} className="mb-2" />
+        <Champ valeur={description} onChange={setDescription} placeholder={traduire('bib.mo.descPh')} className="mb-2" />
         <div className="mb-2 grid gap-2 sm:grid-cols-2">
           <select value={proba} onChange={function (e) { setProba(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>Probabilite de succes {n}</option> })}
+            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>{traduire('bib.mo.probaN')} {n}</option> })}
           </select>
           <select value={diff} onChange={function (e) { setDiff(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
-            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>Difficulte technique {n}</option> })}
+            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>{traduire('bib.mo.diffN')} {n}</option> })}
           </select>
         </div>
-        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">ACTIONS ELEMENTAIRES</div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">{traduire('bib.mo.actionsTitre')}</div>
         {actions.map(function (a, i) {
           return (
             <div key={i} className="mb-1.5 grid grid-cols-[110px_1fr_1fr_110px_auto] items-center gap-1.5">
               <select value={a.phase} onChange={function (e) { majAction(i, 'phase', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
-                {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{LIBELLE_PHASE_AE[p]}</option> })}
+                {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{libelle('phase', p)}</option> })}
               </select>
-              <input type="text" placeholder="Description de l action" value={a.description} onChange={function (e) { majAction(i, 'description', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
-              <input type="text" placeholder="Cible (libelle bien support)" value={a.cibleBienSupport} onChange={function (e) { majAction(i, 'cibleBienSupport', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('bib.mo.actionDescPh')} value={a.description} onChange={function (e) { majAction(i, 'description', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder={traduire('bib.mo.ciblePh')} value={a.cibleBienSupport} onChange={function (e) { majAction(i, 'cibleBienSupport', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
               <input type="text" placeholder="MITRE" value={a.techniqueMitre} onChange={function (e) { majAction(i, 'techniqueMitre', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
               <button type="button" onClick={function () { if (actions.length > 1) setActions(actions.filter(function (_, j) { return j !== i })) }} disabled={actions.length <= 1} className="text-[11px] text-steel-light hover:text-risk-critical disabled:opacity-30">×</button>
             </div>
           )
         })}
-        <button type="button" onClick={function () { setActions(actions.concat([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])) }} className="mb-3 font-mono text-[10px] text-signature hover:underline">+ Action elementaire</button>
-        <div><Button variante="primary" onClick={ajouter} disabled={!nom.trim()}>Ajouter</Button></div>
+        <button type="button" onClick={function () { setActions(actions.concat([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])) }} className="mb-3 font-mono text-[10px] text-signature hover:underline">{traduire('bib.mo.addAction')}</button>
+        <div><Button variante="primary" onClick={ajouter} disabled={!nom.trim()}>{traduire('bib.ajouter')}</Button></div>
       </div>
 
       <Liste
-        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun mode operatoire."
+        q={q} onQ={setQ} chargement={chargement} items={items} vide={traduire('bib.mo.vide')}
         onSupprimer={supprimer}
         slug="mode-operatoire"
         rendre={function (m) {
@@ -842,7 +838,7 @@ function OngletModesOperatoires() {
             <>
               <button type="button" onClick={function () { setDeplie(ouvert ? '' : m.id) }} className="text-left text-sm text-ink hover:text-signature">{m.nom}</button>
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                {meta(m.actions.length + ' action' + (m.actions.length > 1 ? 's' : ''), m.probabiliteSuccesTypique && 'proba ' + m.probabiliteSuccesTypique, m.difficulteTechniqueTypique && 'diff ' + m.difficulteTechniqueTypique, !m.systeme && 'ma bibliotheque')}
+                {meta(m.actions.length + ' ' + (m.actions.length > 1 ? traduire('bib.mo.actionsN') : traduire('bib.mo.actionN')), m.probabiliteSuccesTypique && traduire('bib.mo.probaMeta') + m.probabiliteSuccesTypique, m.difficulteTechniqueTypique && traduire('bib.mo.diffMeta') + m.difficulteTechniqueTypique, !m.systeme && traduire('bib.metaMaBiblio'))}
               </div>
               {m.description && <div className="mt-0.5 text-xs text-steel">{m.description}</div>}
               {ouvert && (
@@ -850,7 +846,7 @@ function OngletModesOperatoires() {
                   {m.actions.map(function (a, i) {
                     return (
                       <li key={i} className="text-[11px] text-steel">
-                        <span className="font-mono text-[9px] text-steel-light">{LIBELLE_PHASE_AE[a.phase] || a.phase}</span>{' '}
+                        <span className="font-mono text-[9px] text-steel-light">{libelle('phase', a.phase)}</span>{' '}
                         {a.description}
                         {a.cibleBienSupport ? ' — ' + a.cibleBienSupport : ''}
                         {a.techniqueMitre ? ' [' + a.techniqueMitre + ']' : ''}
