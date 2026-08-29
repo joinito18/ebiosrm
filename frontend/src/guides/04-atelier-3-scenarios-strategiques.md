@@ -22,7 +22,9 @@ L'Atelier 3 construit une vue de **haut niveau** des chemins d'attaque :
 Section **Parties prenantes importantes** → **Ajouter une partie prenante** :
 nom, rôles et attentes, représentant, catégorie (Client / Partenaire /
 Prestataire / Autre). **Depuis la bibliothèque** propose des parties prenantes
-types avec des niveaux indicatifs.
+types avec des niveaux indicatifs ; un panneau **Suggestions de parties
+prenantes** propose en plus celles dont les mots-clés recoupent le contenu de
+l'étude.
 
 ### Évaluation de la dangerosité
 

@@ -32,6 +32,12 @@ bibliothèque** ouvre un sélecteur : choisir une entrée **pré-remplit** les
 champs du formulaire. Vous ajustez ensuite au contexte de l'étude puis validez
 normalement.
 
+Les Ateliers 3, 4 et 5 ont en plus un panneau **Suggestions de la
+bibliothèque** : il propose les entrées dont les mots-clés recoupent le contenu
+de l'étude (événements redoutés, biens support, couples SR/OV, chemins
+d'attaque) — parties prenantes en Atelier 3, modes opératoires en Atelier 4,
+mesures en Atelier 5 — en affichant les mots qui les ont fait remonter.
+
 Les niveaux indicatifs (gravité d'un événement redouté, dépendance /
 pénétration d'une partie prenante, cotations d'un mode opératoire…) sont des
 **points de départ** : ils doivent toujours être confirmés dans votre contexte.

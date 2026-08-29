@@ -2482,5 +2482,13 @@ Première tranche de la traduction EN du contenu (demande #4). **Périmètre : l
 
 **Reste de la demande #4 (traduction EN du contenu applicatif)** : non fait. Volume : ~toutes les chaînes de `AtelierPage.tsx`, les maps `LIBELLE_*`, les autres pages, les 6 générateurs `Rapport*PdfGenerator`. À traiter comme un chantier dédié.
 
+## Mise à jour — Suggestions contextuelles étendues A3 + A4 (2026-08-29, branche `feat/suggestions-etendues-et-i18n`)
+
+- **`ServiceSuggestionsBibliotheque` généralisé** : `Suggestion<T>` (record générique), helpers `ContexteAsync` (sac de mots-clés partagé) + `Scorer<T>` (recouvrement pondéré, malus sur les entrées déjà présentes). 3 méthodes : `SuggererMesuresAsync` (inchangé, A5), `SuggererPartiesPrenantesAsync` (A3, malus sur les parties prenantes déjà ajoutées), `SuggererModesOperatoiresAsync` (A4, score sur nom + description + actions + MITRE). Injecte en plus `IPartiePrenanteRepository`.
+- **Endpoints** : `GET /etudes/{id}/suggestions/{parties-prenantes|modes-operatoires}` (le champ de sortie `mesure` renommé `entree` dans les 3 pour cohérence).
+- **Frontend** : `SuggestionsMesuresBiblio` remplacé par un **`PanneauSuggestions<T>` générique** (props `titre`, `charger`, `rafraichir`, `rendre → {titre, sousTitre}`, `onUtiliser`). Utilisé dans `PlanTraitementRisqueSection` (A5), `PartiesPrenantesSection` (A3, `graine` + `signalOuvrir` sur l'InlineForm), `OperationnelParChemin` (A4, `graineModeOp` → `AjoutModeOperatoire.graine` → `appliquerMode`). `api.ts` : `Suggestion<T>` + `suggererPartiesPrenantesBiblio` / `suggererModesOperatoiresBiblio`.
+- **Tests** : `BibliothequeTests.Suggestions_*` étendu (forme des 3 routes). 269 backend, 25 frontend. Playwright : panneaux A3/A4/A5 OK, « Utiliser » ouvre le formulaire et pré-remplit (mode « Rançongiciel par hameçonnage » → description + 6 lignes d'actions ; partie prenante ; mesure).
+- Les modes opératoires donnent les meilleurs scores (chemin d'attaque « compromission d'un compte à privilèges puis extraction de la base » → « Exploitation d'une vulnérabilité web » score 10).
+
 *Fin du contexte.*
 

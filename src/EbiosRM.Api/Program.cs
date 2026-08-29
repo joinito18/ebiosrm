@@ -1269,12 +1269,29 @@ app.MapGet("/api/v1/etudes/{id:guid}/suggestions/mesures", async (
     if (moiId is null) return Results.Unauthorized();
 
     var suggestions = await service.SuggererMesuresAsync(id, moiId.Value, Math.Clamp(limite ?? 8, 1, 20), ct);
-    return Results.Ok(suggestions.Select(s => new
-    {
-        mesure = VueMesureBiblio(s.Mesure),
-        s.Score,
-        motsCles = s.MotsCles,
-    }));
+    return Results.Ok(suggestions.Select(s => new { entree = VueMesureBiblio(s.Entree), s.Score, motsCles = s.MotsCles }));
+});
+
+app.MapGet("/api/v1/etudes/{id:guid}/suggestions/parties-prenantes", async (
+    Guid id, int? limite, EbiosRM.Api.Modules.Bibliotheque.ServiceSuggestionsBibliotheque service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var suggestions = await service.SuggererPartiesPrenantesAsync(id, moiId.Value, Math.Clamp(limite ?? 6, 1, 20), ct);
+    return Results.Ok(suggestions.Select(s => new { entree = VuePartiePrenanteBiblio(s.Entree), s.Score, motsCles = s.MotsCles }));
+});
+
+app.MapGet("/api/v1/etudes/{id:guid}/suggestions/modes-operatoires", async (
+    Guid id, int? limite, EbiosRM.Api.Modules.Bibliotheque.ServiceSuggestionsBibliotheque service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var suggestions = await service.SuggererModesOperatoiresAsync(id, moiId.Value, Math.Clamp(limite ?? 5, 1, 20), ct);
+    return Results.Ok(suggestions.Select(s => new { entree = VueModeOperatoireBiblio(s.Entree), s.Score, motsCles = s.MotsCles }));
 });
 
 // Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans

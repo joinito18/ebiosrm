@@ -22,6 +22,7 @@ public sealed class ServiceSuggestionsBibliotheque
     private readonly IBienSupportRepository _biensSupport;
     private readonly ICoupleSourceRisqueObjectifViseRepository _couples;
     private readonly ICheminAttaqueRepository _chemins;
+    private readonly IPartiePrenanteRepository _partiesPrenantes;
     private readonly IPlanTraitementRisqueRepository _plans;
     private readonly IBibliothequeRepository _bibliotheque;
 
@@ -30,6 +31,7 @@ public sealed class ServiceSuggestionsBibliotheque
         IBienSupportRepository biensSupport,
         ICoupleSourceRisqueObjectifViseRepository couples,
         ICheminAttaqueRepository chemins,
+        IPartiePrenanteRepository partiesPrenantes,
         IPlanTraitementRisqueRepository plans,
         IBibliothequeRepository bibliotheque)
     {
@@ -37,11 +39,12 @@ public sealed class ServiceSuggestionsBibliotheque
         _biensSupport = biensSupport;
         _couples = couples;
         _chemins = chemins;
+        _partiesPrenantes = partiesPrenantes;
         _plans = plans;
         _bibliotheque = bibliotheque;
     }
 
-    public sealed record Suggestion(MesureBibliotheque Mesure, int Score, IReadOnlyList<string> MotsCles);
+    public sealed record Suggestion<T>(T Entree, int Score, IReadOnlyList<string> MotsCles);
 
     private static readonly HashSet<string> MotsVides = new(StringComparer.Ordinal)
     {
@@ -69,10 +72,9 @@ public sealed class ServiceSuggestionsBibliotheque
         }
     }
 
-    public async Task<IReadOnlyList<Suggestion>> SuggererMesuresAsync(
-        Guid etudeId, Guid proprietaireId, int limite, CancellationToken ct)
+    /// <summary>Sac de mots-clés décrivant le contenu de l'étude.</summary>
+    private async Task<HashSet<string>> ContexteAsync(Guid etudeId, CancellationToken ct)
     {
-        // 1. Sac de mots-clés du contexte de l'étude.
         var contexte = new HashSet<string>(StringComparer.Ordinal);
         foreach (var er in await _evenementsRedoutes.ListerParEtudeAsync(etudeId, ct))
             contexte.UnionWith(Tokeniser(er.Description));
@@ -88,39 +90,84 @@ public sealed class ServiceSuggestionsBibliotheque
         }
         foreach (var chemin in await _chemins.ListerParEtudeAsync(etudeId, ct))
             contexte.UnionWith(Tokeniser(chemin.Description));
+        return contexte;
+    }
 
-        if (contexte.Count == 0) return Array.Empty<Suggestion>();
-
-        // 2. Mesures déjà dans le plan -> à exclure (comparaison sur les mots-clés).
-        var plan = await _plans.ObtenirParEtudeAsync(etudeId, ct);
-        var dejaCouvert = plan is null
-            ? new HashSet<string>(StringComparer.Ordinal)
-            : plan.Mesures.SelectMany(m => Tokeniser(m.Description)).ToHashSet(StringComparer.Ordinal);
-
-        // 3. Candidats : catalogue système + bibliothèque personnelle.
-        var candidats = CatalogueSysteme.Mesures
-            .Concat(await _bibliotheque.ListerAsync<MesureBibliotheque>(proprietaireId, ct));
-
-        var suggestions = new List<Suggestion>();
-        foreach (var mesure in candidats)
+    private static List<Suggestion<T>> Scorer<T>(
+        IEnumerable<T> candidats, HashSet<string> contexte, HashSet<string> aExclure,
+        Func<T, IEnumerable<string>> motsDe, Func<T, bool> estSysteme, Func<T, string> nom, int limite)
+    {
+        var suggestions = new List<Suggestion<T>>();
+        foreach (var candidat in candidats)
         {
-            var mots = Tokeniser(mesure.Titre).Concat(Tokeniser(mesure.Description)).Concat(Tokeniser(mesure.Categorie)).ToHashSet(StringComparer.Ordinal);
+            var mots = motsDe(candidat).ToHashSet(StringComparer.Ordinal);
             var communs = mots.Where(contexte.Contains).ToList();
             if (communs.Count == 0) continue;
 
-            // Malus si une mesure très proche est déjà dans le plan.
-            var recouvrementPlan = mots.Count(dejaCouvert.Contains);
-            var score = communs.Count * 2 - recouvrementPlan;
+            var malus = mots.Count(aExclure.Contains);
+            var score = communs.Count * 2 - malus;
             if (score <= 0) continue;
 
-            suggestions.Add(new Suggestion(mesure, score, communs.OrderBy(x => x).Take(5).ToList()));
+            suggestions.Add(new Suggestion<T>(candidat, score, communs.OrderBy(x => x).Take(5).ToList()));
         }
 
         return suggestions
             .OrderByDescending(s => s.Score)
-            .ThenBy(s => s.Mesure.EstSysteme ? 1 : 0)
-            .ThenBy(s => s.Mesure.Titre, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(s => estSysteme(s.Entree) ? 1 : 0)
+            .ThenBy(s => nom(s.Entree), StringComparer.OrdinalIgnoreCase)
             .Take(limite)
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<Suggestion<MesureBibliotheque>>> SuggererMesuresAsync(
+        Guid etudeId, Guid proprietaireId, int limite, CancellationToken ct)
+    {
+        var contexte = await ContexteAsync(etudeId, ct);
+        if (contexte.Count == 0) return Array.Empty<Suggestion<MesureBibliotheque>>();
+
+        var plan = await _plans.ObtenirParEtudeAsync(etudeId, ct);
+        var deja = plan is null
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : plan.Mesures.SelectMany(m => Tokeniser(m.Description)).ToHashSet(StringComparer.Ordinal);
+
+        var candidats = CatalogueSysteme.Mesures
+            .Concat(await _bibliotheque.ListerAsync<MesureBibliotheque>(proprietaireId, ct));
+
+        return Scorer(candidats, contexte, deja,
+            m => Tokeniser(m.Titre).Concat(Tokeniser(m.Description)).Concat(Tokeniser(m.Categorie)),
+            m => m.EstSysteme, m => m.Titre, limite);
+    }
+
+    public async Task<IReadOnlyList<Suggestion<PartiePrenanteBibliotheque>>> SuggererPartiesPrenantesAsync(
+        Guid etudeId, Guid proprietaireId, int limite, CancellationToken ct)
+    {
+        var contexte = await ContexteAsync(etudeId, ct);
+        if (contexte.Count == 0) return Array.Empty<Suggestion<PartiePrenanteBibliotheque>>();
+
+        var deja = (await _partiesPrenantes.ListerParEtudeAsync(etudeId, ct))
+            .SelectMany(p => Tokeniser(p.Nom).Concat(Tokeniser(p.RolesEtAttentes)))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var candidats = CatalogueSysteme.PartiesPrenantes
+            .Concat(await _bibliotheque.ListerAsync<PartiePrenanteBibliotheque>(proprietaireId, ct));
+
+        return Scorer(candidats, contexte, deja,
+            p => Tokeniser(p.Nom).Concat(Tokeniser(p.RolesEtAttentes)).Concat(Tokeniser(p.DescriptionCategorie)),
+            p => p.EstSysteme, p => p.Nom, limite);
+    }
+
+    public async Task<IReadOnlyList<Suggestion<ModeOperatoireBibliotheque>>> SuggererModesOperatoiresAsync(
+        Guid etudeId, Guid proprietaireId, int limite, CancellationToken ct)
+    {
+        var contexte = await ContexteAsync(etudeId, ct);
+        if (contexte.Count == 0) return Array.Empty<Suggestion<ModeOperatoireBibliotheque>>();
+
+        var candidats = CatalogueSysteme.ModesOperatoires
+            .Concat(await _bibliotheque.ListerAsync<ModeOperatoireBibliotheque>(proprietaireId, ct));
+
+        return Scorer(candidats, contexte, new HashSet<string>(StringComparer.Ordinal),
+            m => Tokeniser(m.Nom).Concat(Tokeniser(m.Description))
+                .Concat(m.Actions.SelectMany(a => Tokeniser(a.Description).Concat(Tokeniser(a.TechniqueMitre)))),
+            m => m.EstSysteme, m => m.Nom, limite);
     }
 }

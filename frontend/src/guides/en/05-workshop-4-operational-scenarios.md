@@ -33,10 +33,12 @@ For a scenario, **Add an operating mode**:
 
 The **From the library** button offers typical operating modes (ransomware via
 phishing, intrusion through an exposed remote access, bounce via a provider,
-exploitation of a web vulnerability, Active Directory domination). It pre-fills
-the description, the ratings and the actions; **then remember to map each
-action to the right supporting asset in your study** (the imported target label
-is only a hint).
+exploitation of a web vulnerability, Active Directory domination). A **library
+suggestions** panel additionally proposes those whose keywords (name, actions,
+MITRE techniques) match the attack path and the RO/TO pair. Either way, the
+tool pre-fills the description, the ratings and the actions; **then remember to
+map each action to the right supporting asset in your study** (the imported
+target label is only a hint).
 
 ### MITRE ATT&CK techniques
 

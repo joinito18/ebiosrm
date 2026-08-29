@@ -211,11 +211,23 @@ public class BibliothequeTests : IClassFixture<EbiosApiFactory>
         {
             Assert.True(s.GetProperty("score").GetInt32() > 0);
             Assert.True(s.GetProperty("motsCles").GetArrayLength() > 0);
-            Assert.False(string.IsNullOrWhiteSpace(s.GetProperty("mesure").GetProperty("titre").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(s.GetProperty("entree").GetProperty("titre").GetString()));
         }
         // La liste est triee par score decroissant.
         var scores = suggestions.EnumerateArray().Select(s => s.GetProperty("score").GetInt32()).ToList();
         Assert.Equal(scores.OrderByDescending(x => x), scores);
+
+        // Suggestions de parties prenantes et de modes operatoires : memes garanties de forme.
+        foreach (var route in new[] { "parties-prenantes", "modes-operatoires" })
+        {
+            var r = await (await c.GetAsync($"/api/v1/etudes/{etudeId}/suggestions/{route}")).Content.ReadFromJsonAsync<JsonElement>();
+            foreach (var s in r.EnumerateArray())
+            {
+                Assert.True(s.GetProperty("score").GetInt32() > 0);
+                Assert.True(s.GetProperty("motsCles").GetArrayLength() > 0);
+                Assert.True(s.TryGetProperty("entree", out _));
+            }
+        }
     }
 
     [Fact]

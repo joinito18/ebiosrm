@@ -19,7 +19,9 @@ Workshop 3 builds a **high-level** view of the attack paths:
 
 **Key stakeholders** section → **Add a stakeholder**: name, roles and
 expectations, representative, category (Customer / Partner / Supplier / Other).
-**From the library** offers typical stakeholders with indicative levels.
+**From the library** offers typical stakeholders with indicative levels; a
+**library suggestions** panel additionally proposes those whose keywords match
+the study's content.
 
 ### Threat-level assessment
 

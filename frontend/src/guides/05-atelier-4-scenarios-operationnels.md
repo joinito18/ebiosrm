@@ -36,9 +36,12 @@ Pour un scénario, **Ajouter un mode opératoire** :
 Le bouton **Depuis la bibliothèque** propose des modes opératoires types
 (rançongiciel par hameçonnage, intrusion par un accès distant exposé, rebond
 par un prestataire, exploitation d'une vulnérabilité web, domination Active
-Directory). Il pré-remplit la description, les cotations et les actions ;
-**pensez ensuite à associer chaque action au bon bien support de votre étude**
-(le libellé de cible importé n'est qu'un repère).
+Directory). Un panneau **Suggestions de modes opératoires** propose en plus
+ceux dont les mots-clés (nom, actions, techniques MITRE) recoupent le chemin
+d'attaque et le couple SR/OV. Dans les deux cas, l'outil pré-remplit la
+description, les cotations et les actions ; **pensez ensuite à associer chaque
+action au bon bien support de votre étude** (le libellé de cible importé n'est
+qu'un repère).
 
 ### Techniques MITRE ATT&CK
 

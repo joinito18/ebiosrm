@@ -447,14 +447,22 @@ export function supprimerModeOperatoireBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/modes-operatoires/' + id, { method: 'DELETE' })
 }
 
-export interface SuggestionMesure {
-  mesure: MesureBiblio
+export interface Suggestion<T> {
+  entree: T
   score: number
   motsCles: string[]
 }
 
-export function suggererMesuresBiblio(etudeId: string): Promise<SuggestionMesure[]> {
+export function suggererMesuresBiblio(etudeId: string): Promise<Suggestion<MesureBiblio>[]> {
   return apiFetch('/etudes/' + etudeId + '/suggestions/mesures')
+}
+
+export function suggererPartiesPrenantesBiblio(etudeId: string): Promise<Suggestion<PartiePrenanteBiblio>[]> {
+  return apiFetch('/etudes/' + etudeId + '/suggestions/parties-prenantes')
+}
+
+export function suggererModesOperatoiresBiblio(etudeId: string): Promise<Suggestion<ModeOperatoireBiblio>[]> {
+  return apiFetch('/etudes/' + etudeId + '/suggestions/modes-operatoires')
 }
 
 // --- Bibliotheque communautaire ---

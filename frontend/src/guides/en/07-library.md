@@ -41,10 +41,11 @@ the current item to your personal library.
 
 ### Contextual suggestions
 
-In Workshop 5, a **library suggestions** panel proposes measures that match the
-study's content (feared events, supporting assets, RO/TO pairs, attack paths),
-showing the keywords that surfaced each one. **Use** opens the add form
-pre-filled.
+Workshops 3, 4 and 5 each have a **library suggestions** panel that proposes
+entries matching the study's content (feared events, supporting assets, RO/TO
+pairs, attack paths), showing the keywords that surfaced each one: stakeholders
+in Workshop 3, operating modes in Workshop 4, measures in Workshop 5. **Use**
+opens the add form pre-filled.
 
 ## Community library
 

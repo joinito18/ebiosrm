@@ -48,7 +48,7 @@ import {
   ajouterMesureTraitementRisque, modifierMesureTraitementRisque, supprimerMesureTraitementRisque,
   listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, listerMesuresBiblio, ajouterMesureBiblio,
   listerPartiesPrenantesBiblio, listerValeursMetierBiblio, listerBiensSupportBiblio, listerEvenementsRedoutesBiblio,
-  listerModesOperatoiresBiblio, suggererMesuresBiblio,
+  listerModesOperatoiresBiblio, suggererMesuresBiblio, suggererPartiesPrenantesBiblio, suggererModesOperatoiresBiblio,
   ApiError,
 } from '../lib/api'
 import type {
@@ -57,7 +57,7 @@ import type {
   ScenarioDeRisque, PlanTraitementRisque, MesureTraitementRisque, MesureTraitementRisqueInput,
   SourceRisqueBiblio, MesureBiblio,
   PartiePrenanteBiblio, ValeurMetierBiblio, BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio,
-  PhaseActionElementaire, SuggestionMesure,
+  PhaseActionElementaire,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
@@ -1163,6 +1163,7 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
   var [descCategorie, setDescCategorie] = useState('')
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
+  var [graine, setGraine] = useState(0)
   var [idEdit, setIdEdit] = useState('')
   var [nomEdit, setNomEdit] = useState('')
   var [rolesEdit, setRolesEdit] = useState('')
@@ -1247,7 +1248,20 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
           })}
         </div>
       )}
-      <InlineForm label="Ajouter une partie prenante">
+      <PanneauSuggestions<PartiePrenanteBiblio>
+        titre="Suggestions de parties prenantes de la bibliotheque"
+        rafraichir={props.parties.length}
+        charger={function () { return suggererPartiesPrenantesBiblio(props.etudeId) }}
+        rendre={function (pp) { return { titre: pp.nom, sousTitre: pp.descriptionCategorie || pp.categorie } }}
+        onUtiliser={function (pp) {
+          setNom(pp.nom); setRoles(pp.rolesEtAttentes)
+          if (pp.representant) setRepresentant(pp.representant)
+          if (CATEGORIES_PP.indexOf(pp.categorie) >= 0) setCategorie(pp.categorie)
+          if (pp.descriptionCategorie) setDescCategorie(pp.descriptionCategorie)
+          setGraine(Date.now())
+        }}
+      />
+      <InlineForm label="Ajouter une partie prenante" signalOuvrir={graine || undefined}>
         {function (fermer) {
           return (
             <div>
@@ -2401,6 +2415,7 @@ function ScenariosOperationnelsSection(props: {
 function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; scenarioOperationnel?: ScenarioOperationnel; biens: BienSupport[]; onChange: () => void }) {
   var [enCours, setEnCours] = useState(false)
   var [erreur, setErreur] = useState('')
+  var [graineModeOp, setGraineModeOp] = useState<{ mo: ModeOperatoireBiblio; n: number } | null>(null)
 
   function creer() {
     setEnCours(true)
@@ -2442,7 +2457,16 @@ function OperationnelParChemin(props: { etudeId: string; chemin: CheminAttaque; 
               return <ModeOperatoireRow key={mode.id} etudeId={props.etudeId} scenarioOperationnelId={props.scenarioOperationnel!.id} mode={mode} biens={props.biens} onChange={props.onChange} />
             })}
           </div>
-          <AjoutModeOperatoire etudeId={props.etudeId} scenarioOperationnelId={props.scenarioOperationnel.id} biens={props.biens} onChange={props.onChange} />
+          <div className="mt-3">
+            <PanneauSuggestions<ModeOperatoireBiblio>
+              titre="Suggestions de modes operatoires de la bibliotheque"
+              rafraichir={props.scenarioOperationnel.modesOperatoires.length}
+              charger={function () { return suggererModesOperatoiresBiblio(props.etudeId) }}
+              rendre={function (mo) { return { titre: mo.nom, sousTitre: mo.actions.length + ' actions' } }}
+              onUtiliser={function (mo) { setGraineModeOp({ mo: mo, n: Date.now() }) }}
+            />
+          </div>
+          <AjoutModeOperatoire etudeId={props.etudeId} scenarioOperationnelId={props.scenarioOperationnel.id} biens={props.biens} onChange={props.onChange} graine={graineModeOp} />
         </div>
       )}
     </Card>
@@ -2600,7 +2624,7 @@ function ModeOperatoireRow(props: { etudeId: string; scenarioOperationnelId: str
   )
 }
 
-function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: string; biens: BienSupport[]; onChange: () => void }) {
+function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: string; biens: BienSupport[]; onChange: () => void; graine?: { mo: ModeOperatoireBiblio; n: number } | null }) {
   var [ouvert, setOuvert] = useState(false)
   var [description, setDescription] = useState('')
   var [actions, setActions] = useState<ActionElementaireInput[]>([])
@@ -2615,6 +2639,20 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
       setActions([{ description: '', phase: 'Connaitre', bienSupportId: props.biens.length > 0 ? props.biens[0].id : '', techniqueMitre: null }])
     }
   }
+
+  function appliquerMode(mo: ModeOperatoireBiblio) {
+    setDescription(mo.nom + (mo.description ? ' — ' + mo.description : ''))
+    if (mo.probabiliteSuccesTypique) setProbabiliteSucces(String(mo.probabiliteSuccesTypique))
+    if (mo.difficulteTechniqueTypique) setDifficulteTechnique(String(mo.difficulteTechniqueTypique))
+    var bienDefaut = props.biens.length > 0 ? props.biens[0].id : ''
+    setActions(mo.actions.map(function (a) {
+      return { description: a.cibleBienSupport ? a.description + ' (cible : ' + a.cibleBienSupport + ')' : a.description, phase: a.phase as PhaseActionElementaire, bienSupportId: bienDefaut, techniqueMitre: a.techniqueMitre }
+    }))
+  }
+
+  useEffect(function () {
+    if (props.graine) { setOuvert(true); appliquerMode(props.graine.mo) }
+  }, [props.graine ? props.graine.n : 0])
 
   function creer() {
     if (!description.trim()) {
@@ -2658,15 +2696,7 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
             </div>
           )
         }}
-        onChoisir={function (mo) {
-          setDescription(mo.nom + (mo.description ? ' — ' + mo.description : ''))
-          if (mo.probabiliteSuccesTypique) setProbabiliteSucces(String(mo.probabiliteSuccesTypique))
-          if (mo.difficulteTechniqueTypique) setDifficulteTechnique(String(mo.difficulteTechniqueTypique))
-          var bienDefaut = props.biens.length > 0 ? props.biens[0].id : ''
-          setActions(mo.actions.map(function (a) {
-            return { description: a.cibleBienSupport ? a.description + ' (cible : ' + a.cibleBienSupport + ')' : a.description, phase: a.phase as PhaseActionElementaire, bienSupportId: bienDefaut, techniqueMitre: a.techniqueMitre }
-          }))
-        }}
+        onChoisir={appliquerMode}
       />
       <input type="text" placeholder="Description du mode operatoire" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
       {actions.some(function (a) { return /\(cible : /.test(a.description) }) && (
@@ -2948,25 +2978,36 @@ var AXES_MESURE = ['Gouvernance', 'Protection', 'Defense', 'Resilience']
 var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+ (Faible)', PlusPlus: '++ (Modere)', PlusPlusPlus: '+++ (Eleve)' }
 var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' }
 
-function SuggestionsMesuresBiblio(props: { etudeId: string; nbMesures: number; onUtiliser: (titre: string) => void }) {
-  var [suggestions, setSuggestions] = useState<SuggestionMesure[]>([])
+/**
+ * Panneau depliable de suggestions de bibliotheque, croisant le contenu de
+ * l'etude avec les entrees candidates. Generique : mesures (A5), parties
+ * prenantes (A3), modes operatoires (A4).
+ */
+function PanneauSuggestions<T extends { id: string }>(props: {
+  titre: string
+  charger: () => Promise<import('../lib/api').Suggestion<T>[]>
+  rafraichir?: unknown
+  rendre: (entree: T) => { titre: string; sousTitre?: string }
+  onUtiliser: (entree: T) => void
+}) {
+  var [suggestions, setSuggestions] = useState<import('../lib/api').Suggestion<T>[]>([])
   var [ouvert, setOuvert] = useState(false)
   var [charge, setCharge] = useState(false)
   var lectureSeule = useLectureSeule()
 
   useEffect(function () {
     if (!ouvert || charge) return
-    suggererMesuresBiblio(props.etudeId)
+    props.charger()
       .then(function (s) { setSuggestions(s); setCharge(true) })
       .catch(function () { setCharge(true) })
-  }, [ouvert, props.nbMesures])
+  }, [ouvert, props.rafraichir])
 
   if (lectureSeule) return null
 
   return (
     <div className="border border-paper-line bg-paper-dim p-3">
       <button type="button" onClick={function () { setOuvert(!ouvert); setCharge(false) }} className="font-mono text-[10px] tracking-wide text-signature hover:underline">
-        {ouvert ? '−' : '+'} SUGGESTIONS DE MESURES DE LA BIBLIOTHEQUE
+        {ouvert ? '−' : '+'} {props.titre.toUpperCase()}
       </button>
       {ouvert && (
         <div className="mt-2">
@@ -2977,15 +3018,16 @@ function SuggestionsMesuresBiblio(props: { etudeId: string; nbMesures: number; o
           ) : (
             <ul className="divide-y divide-paper-line">
               {suggestions.map(function (s) {
+                var r = props.rendre(s.entree)
                 return (
-                  <li key={s.mesure.id} className="flex items-start justify-between gap-3 py-2">
+                  <li key={s.entree.id} className="flex items-start justify-between gap-3 py-2">
                     <div className="min-w-0">
-                      <div className="text-xs text-ink">{s.mesure.code ? s.mesure.code + ' -- ' : ''}{s.mesure.titre}</div>
+                      <div className="text-xs text-ink">{r.titre}</div>
                       <div className="mt-0.5 font-mono text-[9px] text-steel-light">
-                        {LIBELLE_REFERENTIEL_MESURE[s.mesure.referentiel] || s.mesure.referentiel} -- lie a : {s.motsCles.join(', ')}
+                        {r.sousTitre ? r.sousTitre + ' -- ' : ''}lie a : {s.motsCles.join(', ')}
                       </div>
                     </div>
-                    <button type="button" onClick={function () { props.onUtiliser(s.mesure.code ? s.mesure.titre + ' (' + s.mesure.code + ')' : s.mesure.titre) }} className="shrink-0 border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">
+                    <button type="button" onClick={function () { props.onUtiliser(s.entree) }} className="shrink-0 border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">
                       Utiliser
                     </button>
                   </li>
@@ -3039,7 +3081,18 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
               </div>
             )
           })}
-          <SuggestionsMesuresBiblio etudeId={props.etudeId} nbMesures={props.plan.mesures.length} onUtiliser={function (titre) { setGraine({ titre: titre, n: Date.now() }) }} />
+          <PanneauSuggestions<MesureBiblio>
+            titre="Suggestions de mesures de la bibliotheque"
+            rafraichir={props.plan.mesures.length}
+            charger={function () { return suggererMesuresBiblio(props.etudeId) }}
+            rendre={function (m) {
+              return {
+                titre: (m.code ? m.code + ' -- ' : '') + m.titre,
+                sousTitre: LIBELLE_REFERENTIEL_MESURE[m.referentiel] || m.referentiel,
+              }
+            }}
+            onUtiliser={function (m) { setGraine({ titre: m.code ? m.titre + ' (' + m.code + ')' : m.titre, n: Date.now() }) }}
+          />
           <AjoutMesureTraitementRisque etudeId={props.etudeId} scenariosDeRisque={props.scenariosDeRisque} onChange={props.onChange} graine={graine} />
         </div>
       )}
