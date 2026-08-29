@@ -8,12 +8,13 @@
 import React from 'react'
 
 function inline(texte: string, cle: string): React.ReactNode {
-  // Decoupe sur **gras**, `code` et [lien](url) en gardant les separateurs.
-  var motif = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
+  // Decoupe sur **gras**, *italique*, `code` et [lien](url) en gardant les separateurs.
+  var motif = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g
   var morceaux = texte.split(motif)
   return morceaux.map(function (m, i) {
     var k = cle + '-' + i
     if (/^\*\*[^*]+\*\*$/.test(m)) return <strong key={k}>{m.slice(2, -2)}</strong>
+    if (/^\*[^*]+\*$/.test(m)) return <em key={k}>{m.slice(1, -1)}</em>
     if (/^`[^`]+`$/.test(m)) return <code key={k} className="rounded bg-paper-dim px-1 py-0.5 font-mono text-[0.85em] text-signature">{m.slice(1, -1)}</code>
     var lien = m.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
     if (lien) {
@@ -128,6 +129,13 @@ export default function Markdown(props: { source: string }) {
     // Ligne vide
     if (ligne.trim() === '') {
       viderPara(); viderPuces()
+      i++
+      continue
+    }
+
+    // Ligne de continuation d'un item de liste (souvent indentee).
+    if (puces.length > 0 && para.length === 0) {
+      puces[puces.length - 1].texte += ' ' + ligne.trim()
       i++
       continue
     }

@@ -2448,5 +2448,15 @@ Demande utilisateur : « ajoutons les bibliothèques pour tous » + guides d'uti
 - Les mêmes `.md` seront embarqués côté backend au commit 5 pour le manuel PDF (`<EmbeddedResource>` dans `EbiosRM.Api.csproj`).
 - **Vérifié** : `tsc`/`npm run test` (25) verts, bundle `Aide` ~35 kB. Playwright : sommaire des 10 guides, rendu titres/tableau/gras/listes, deep-link `/aide/atelier-3`.
 
+### Étape 5 — Manuel PDF (commit 5, chantier terminé)
+- **`EbiosRM.Api.csproj`** : `<EmbeddedResource Include="..\..\frontend\src\guides\*.md">` avec `<LogicalName>Guides.%(Filename)%(Extension)</LogicalName>` → les 10 `.md` sont dans l'assembly. **Source unique** partagée avec le frontend.
+- **`Modules/Reporting/MarqueurMarkdown.cs`** : lecteur Markdown en blocs typés (records `Titre`/`Paragraphe`/`Citation`/`Code`/`Regle`/`Liste`(+`ItemListe`)/`Tableau`), mêmes règles que `Markdown.tsx`. **Correctif appliqué aux deux lecteurs** : une ligne de texte simple qui suit un item de liste (continuation, souvent indentée) est rattachée à l'item au lieu de créer un paragraphe orphelin. Inline : `**gras**`, `*italique*`, `` `code` ``, `[lien](url)` (ajout de l'italique simple `*…*` dans les deux lecteurs).
+- **`Modules/Reporting/ManuelPdfGenerator.cs`** (singleton) : lit les ressources `Guides.*.md` triées, page A4, sommaire + un `PageBreak()` par guide, rend les blocs via QuestPDF (`RapportPdfStyle` réutilisé). `AppliquerInline(TextDescriptor, string)`.
+- **Endpoint** `GET /api/v1/aide/manuel.pdf` (auth via FallbackPolicy comme tout le reste ; le bouton front envoie le token). `pages/Aide.tsx` : bouton **« Telecharger le manuel complet (PDF) »** (`BoutonTelechargerRapport`).
+- **Pas de migration, pas de re-seed** (aucun changement de schéma aux étapes 4-5).
+- **Tests** : `ManuelPdfTests` (200, `application/pdf`, en-tête `%PDF`, > 20 ko). 268 backend, 25 frontend. PDF vérifié visuellement (17 pages, sommaire, tables, listes, gras/italique).
+
+**→ Chantier « bibliothèques pour tous + guides » terminé (5 commits, branche `feat/bibliotheques-etendues`).**
+
 *Fin du contexte.*
 

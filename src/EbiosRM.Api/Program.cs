@@ -225,6 +225,7 @@ builder.Services.AddScoped<RapportSyntheseGlobaleService>();
 builder.Services.AddScoped<RapportSyntheseGlobalePdfGenerator>();
 builder.Services.AddScoped<RapportCadreDeSuiviService>();
 builder.Services.AddScoped<RapportCadreDeSuiviPdfGenerator>();
+builder.Services.AddSingleton<ManuelPdfGenerator>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -1249,6 +1250,11 @@ app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/signaler", async (
     var r = await service.SignalerAsync(type, id, moiId.Value, request?.Motif, ct);
     return r.Ok ? Results.Ok(new { signale = true }) : Results.BadRequest(new { error = r.Erreur });
 });
+
+// Manuel d'utilisation complet en PDF, assemble a partir des guides Markdown
+// embarques (frontend/src/guides/*.md). Meme contenu que l'aide en ligne.
+app.MapGet("/api/v1/aide/manuel.pdf", (ManuelPdfGenerator generateur) =>
+    Results.File(generateur.Generer(), "application/pdf", "manuel-ebiosrm.pdf"));
 
 // Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans
 // le code. Filtre optionnel par phase EBIOS RM (Connaitre/Rentrer/Trouver/

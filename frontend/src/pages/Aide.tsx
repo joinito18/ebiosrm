@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import PageHeader from '../components/shared/PageHeader'
 import Markdown from '../components/shared/Markdown'
+import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
 import { GUIDES } from '../guides'
 
 export default function Aide() {
@@ -16,6 +17,16 @@ export default function Aide() {
         titre="Guides d'utilisation"
         description="Comment mener une analyse EBIOS Risk Manager avec l'outil, atelier par atelier."
       />
+
+      <div className="mb-6">
+        <BoutonTelechargerRapport
+          path={'/aide/manuel.pdf'}
+          nomFichier={'manuel-ebiosrm.pdf'}
+          className="inline-flex items-center gap-1.5 rounded-sm border border-paper-line px-3 py-1.5 text-xs font-medium text-ink transition hover:border-signature hover:text-signature"
+        >
+          Telecharger le manuel complet (PDF)
+        </BoutonTelechargerRapport>
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
         <nav className="lg:border-r lg:border-paper-line lg:pr-6">

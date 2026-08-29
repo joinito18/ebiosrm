@@ -30,5 +30,10 @@
          ConfigurationExecution). Genere par build/seed/generer-seed.sh,
          absent du depot par defaut -> l'inclusion est conditionnelle. -->
     <EmbeddedResource Include="ressources\ebiosrm.seed.db" Condition="Exists('ressources\ebiosrm.seed.db')" />
+    <!-- Guides d'utilisation : source unique partagee avec le frontend
+         (frontend/src/guides/*.md). Embarques pour le manuel PDF (/aide/manuel.pdf). -->
+    <EmbeddedResource Include="..\..\frontend\src\guides\*.md">
+      <LogicalName>Guides.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>
