@@ -25,8 +25,9 @@ public sealed class RapportAtelier1PdfGenerator
     private const string Mono = "IBM Plex Mono";
     private const string MonoMedium = "IBM Plex Mono Medium";
 
-    public byte[] Generer(RapportAtelier1Data data)
+    public byte[] Generer(RapportAtelier1Data data, bool anglais = false)
     {
+        string T(string fr, string en) => anglais ? en : fr;
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -42,12 +43,12 @@ public sealed class RapportAtelier1PdfGenerator
                         row.RelativeItem().Column(c =>
                         {
                             c.Item().Text("EBIOS RISK MANAGER").FontFamily(MonoMedium).FontSize(8).FontColor(BleuFrance).LetterSpacing(0.05f);
-                            c.Item().PaddingTop(2).Text("Atelier 1 -- Cadrage et socle de sécurité").FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
+                            c.Item().PaddingTop(2).Text(T("Atelier 1 -- Cadrage et socle de sécurité", "Workshop 1 -- Scoping and security baseline")).FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
                         });
                         row.ConstantItem(140).AlignRight().Column(c =>
                         {
-                            c.Item().Text("Version " + data.Version).FontFamily(MonoMedium).FontSize(8).FontColor(GrisTexte);
-                            c.Item().Text("Validé le " + data.DateValidationUtc.ToString("dd/MM/yyyy")).FontFamily(Mono).FontSize(8).FontColor(GrisTexte);
+                            c.Item().Text(T("Version ", "Version ") + data.Version).FontFamily(MonoMedium).FontSize(8).FontColor(GrisTexte);
+                            c.Item().Text(T("Validé le ", "Validated on ") + data.DateValidationUtc.ToString(anglais ? "yyyy-MM-dd" : "dd/MM/yyyy")).FontFamily(Mono).FontSize(8).FontColor(GrisTexte);
                         });
                     });
                     col.Item().PaddingTop(10).LineHorizontal(1.4f).LineColor(BleuFrance);
@@ -59,19 +60,19 @@ public sealed class RapportAtelier1PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Cadrage de l'étude");
+                        SectionTitre(c, T("Cadrage de l'étude", "Study scoping"));
                         c.Item().PaddingTop(6).Background(GrisFond).Padding(12).Column(inner =>
                         {
-                            Champ(inner, "Étude", data.NomEtude);
-                            Champ(inner, "Mission", data.Mission);
-                            Champ(inner, "Périmètre", data.Perimetre);
-                            Champ(inner, "Statut au moment de la validation", data.Statut);
+                            Champ(inner, T("Étude", "Study"), data.NomEtude);
+                            Champ(inner, T("Mission", "Mission"), data.Mission);
+                            Champ(inner, T("Périmètre", "Scope"), data.Perimetre);
+                            Champ(inner, T("Statut au moment de la validation", "Status at validation time"), data.Statut);
                         });
                     });
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Valeurs métier et biens supports");
+                        SectionTitre(c, T("Valeurs métier et biens supports", "Business values and supporting assets"));
 
                         c.Item().PaddingTop(6).Table(table =>
                         {
@@ -84,11 +85,11 @@ public sealed class RapportAtelier1PdfGenerator
                                 columns.RelativeColumn(1.2f);
                             });
 
-                            EnteteCellule(table.Cell(), "Valeur métier");
-                            EnteteCellule(table.Cell(), "Entité (VM)");
-                            EnteteCellule(table.Cell(), "Bien support");
-                            EnteteCellule(table.Cell(), "Type");
-                            EnteteCellule(table.Cell(), "Entité (bien)");
+                            EnteteCellule(table.Cell(), T("Valeur métier", "Business value"));
+                            EnteteCellule(table.Cell(), T("Entité (VM)", "Entity (BV)"));
+                            EnteteCellule(table.Cell(), T("Bien support", "Supporting asset"));
+                            EnteteCellule(table.Cell(), T("Type", "Type"));
+                            EnteteCellule(table.Cell(), T("Entité (bien)", "Entity (asset)"));
 
                             var ligne = 0;
                             foreach (var vm in data.ValeursMetier)
@@ -111,7 +112,7 @@ public sealed class RapportAtelier1PdfGenerator
                                         CelluleZebra(table.Cell(), vm.Description, alt, police: SansMedium);
                                         CelluleZebra(table.Cell(), vm.EntiteProprietaire, alt);
                                         CelluleZebra(table.Cell(), bien.Description, alt);
-                                        CelluleZebra(table.Cell(), bien.Type, alt);
+                                        CelluleZebra(table.Cell(), LibellesRapport.TypeBienSupport(bien.Type, anglais), alt);
                                         CelluleZebra(table.Cell(), bien.EntiteProprietaire, alt);
                                         ligne++;
                                     }
@@ -122,7 +123,7 @@ public sealed class RapportAtelier1PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Événements redoutés");
+                        SectionTitre(c, T("Événements redoutés", "Feared events"));
 
                         c.Item().PaddingTop(6).Table(table =>
                         {
@@ -135,9 +136,9 @@ public sealed class RapportAtelier1PdfGenerator
 
                             table.Header(header =>
                             {
-                                EnteteCellule(header.Cell(), "Valeur métier");
-                                EnteteCellule(header.Cell(), "Événement redouté");
-                                EnteteCellule(header.Cell(), "Gravité");
+                                EnteteCellule(header.Cell(), T("Valeur métier", "Business value"));
+                                EnteteCellule(header.Cell(), T("Événement redouté", "Feared event"));
+                                EnteteCellule(header.Cell(), T("Gravité", "Severity"));
                             });
 
                             foreach (var er in data.EvenementsRedoutes)
@@ -153,11 +154,11 @@ public sealed class RapportAtelier1PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Socle de sécurité -- ISO/IEC 27001:2022, Annexe A");
+                        SectionTitre(c, T("Socle de sécurité -- ISO/IEC 27001:2022, Annexe A", "Security baseline -- ISO/IEC 27001:2022, Annex A"));
 
                         if (data.ReferentielsApplicables.Count == 0)
                         {
-                            c.Item().PaddingTop(6).Text("Aucun référentiel renseigné.").FontSize(9).Italic().FontColor(GrisTexte);
+                            c.Item().PaddingTop(6).Text(T("Aucun référentiel renseigné.", "No framework recorded.")).FontSize(9).Italic().FontColor(GrisTexte);
                         }
                         else
                         {
@@ -170,9 +171,9 @@ public sealed class RapportAtelier1PdfGenerator
                                     columns.ConstantColumn(80);
                                 });
 
-                                EnteteCellule(table.Cell(), "Référentiel");
-                                EnteteCellule(table.Cell(), "État actuel");
-                                EnteteCellule(table.Cell(), "État");
+                                EnteteCellule(table.Cell(), T("Référentiel", "Framework"));
+                                EnteteCellule(table.Cell(), T("État actuel", "Current state"));
+                                EnteteCellule(table.Cell(), T("État", "State"));
 
                                 for (var i = 0; i < data.ReferentielsApplicables.Count; i++)
                                 {
@@ -183,7 +184,7 @@ public sealed class RapportAtelier1PdfGenerator
                                         : RougeAlerte;
                                     CelluleZebra(table.Cell(), r.Nom, alt);
                                     CelluleZebra(table.Cell(), string.IsNullOrWhiteSpace(r.EtatActuel) ? "--" : r.EtatActuel, alt);
-                                    CelluleZebra(table.Cell(), r.Etat, alt, couleur: couleurEtat, police: MonoMedium, taille: 8);
+                                    CelluleZebra(table.Cell(), LibellesRapport.EtatConformite(r.Etat, anglais), alt, couleur: couleurEtat, police: MonoMedium, taille: 8);
                                 }
                             });
                         }
@@ -195,10 +196,10 @@ public sealed class RapportAtelier1PdfGenerator
                     col.Item().PaddingBottom(4).LineHorizontal(0.6f).LineColor(GrisLigne);
                     col.Item().Row(row =>
                     {
-                        row.RelativeItem().Text("EBIOS Risk Manager -- Livrable Atelier 1").FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                        row.RelativeItem().Text(T("EBIOS Risk Manager -- Livrable Atelier 1", "EBIOS Risk Manager -- Workshop 1 deliverable")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
                         row.RelativeItem().AlignRight().Text(x =>
                         {
-                            x.Span("Généré le ").FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                            x.Span(T("Généré le ", "Generated on ")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
                             x.Span(DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                         });
                     });

@@ -57,8 +57,35 @@ public static class LibellesSourceRisqueObjectifVise
         ["Autre"] = "Autre",
     };
 
-    public static string SourceRisque(string valeur) => LibellesSr.TryGetValue(valeur, out var libelle) ? libelle : valeur;
-    public static string ObjectifVise(string valeur) => LibellesOv.TryGetValue(valeur, out var libelle) ? libelle : valeur;
+    private static readonly Dictionary<string, string> LibellesSrEn = new()
+    {
+        ["Etatique"] = "State",
+        ["CrimeOrganise"] = "Organised crime",
+        ["Terroriste"] = "Terrorist",
+        ["ActivisteIdeologique"] = "Ideological activist",
+        ["OfficineSpecialisee"] = "Specialised firm",
+        ["Amateur"] = "Amateur",
+        ["Vengeur"] = "Avenger",
+        ["MalveillantPathologique"] = "Pathological attacker",
+        ["Autre"] = "Other",
+    };
+
+    private static readonly Dictionary<string, string> LibellesOvEn = new()
+    {
+        ["EspionnageEtatiqueOuIndustriel"] = "State or industrial espionage",
+        ["PrePositionnementStrategique"] = "Strategic pre-positioning",
+        ["InfluenceDestabilisation"] = "Influence / destabilisation",
+        ["EntraveAuFonctionnement"] = "Operational disruption",
+        ["SabotageDestruction"] = "Sabotage / destruction",
+        ["Lucratif"] = "Financial gain",
+        ["DefiAmusement"] = "Challenge / fun",
+        ["Autre"] = "Other",
+    };
+
+    public static string SourceRisque(string valeur, bool anglais = false)
+        => (anglais ? LibellesSrEn : LibellesSr).TryGetValue(valeur, out var libelle) ? libelle : valeur;
+    public static string ObjectifVise(string valeur, bool anglais = false)
+        => (anglais ? LibellesOvEn : LibellesOv).TryGetValue(valeur, out var libelle) ? libelle : valeur;
 }
 
 /// <summary>

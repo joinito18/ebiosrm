@@ -23,8 +23,9 @@ public sealed class RapportAtelier4PdfGenerator
     private const string Mono = "IBM Plex Mono";
     private const string MonoMedium = "IBM Plex Mono Medium";
 
-    public byte[] Generer(RapportAtelier4Data data)
+    public byte[] Generer(RapportAtelier4Data data, bool anglais = false)
     {
+        string T(string fr, string en) => anglais ? en : fr;
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -36,7 +37,7 @@ public sealed class RapportAtelier4PdfGenerator
                 page.Header().Column(col =>
                 {
                     col.Item().Text("EBIOS RISK MANAGER").FontFamily(MonoMedium).FontSize(8).FontColor(BleuFrance).LetterSpacing(0.05f);
-                    col.Item().PaddingTop(2).Text("Atelier 4 -- Scenarios operationnels").FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
+                    col.Item().PaddingTop(2).Text(T("Atelier 4 -- Scenarios operationnels", "Workshop 4 -- Operational scenarios")).FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
                     col.Item().Text(data.NomEtude).FontFamily(Mono).FontSize(8).FontColor(GrisTexte);
                     col.Item().PaddingTop(10).LineHorizontal(1.4f).LineColor(BleuFrance);
                 });
@@ -45,12 +46,12 @@ public sealed class RapportAtelier4PdfGenerator
                 {
                     col.Spacing(20);
 
-                    col.Item().Text("Ce document decrit les scenarios operationnels (modes operatoires techniques) associes a chaque chemin d'attaque strategique retenu en Atelier 3, et leur vraisemblance evaluee selon la grille officielle Probabilite de succes x Difficulte technique.").FontSize(9.5f);
+                    col.Item().Text(anglais ? "This document describes the operational scenarios (technical operating modes) associated with each strategic attack path selected in Workshop 3, and their likelihood assessed against the official Probability of success x Technical difficulty grid." : "Ce document decrit les scenarios operationnels (modes operatoires techniques) associes a chaque chemin d'attaque strategique retenu en Atelier 3, et leur vraisemblance evaluee selon la grille officielle Probabilite de succes x Difficulte technique.").FontSize(9.5f);
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Grille officielle d'evaluation de la vraisemblance");
-                        c.Item().PaddingTop(4).Text("Methode d'evaluation affinee : chaque mode operatoire est cote selon sa probabilite de succes (chance de reussite pour l'attaquant) et sa difficulte technique (ressources engagees), croisees dans la grille ci-dessous.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                        SectionTitre(c, T("Grille officielle d'evaluation de la vraisemblance", "Official likelihood assessment grid"));
+                        c.Item().PaddingTop(4).Text(anglais ? "Refined assessment method: each operating mode is rated on its probability of success (the attacker's chance of succeeding) and its technical difficulty (resources committed), crossed in the grid below." : "Methode d'evaluation affinee : chaque mode operatoire est cote selon sa probabilite de succes (chance de reussite pour l'attaquant) et sa difficulte technique (ressources engagees), croisees dans la grille ci-dessous.").FontSize(8.5f).Italic().FontColor(GrisTexte);
                         c.Item().PaddingTop(6).Table(table =>
                         {
                             table.ColumnsDefinition(cd =>
@@ -58,23 +59,23 @@ public sealed class RapportAtelier4PdfGenerator
                                 cd.ConstantColumn(150);
                                 cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn();
                             });
-                            table.Cell().Background(GrisFond).Padding(5).Text("Probabilite \\ Difficulte").FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
-                            foreach (var d in new[] { "1. Faible", "2. Moderee", "3. Elevee", "4. Tres elevee" })
+                            table.Cell().Background(GrisFond).Padding(5).Text(T("Probabilite \\ Difficulte", "Probability \\ Difficulty")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
+                            foreach (var d in (anglais ? new[] { "1. Low", "2. Moderate", "3. High", "4. Very high" } : new[] { "1. Faible", "2. Moderee", "3. Elevee", "4. Tres elevee" }))
                                 EnteteCellule(table.Cell(), d);
 
-                            LigneVraisemblance(table, "4. Quasi-certaine", "V4", "V3", "V3", "V2");
-                            LigneVraisemblance(table, "3. Tres elevee", "V3", "V3", "V2", "V2");
-                            LigneVraisemblance(table, "2. Significative", "V3", "V2", "V2", "V1");
-                            LigneVraisemblance(table, "1. Faible", "V2", "V2", "V1", "V1");
+                            LigneVraisemblance(table, T("4. Quasi-certaine", "4. Near-certain"), "V4", "V3", "V3", "V2");
+                            LigneVraisemblance(table, T("3. Tres elevee", "3. Very high"), "V3", "V3", "V2", "V2");
+                            LigneVraisemblance(table, T("2. Significative", "2. Significant"), "V3", "V2", "V2", "V1");
+                            LigneVraisemblance(table, T("1. Faible", "1. Low"), "V2", "V2", "V1", "V1");
                         });
                     });
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Scenarios operationnels");
+                        SectionTitre(c, T("Scenarios operationnels", "Operational scenarios"));
                         if (data.ScenariosOperationnels.Count == 0)
                         {
-                            c.Item().PaddingTop(4).Text("Aucun scenario operationnel cree a ce stade.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                            c.Item().PaddingTop(4).Text(T("Aucun scenario operationnel cree a ce stade.", "No operational scenario created at this stage.")).FontSize(8.5f).Italic().FontColor(GrisTexte);
                         }
                         else
                         {
@@ -90,12 +91,12 @@ public sealed class RapportAtelier4PdfGenerator
                                             cc.Item().Text(s.LibelleCheminAttaque).FontSize(8.5f).FontColor(GrisTexte);
                                         });
                                         if (s.VraisemblanceGlobale != null)
-                                            row.ConstantItem(90).AlignRight().AlignTop().Text("Vraisemblance " + s.VraisemblanceGlobale).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurVraisemblance(s.VraisemblanceGlobale));
+                                            row.ConstantItem(90).AlignRight().AlignTop().Text(T("Vraisemblance ", "Likelihood ") + s.VraisemblanceGlobale).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurVraisemblance(s.VraisemblanceGlobale));
                                     });
 
                                     if (s.ModesOperatoires.Count == 0)
                                     {
-                                        sc.Item().PaddingTop(4).Text("Aucun mode operatoire defini pour ce scenario.").FontSize(8).Italic().FontColor(GrisTexte);
+                                        sc.Item().PaddingTop(4).Text(T("Aucun mode operatoire defini pour ce scenario.", "No operating mode defined for this scenario.")).FontSize(8).Italic().FontColor(GrisTexte);
                                     }
                                     else
                                     {
@@ -122,13 +123,13 @@ public sealed class RapportAtelier4PdfGenerator
 
                                                     mc.Item().PaddingLeft(6).PaddingTop(2).Row(row =>
                                                     {
-                                                        row.RelativeItem().Text(t => { t.Span("CONNAITRE ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Connaitre")).FontSize(7).FontColor(GrisTexte); });
-                                                        row.RelativeItem().Text(t => { t.Span("RENTRER ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Rentrer")).FontSize(7).FontColor(GrisTexte); });
+                                                        row.RelativeItem().Text(t => { t.Span(LibellesRapport.Phase("Connaitre", anglais) + " ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Connaitre")).FontSize(7).FontColor(GrisTexte); });
+                                                        row.RelativeItem().Text(t => { t.Span(LibellesRapport.Phase("Rentrer", anglais) + " ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Rentrer")).FontSize(7).FontColor(GrisTexte); });
                                                     });
                                                     mc.Item().PaddingLeft(6).PaddingTop(1).Row(row =>
                                                     {
-                                                        row.RelativeItem().Text(t => { t.Span("TROUVER ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Trouver")).FontSize(7).FontColor(GrisTexte); });
-                                                        row.RelativeItem().Text(t => { t.Span("EXPLOITER ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Exploiter")).FontSize(7).FontColor(GrisTexte); });
+                                                        row.RelativeItem().Text(t => { t.Span(LibellesRapport.Phase("Trouver", anglais) + " ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Trouver")).FontSize(7).FontColor(GrisTexte); });
+                                                        row.RelativeItem().Text(t => { t.Span(LibellesRapport.Phase("Exploiter", anglais) + " ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte); t.Span(TexteParPhase("Exploiter")).FontSize(7).FontColor(GrisTexte); });
                                                     });
                                                 }
                                                 var techniques = mode.ActionsElementaires
@@ -139,13 +140,13 @@ public sealed class RapportAtelier4PdfGenerator
                                                 if (techniques.Count > 0)
                                                     mc.Item().PaddingLeft(6).PaddingTop(2).Text(t =>
                                                     {
-                                                        t.Span("Techniques MITRE ATT&CK : ").FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte);
+                                                        t.Span(T("Techniques MITRE ATT&CK : ", "MITRE ATT&CK techniques: ")).FontFamily(MonoMedium).FontSize(6.5f).FontColor(GrisTexte);
                                                         t.Span(string.Join("  |  ", techniques)).FontSize(7).FontColor(GrisTexte);
                                                     });
-                                                mc.Item().PaddingLeft(6).PaddingTop(2).Text("Probabilite de succes " + mode.ProbabiliteSucces + " -- Difficulte technique " + mode.DifficulteTechnique).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
+                                                mc.Item().PaddingLeft(6).PaddingTop(2).Text(T("Probabilite de succes ", "Probability of success ") + mode.ProbabiliteSucces + T(" -- Difficulte technique ", " -- Technical difficulty ") + mode.DifficulteTechnique).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                                                 if (mode.VraisemblanceEstJugementExpert)
                                                 {
-                                                    mc.Item().PaddingLeft(6).PaddingTop(1).Text("Vraisemblance determinee par jugement d'expert").FontSize(6.5f).Italic().FontColor(GrisTexte);
+                                                    mc.Item().PaddingLeft(6).PaddingTop(1).Text(T("Vraisemblance determinee par jugement d'expert", "Likelihood set by expert judgement")).FontSize(6.5f).Italic().FontColor(GrisTexte);
                                                     if (mode.JustificationVraisemblance is not null)
                                                         mc.Item().PaddingLeft(6).Text(mode.JustificationVraisemblance).FontSize(7).Italic().FontColor(GrisTexte);
                                                 }
@@ -163,7 +164,7 @@ public sealed class RapportAtelier4PdfGenerator
                     col.Item().PaddingBottom(4).LineHorizontal(0.6f).LineColor(GrisLigne);
                     col.Item().Row(row =>
                     {
-                        row.RelativeItem().Text("EBIOS Risk Manager -- Livrable Atelier 4").FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                        row.RelativeItem().Text(T("EBIOS Risk Manager -- Livrable Atelier 4", "EBIOS Risk Manager -- Workshop 4 deliverable")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
                         row.RelativeItem().AlignRight().Text(DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                     });
                 });

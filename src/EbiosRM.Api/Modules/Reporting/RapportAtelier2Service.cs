@@ -18,7 +18,7 @@ public sealed class RapportAtelier2Service
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<RapportAtelier2Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<RapportAtelier2Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken, bool anglais = false)
     {
         var snapshot = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 2, cancellationToken);
         if (snapshot is null)
@@ -42,7 +42,8 @@ public sealed class RapportAtelier2Service
                     c.JustificationPertinence)
                 {
                     DescriptionSourceRisque = c.DescriptionSourceRisque,
-                    DescriptionObjectifVise = c.DescriptionObjectifVise
+                    DescriptionObjectifVise = c.DescriptionObjectifVise,
+                    Anglais = anglais
                 })
                 .ToList();
 

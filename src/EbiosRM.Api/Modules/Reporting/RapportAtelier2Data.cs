@@ -21,10 +21,11 @@ public sealed record CoupleSrOvData(
     string? JustificationPertinence)
 {
     /// <summary>Libellé affichable : la catégorie, sauf pour "Autre" où la description libre est plus parlante.</summary>
-    public string LibelleSourceRisque => SourceRisque == "Autre" ? "Autre : " + DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(SourceRisque);
-    public string LibelleObjectifVise => ObjectifVise == "Autre" ? "Autre : " + DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(ObjectifVise);
+    public string LibelleSourceRisque => SourceRisque == "Autre" ? (Anglais ? "Other: " : "Autre : ") + DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(SourceRisque, Anglais);
+    public string LibelleObjectifVise => ObjectifVise == "Autre" ? (Anglais ? "Other: " : "Autre : ") + DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(ObjectifVise, Anglais);
     public string DescriptionSourceRisque { get; init; } = "";
     public string DescriptionObjectifVise { get; init; } = "";
+    public bool Anglais { get; init; }
 }
 
 public sealed record NiveauPertinenceData(

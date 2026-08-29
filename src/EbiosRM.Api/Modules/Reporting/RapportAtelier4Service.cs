@@ -19,7 +19,7 @@ public sealed class RapportAtelier4Service
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<RapportAtelier4Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<RapportAtelier4Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken, bool anglais = false)
     {
         var snapshot = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 4, cancellationToken);
         if (snapshot is null)
@@ -44,8 +44,8 @@ public sealed class RapportAtelier4Service
             {
                 if (couplesParId.TryGetValue(scenarioStrat.CoupleSourceRisqueObjectifViseId, out var couple))
                 {
-                    var sr = couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque);
-                    var ov = couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise);
+                    var sr = couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque, anglais);
+                    var ov = couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise, anglais);
                     libelleCouple = sr + " -- " + ov;
                 }
             }

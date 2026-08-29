@@ -21,7 +21,7 @@ public sealed class RapportAtelier5Service
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<RapportAtelier5Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<RapportAtelier5Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken, bool anglais = false)
     {
         var snapshot1 = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 1, cancellationToken);
         var snapshot2 = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 2, cancellationToken);
@@ -66,7 +66,7 @@ public sealed class RapportAtelier5Service
         var mesures = contenu5.Mesures.Select(m => new MesureTraitementRisqueData(
             m.Description, m.Axe.ToString(),
             m.ScenariosDeRisqueIds.Select(id => libellesParScenario.GetValueOrDefault(id, "(scénario supprimé)")).ToList(),
-            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(), m.Echeance, m.Statut.ToString())).ToList();
+            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(anglais), m.Echeance, m.Statut.ToString())).ToList();
 
         return new RapportAtelier5Data(contenu1.NomEtude, contenu1.Perimetre, contenu1.Mission, chiffresCles, conformiteSocle, scenarios, mesures);
     }

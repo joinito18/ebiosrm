@@ -39,21 +39,9 @@ public static class RapportPdfStyle
         _ => GrisTexte,
     };
 
-    public static string LibelleClasse(string? classe) => classe switch
-    {
-        "AcceptableEnLEtat" => "Acceptable en l'etat",
-        "TolerableSousControle" => "Tolerable sous controle",
-        "Inacceptable" => "Inacceptable",
-        _ => "--",
-    };
+    public static string LibelleClasse(string? classe, bool anglais = false) => LibellesRapport.ClasseAcceptation(classe, anglais);
 
-    public static string LibelleStatutMesure(string statut) => statut switch
-    {
-        "ALancer" => "A lancer",
-        "EnCours" => "En cours",
-        "Termine" => "Termine",
-        _ => statut,
-    };
+    public static string LibelleStatutMesure(string statut, bool anglais = false) => LibellesRapport.StatutMesure(statut, anglais);
 
     public static string CouleurStatutMesure(string statut) => statut switch
     {
@@ -77,17 +65,17 @@ public static class RapportPdfStyle
     }
 
     /// <summary>Pastille de statut coloree (reproduit la colonne STATUT du PACS officiel : rouge/orange/vert).</summary>
-    public static void PastilleStatutMesure(IContainer cell, string statut)
+    public static void PastilleStatutMesure(IContainer cell, string statut, bool anglais = false)
     {
         cell.Padding(4).AlignCenter().Background(CouleurStatutMesure(statut)).Padding(3)
-            .Text(LibelleStatutMesure(statut)).FontFamily(SansSemiBold).FontSize(7).FontColor(Colors.White).AlignCenter();
+            .Text(LibelleStatutMesure(statut, anglais)).FontFamily(SansSemiBold).FontSize(7).FontColor(Colors.White).AlignCenter();
     }
 
     /// <summary>Bandeau plein largeur identifiant un axe du plan de traitement (Gouvernance/Protection/Defense/Resilience), reproduit la banniere bleue du PACS officiel.</summary>
-    public static void BandeAxe(TableDescriptor table, int nbColonnes, string axe)
+    public static void BandeAxe(TableDescriptor table, int nbColonnes, string axe, bool anglais = false)
     {
         table.Cell().ColumnSpan((uint)nbColonnes).Background(BleuFrance).Padding(4)
-            .Text(axe.ToUpperInvariant()).FontFamily(SansSemiBold).FontSize(8).FontColor(Colors.White).LetterSpacing(0.03f);
+            .Text(LibellesRapport.Axe(axe, anglais).ToUpperInvariant()).FontFamily(SansSemiBold).FontSize(8).FontColor(Colors.White).LetterSpacing(0.03f);
     }
 
     public static void Chiffre(RowDescriptor row, int valeur, string libelle)
@@ -382,16 +370,18 @@ public static class RapportPdfStyle
     }
 
     /// <summary>Les 2 grilles (initial/residuel) reliees par une fleche, plus la legende des codes -- bloc complet reutilise par le rapport Atelier 5 et la synthese globale. tailleCase permet a la synthese d'afficher une grille plus imposante sans affecter le rapport Atelier 5.</summary>
-    public static void CartographieCompleteAvecLegende(ColumnDescriptor c, List<ScenarioDeRisqueData> scenarios, float tailleCase = 34)
+    public static void CartographieCompleteAvecLegende(ColumnDescriptor c, List<ScenarioDeRisqueData> scenarios, bool anglais = false, float tailleCase = 34)
     {
         var codes = scenarios.Select((s, i) => (Scenario: s, Code: "R" + (i + 1))).ToList();
+        var titreInitial = anglais ? "Initial risk map" : "Cartographie du risque initial";
+        var titreResiduel = anglais ? "Residual risk map" : "Cartographie du risque residuel";
 
         c.Item().PaddingTop(8).ShowEntire().Row(row =>
         {
-            row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque initial", codes,
+            row.AutoItem().Element(e => GrilleCartographie(e, titreInitial, codes,
                 x => x.Gravite, x => VraisemblanceVersIndex(x.VraisemblanceInitiale), tailleCase));
             row.ConstantItem(36).AlignMiddle().AlignCenter().Text("->").FontFamily(SerifTitreSemiBold).FontSize(20).FontColor(BleuFrance);
-            row.AutoItem().Element(e => GrilleCartographie(e, "Cartographie du risque residuel", codes,
+            row.AutoItem().Element(e => GrilleCartographie(e, titreResiduel, codes,
                 x => x.GraviteResiduelle ?? 0, x => VraisemblanceVersIndex(x.VraisemblanceResiduelle), tailleCase));
         });
 

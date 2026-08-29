@@ -21,7 +21,7 @@ public sealed class RapportAtelier3Service
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<RapportAtelier3Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<RapportAtelier3Data?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken, bool anglais = false)
     {
         var snapshot = await _snapshotRepository.ObtenirDernierParEtudeIdAsync(etudeId, numeroAtelier: 3, cancellationToken);
         if (snapshot is null)
@@ -51,8 +51,8 @@ public sealed class RapportAtelier3Service
         foreach (var s in contenu.ScenariosStrategiques)
         {
             couplesParId.TryGetValue(s.CoupleSourceRisqueObjectifViseId, out var couple);
-            var libelleSr = couple is null ? "?" : (couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque));
-            var libelleOv = couple is null ? "?" : (couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise));
+            var libelleSr = couple is null ? "?" : (couple.SourceRisque == "Autre" ? couple.DescriptionSourceRisque : LibellesSourceRisqueObjectifVise.SourceRisque(couple.SourceRisque, anglais));
+            var libelleOv = couple is null ? "?" : (couple.ObjectifVise == "Autre" ? couple.DescriptionObjectifVise : LibellesSourceRisqueObjectifVise.ObjectifVise(couple.ObjectifVise, anglais));
             var pertinence = couple?.Pertinence ?? "";
 
             evenementsParId.TryGetValue(s.EvenementRedouteId, out var er);

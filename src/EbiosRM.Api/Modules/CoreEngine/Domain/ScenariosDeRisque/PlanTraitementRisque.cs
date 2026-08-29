@@ -49,11 +49,11 @@ public static class NiveauCoutComplexiteExtensions
     /// terminologie ANSSI. Sert à rendre le symbole seul compréhensible hors
     /// contexte (rapport PDF, IHM), sans jamais remplacer le symbole exact.
     /// </summary>
-    public static string LibelleAvecMot(this NiveauCoutComplexite niveau) => niveau switch
+    public static string LibelleAvecMot(this NiveauCoutComplexite niveau, bool anglais = false) => niveau switch
     {
-        NiveauCoutComplexite.Plus => "+ (Faible)",
-        NiveauCoutComplexite.PlusPlus => "++ (Modéré)",
-        NiveauCoutComplexite.PlusPlusPlus => "+++ (Élevé)",
+        NiveauCoutComplexite.Plus => anglais ? "+ (Low)" : "+ (Faible)",
+        NiveauCoutComplexite.PlusPlus => anglais ? "++ (Moderate)" : "++ (Modéré)",
+        NiveauCoutComplexite.PlusPlusPlus => anglais ? "+++ (High)" : "+++ (Élevé)",
         _ => throw new ArgumentOutOfRangeException(nameof(niveau), niveau, "Niveau de coût/complexité inconnu.")
     };
 }

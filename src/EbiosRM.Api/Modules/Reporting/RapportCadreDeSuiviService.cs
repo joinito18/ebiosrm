@@ -26,7 +26,7 @@ public sealed class RapportCadreDeSuiviService
         _assemblageScenarios = assemblageScenarios;
     }
 
-    public async Task<RapportCadreDeSuiviData?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<RapportCadreDeSuiviData?> ConstruireAsync(Guid etudeId, CancellationToken cancellationToken, bool anglais = false)
     {
         var etude = await _etudeRepository.ObtenirParIdAsync(etudeId, cancellationToken);
         if (etude is null)
@@ -51,7 +51,7 @@ public sealed class RapportCadreDeSuiviService
         var mesures = plan.Mesures.Select(m => new MesureTraitementRisqueData(
             m.Description, m.Axe.ToString(),
             m.ScenariosDeRisqueIds.Select(id => libellesParScenario.GetValueOrDefault(id, "(scénario supprimé)")).ToList(),
-            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(), m.Echeance, m.Statut.ToString())).ToList();
+            m.Responsable, m.FreinsEtDifficultes, m.CoutComplexite.LibelleAvecMot(anglais), m.Echeance, m.Statut.ToString())).ToList();
 
         var avancement = plan.Mesures
             .GroupBy(m => m.Statut.ToString())

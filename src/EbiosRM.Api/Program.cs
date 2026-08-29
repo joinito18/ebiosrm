@@ -1347,9 +1347,10 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/conformite", async (
 });
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/conformite", async (
-    Guid etudeId, ServiceConformite service, RapportConformitePdfGenerator pdf,
+    Guid etudeId, string? langue, ServiceConformite service, RapportConformitePdfGenerator pdf,
     IEtudeRepository etudeRepo, CancellationToken ct) =>
 {
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
     var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
     if (etude is null) return Results.NotFound();
 
@@ -1360,7 +1361,7 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/conformite", async (
         if (rapport is not null) rapports.Add(rapport);
     }
 
-    return Results.File(pdf.Generer(etude.Nom, rapports), "application/pdf", $"conformite-{etudeId}.pdf");
+    return Results.File(pdf.Generer(etude.Nom, rapports, anglais), "application/pdf", $"{(anglais ? "compliance" : "conformite")}-{etudeId}.pdf");
 });
 
 // --- Suivi : vue portefeuille, evolution N/N-1, indicateurs (KRI) ---
@@ -2254,8 +2255,9 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/socle-securite", async (
 // --- Reporting ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier1", async (
-    Guid etudeId, RapportAtelier1Service rapportService, RapportAtelier1PdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, RapportAtelier1Service rapportService, RapportAtelier1PdfGenerator pdfGenerator, CancellationToken ct) =>
 {
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
     var data = await rapportService.ConstruireAsync(etudeId, ct);
     if (data is null)
         return Results.Conflict(new
@@ -2263,8 +2265,8 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier1", async (
             error = "Aucun snapshot disponible pour l'atelier 1 de cette étude. L'atelier 1 doit être validé au moins une fois avant de générer un rapport."
         });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier1-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-workshop1" : "rapport-atelier1")}-{etudeId}.pdf");
 });
 
 
@@ -2415,27 +2417,29 @@ app.MapDelete("/api/v1/etudes/{etudeId:guid}/couples-sr-ov/{id:guid}", async (
 // --- Reporting Atelier 2 ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier2", async (
-    Guid etudeId, RapportAtelier2Service rapportService, RapportAtelier2PdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, RapportAtelier2Service rapportService, RapportAtelier2PdfGenerator pdfGenerator, CancellationToken ct) =>
 {
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Étude introuvable." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier2-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-workshop2" : "rapport-atelier2")}-{etudeId}.pdf");
 });
 
 // --- Reporting Atelier 3 ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier3", async (
-    Guid etudeId, RapportAtelier3Service rapportService, RapportAtelier3PdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, RapportAtelier3Service rapportService, RapportAtelier3PdfGenerator pdfGenerator, CancellationToken ct) =>
 {
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Étude introuvable." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier3-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-workshop3" : "rapport-atelier3")}-{etudeId}.pdf");
 });
 
 // --- Cartographie graphique de l'Atelier 3 (radar ecosysteme + arbre des
@@ -2484,63 +2488,67 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/cartographie/chemins-attaque.svg", asy
 // --- Reporting Atelier 4 ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier4", async (
-    Guid etudeId, RapportAtelier4Service rapportService, RapportAtelier4PdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, RapportAtelier4Service rapportService, RapportAtelier4PdfGenerator pdfGenerator, CancellationToken ct) =>
 {
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Étude introuvable." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier4-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-workshop4" : "rapport-atelier4")}-{etudeId}.pdf");
 });
 
 // --- Reporting Atelier 5 ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier5", async (
-    Guid etudeId, RapportAtelier5Service rapportService, RapportAtelier5PdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, RapportAtelier5Service rapportService, RapportAtelier5PdfGenerator pdfGenerator, CancellationToken ct) =>
 {
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Étude introuvable." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-atelier5-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-workshop5" : "rapport-atelier5")}-{etudeId}.pdf");
 });
 
 // --- Reporting Synthese globale ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/synthese", async (
-    Guid etudeId, IEtudeRepository etudeRepo, RapportSyntheseGlobaleService rapportService, RapportSyntheseGlobalePdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, IEtudeRepository etudeRepo, RapportSyntheseGlobaleService rapportService, RapportSyntheseGlobalePdfGenerator pdfGenerator, CancellationToken ct) =>
 {
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
     var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
     if (etude is null)
         return Results.NotFound(new { error = "Étude introuvable." });
     if (etude.StatutAtelier5 != StatutEtude.Validee)
         return Results.BadRequest(new { error = "La synthèse globale n'est disponible qu'une fois l'atelier 5 validé." });
 
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Un ou plusieurs snapshots d'atelier sont manquants pour cette étude." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"rapport-synthese-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "report-summary" : "rapport-synthese")}-{etudeId}.pdf");
 });
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/cadre-de-suivi", async (
-    Guid etudeId, IEtudeRepository etudeRepo, RapportCadreDeSuiviService rapportService, RapportCadreDeSuiviPdfGenerator pdfGenerator, CancellationToken ct) =>
+    Guid etudeId, string? langue, IEtudeRepository etudeRepo, RapportCadreDeSuiviService rapportService, RapportCadreDeSuiviPdfGenerator pdfGenerator, CancellationToken ct) =>
 {
+    var anglais = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
     var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
     if (etude is null)
         return Results.NotFound(new { error = "Étude introuvable." });
     if (etude.StatutAtelier5 == StatutEtude.Brouillon)
         return Results.BadRequest(new { error = "Le cadre de suivi n'est disponible qu'une fois l'atelier 5 démarré et un plan de traitement créé." });
 
-    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    var data = await rapportService.ConstruireAsync(etudeId, ct, anglais);
     if (data is null)
         return Results.NotFound(new { error = "Aucun plan de traitement du risque n'existe pour cette étude." });
 
-    var pdfBytes = pdfGenerator.Generer(data);
-    return Results.File(pdfBytes, "application/pdf", $"cadre-de-suivi-{etudeId}.pdf");
+    var pdfBytes = pdfGenerator.Generer(data, anglais);
+    return Results.File(pdfBytes, "application/pdf", $"{(anglais ? "monitoring-framework" : "cadre-de-suivi")}-{etudeId}.pdf");
 });
 
 // --- Parties Prenantes (Atelier 2) ---

@@ -268,6 +268,17 @@ public class CycleDeVieCompletTests : IClassFixture<EbiosApiFactory>
         Assert.Equal(HttpStatusCode.OK, rapportSynthese.StatusCode);
         Assert.Equal("application/pdf", rapportSynthese.Content.Headers.ContentType?.MediaType);
 
+        // --- Variantes anglaises des rapports (?langue=en) : 200 + PDF valide ---
+        foreach (var chemin in new[] { "atelier1", "atelier2", "atelier3", "atelier4", "atelier5", "synthese", "cadre-de-suivi", "conformite" })
+        {
+            var rapportEn = await _client.GetAsync($"/api/v1/etudes/{etudeId}/rapports/{chemin}?langue=en");
+            Assert.Equal(HttpStatusCode.OK, rapportEn.StatusCode);
+            Assert.Equal("application/pdf", rapportEn.Content.Headers.ContentType?.MediaType);
+            var octets = await rapportEn.Content.ReadAsByteArrayAsync();
+            Assert.True(octets.Length > 4 && octets[0] == 0x25 && octets[1] == 0x50 && octets[2] == 0x44 && octets[3] == 0x46,
+                $"Le rapport EN '{chemin}' ne commence pas par %PDF.");
+        }
+
         // --- Cascade de suppression : supprimer le couple doit emporter scenario/chemin/scenario operationnel/scenario de risque ---
         Assert.Equal(HttpStatusCode.NoContent, (await _client.DeleteAsync($"/api/v1/etudes/{etudeId}/couples-sr-ov/{coupleId}")).StatusCode);
         var scenariosApresSuppression = await (await _client.GetAsync($"/api/v1/etudes/{etudeId}/scenarios-strategiques")).Content.ReadFromJsonAsync<JsonElement>();

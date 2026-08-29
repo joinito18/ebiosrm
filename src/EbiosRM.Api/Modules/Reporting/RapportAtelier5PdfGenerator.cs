@@ -8,8 +8,9 @@ namespace EbiosRM.Api.Modules.Reporting;
 
 public sealed class RapportAtelier5PdfGenerator
 {
-    public byte[] Generer(RapportAtelier5Data data)
+    public byte[] Generer(RapportAtelier5Data data, bool anglais = false)
     {
+        string T(string fr, string en) => anglais ? en : fr;
         var document = Document.Create(container =>
         {
             container.Page(page =>
@@ -21,7 +22,7 @@ public sealed class RapportAtelier5PdfGenerator
                 page.Header().Column(col =>
                 {
                     col.Item().Text("EBIOS RISK MANAGER").FontFamily(MonoMedium).FontSize(8).FontColor(BleuFrance).LetterSpacing(0.05f);
-                    col.Item().PaddingTop(2).Text("Atelier 5 -- Traitement du risque").FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
+                    col.Item().PaddingTop(2).Text(T("Atelier 5 -- Traitement du risque", "Workshop 5 -- Risk treatment")).FontFamily(SerifTitreSemiBold).FontSize(19).FontColor(Encre);
                     col.Item().Text(data.NomEtude).FontFamily(Mono).FontSize(8).FontColor(GrisTexte);
                     col.Item().PaddingTop(10).LineHorizontal(1.4f).LineColor(BleuFrance);
                 });
@@ -30,32 +31,32 @@ public sealed class RapportAtelier5PdfGenerator
                 {
                     col.Spacing(20);
 
-                    col.Item().Text("Ce document decrit le niveau de risque initial et residuel de chaque scenario de risque, le plan de traitement du risque associe, et le registre d'acceptation formelle des risques residuels par la Direction.").FontSize(9.5f);
+                    col.Item().Text(anglais ? "This document describes the initial and residual risk level of each risk scenario, the associated risk treatment plan, and the register of formal acceptance of residual risks by management." : "Ce document decrit le niveau de risque initial et residuel de chaque scenario de risque, le plan de traitement du risque associe, et le registre d'acceptation formelle des risques residuels par la Direction.").FontSize(9.5f);
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Resume des ateliers precedents");
+                        SectionTitre(c, T("Resume des ateliers precedents", "Summary of previous workshops"));
                         c.Item().PaddingTop(4).Text(t =>
                         {
-                            t.Span("Perimetre : ").FontFamily(SansSemiBold).FontSize(8.5f);
+                            t.Span(T("Perimetre : ", "Scope: ")).FontFamily(SansSemiBold).FontSize(8.5f);
                             t.Span(data.Perimetre).FontSize(8.5f);
                         });
                         c.Item().Text(t =>
                         {
-                            t.Span("Mission : ").FontFamily(SansSemiBold).FontSize(8.5f);
+                            t.Span(T("Mission : ", "Mission: ")).FontFamily(SansSemiBold).FontSize(8.5f);
                             t.Span(data.Mission).FontSize(8.5f);
                         });
                         c.Item().PaddingTop(8).Row(row =>
                         {
-                            Chiffre(row, data.ChiffresCles.NombreValeursMetier, "Valeurs metier (A1)");
-                            Chiffre(row, data.ChiffresCles.NombreBiensSupport, "Biens support (A1)");
-                            Chiffre(row, data.ChiffresCles.NombreEvenementsRedoutes, "Evenements redoutes (A1)");
+                            Chiffre(row, data.ChiffresCles.NombreValeursMetier, T("Valeurs metier (A1)", "Business values (W1)"));
+                            Chiffre(row, data.ChiffresCles.NombreBiensSupport, T("Biens support (A1)", "Supporting assets (W1)"));
+                            Chiffre(row, data.ChiffresCles.NombreEvenementsRedoutes, T("Evenements redoutes (A1)", "Feared events (W1)"));
                         });
                         c.Item().PaddingTop(8).Row(row =>
                         {
-                            Chiffre(row, data.ChiffresCles.NombrePartiesPrenantesCritiques, "Parties prenantes critiques (A3) / " + data.ChiffresCles.NombrePartiesPrenantes);
-                            Chiffre(row, data.ChiffresCles.NombreScenariosStrategiques, "Scenarios strategiques (A3)");
-                            Chiffre(row, data.ChiffresCles.NombreScenariosOperationnels, "Scenarios operationnels (A4)");
+                            Chiffre(row, data.ChiffresCles.NombrePartiesPrenantesCritiques, T("Parties prenantes critiques (A3) / ", "Critical stakeholders (W3) / ") + data.ChiffresCles.NombrePartiesPrenantes);
+                            Chiffre(row, data.ChiffresCles.NombreScenariosStrategiques, T("Scenarios strategiques (A3)", "Strategic scenarios (W3)"));
+                            Chiffre(row, data.ChiffresCles.NombreScenariosOperationnels, T("Scenarios operationnels (A4)", "Operational scenarios (W4)"));
                         });
 
                         var totalControles = data.ConformiteSocle.NombreConforme + data.ConformiteSocle.NombreNonConforme + data.ConformiteSocle.NombreNonApplicable;
@@ -74,9 +75,9 @@ public sealed class RapportAtelier5PdfGenerator
                                     pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
                                 row.RelativeItem().PaddingLeft(16).AlignMiddle().Column(cc =>
                                 {
-                                    cc.Item().Text("Conformite du socle de securite (A1)").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(2).Row(r => Legende(r, VertConforme, data.ConformiteSocle.NombreConforme + " conforme(s)"));
-                                    cc.Item().PaddingTop(2).Row(r => Legende(r, RougeAlerte, data.ConformiteSocle.NombreNonConforme + " non conforme(s)"));
+                                    cc.Item().Text(T("Conformite du socle de securite (A1)", "Security-baseline compliance (W1)")).FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(2).Row(r => Legende(r, VertConforme, data.ConformiteSocle.NombreConforme + T(" conforme(s)", " compliant")));
+                                    cc.Item().PaddingTop(2).Row(r => Legende(r, RougeAlerte, data.ConformiteSocle.NombreNonConforme + T(" non conforme(s)", " non-compliant")));
                                 });
                             });
                         }
@@ -84,8 +85,8 @@ public sealed class RapportAtelier5PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Grille officielle de determination du niveau de risque");
-                        c.Item().PaddingTop(4).Text("Croisement Gravite (evenement redoute vise) x Vraisemblance (scenario operationnel), seuils par defaut du projet ajustables.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                        SectionTitre(c, T("Grille officielle de determination du niveau de risque", "Official risk-level determination grid"));
+                        c.Item().PaddingTop(4).Text(anglais ? "Cross of Severity (targeted feared event) x Likelihood (operational scenario), project default thresholds are adjustable." : "Croisement Gravite (evenement redoute vise) x Vraisemblance (scenario operationnel), seuils par defaut du projet ajustables.").FontSize(8.5f).Italic().FontColor(GrisTexte);
                         c.Item().PaddingTop(6).Table(table =>
                         {
                             table.ColumnsDefinition(cd =>
@@ -93,27 +94,27 @@ public sealed class RapportAtelier5PdfGenerator
                                 cd.ConstantColumn(150);
                                 cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn(); cd.RelativeColumn();
                             });
-                            table.Cell().Background(GrisFond).Padding(5).Text("Gravite \\ Vraisemblance").FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
+                            table.Cell().Background(GrisFond).Padding(5).Text(T("Gravite \\ Vraisemblance", "Severity \\ Likelihood")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                             foreach (var v in new[] { "V1", "V2", "V3", "V4" })
                                 EnteteCellule(table.Cell(), v);
 
-                            LigneRisque(table, "1", "Faible", "Faible", "Moyen", "Moyen");
-                            LigneRisque(table, "2", "Faible", "Faible", "Moyen", "Eleve");
-                            LigneRisque(table, "3", "Faible", "Moyen", "Eleve", "Eleve");
-                            LigneRisque(table, "4", "Faible", "Moyen", "Eleve", "Eleve");
+                            LigneRisque(table, "1", "Faible", "Faible", "Moyen", "Moyen", anglais);
+                            LigneRisque(table, "2", "Faible", "Faible", "Moyen", "Eleve", anglais);
+                            LigneRisque(table, "3", "Faible", "Moyen", "Eleve", "Eleve", anglais);
+                            LigneRisque(table, "4", "Faible", "Moyen", "Eleve", "Eleve", anglais);
                         });
                     });
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Cartographie des risques -- avant / apres traitement");
+                        SectionTitre(c, T("Cartographie des risques -- avant / apres traitement", "Risk mapping -- before / after treatment"));
                         if (data.ScenariosDeRisque.Count == 0)
                         {
-                            c.Item().PaddingTop(4).Text("Aucun scenario de risque cree a ce stade.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                            c.Item().PaddingTop(4).Text(T("Aucun scenario de risque cree a ce stade.", "No risk scenario created at this stage.")).FontSize(8.5f).Italic().FontColor(GrisTexte);
                         }
                         else
                         {
-                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque);
+                            CartographieCompleteAvecLegende(c, data.ScenariosDeRisque, anglais);
 
                             c.Item().PaddingTop(10).Table(table =>
                             {
@@ -121,10 +122,10 @@ public sealed class RapportAtelier5PdfGenerator
                                 {
                                     cd.RelativeColumn(2.4f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f); cd.RelativeColumn(1.6f);
                                 });
-                                EnteteCellule(table.Cell(), "Scenario");
-                                EnteteCellule(table.Cell(), "Initial (G x V)");
-                                EnteteCellule(table.Cell(), "Residuel (G x V)");
-                                EnteteCellule(table.Cell(), "Classe d'acceptation");
+                                EnteteCellule(table.Cell(), T("Scenario", "Scenario"));
+                                EnteteCellule(table.Cell(), T("Initial (G x V)", "Initial (S x L)"));
+                                EnteteCellule(table.Cell(), T("Residuel (G x V)", "Residual (S x L)"));
+                                EnteteCellule(table.Cell(), T("Classe d'acceptation", "Acceptance class"));
 
                                 foreach (var s in data.ScenariosDeRisque.OrderByDescending(s => s.NiveauRisqueResiduel))
                                 {
@@ -136,25 +137,25 @@ public sealed class RapportAtelier5PdfGenerator
                                     table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
                                     {
                                         cc.Item().AlignCenter().Text("G" + s.Gravite + " x " + (s.VraisemblanceInitiale ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
-                                        cc.Item().AlignCenter().Text(s.NiveauRisqueInitial ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
+                                        cc.Item().AlignCenter().Text(LibellesRapport.NiveauRisque(s.NiveauRisqueInitial, anglais)).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueInitial));
                                         if (s.NiveauInitialEstJugementExpert)
-                                            cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                            cc.Item().AlignCenter().Text(T("(jugement d'expert)", "(expert judgement)")).FontSize(6).Italic().FontColor(GrisTexte);
                                     });
                                     table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Column(cc =>
                                     {
                                         if (s.GraviteResiduelle.HasValue)
                                         {
                                             cc.Item().AlignCenter().Text("G" + s.GraviteResiduelle + " x " + (s.VraisemblanceResiduelle ?? "?")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
-                                            cc.Item().AlignCenter().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
+                                            cc.Item().AlignCenter().Text(LibellesRapport.NiveauRisque(s.NiveauRisqueResiduel, anglais)).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
                                             if (s.NiveauResiduelEstJugementExpert)
-                                                cc.Item().AlignCenter().Text("(jugement d'expert)").FontSize(6).Italic().FontColor(GrisTexte);
+                                                cc.Item().AlignCenter().Text(T("(jugement d'expert)", "(expert judgement)")).FontSize(6).Italic().FontColor(GrisTexte);
                                         }
                                         else
                                         {
-                                            cc.Item().AlignCenter().Text("non evalue").FontSize(7.5f).Italic().FontColor(GrisTexte);
+                                            cc.Item().AlignCenter().Text(T("non evalue", "not assessed")).FontSize(7.5f).Italic().FontColor(GrisTexte);
                                         }
                                     });
-                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(LibelleClasse(s.ClasseAcceptationResiduelle)).FontSize(7.5f).FontColor(GrisTexte);
+                                    table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(LibelleClasse(s.ClasseAcceptationResiduelle, anglais)).FontSize(7.5f).FontColor(GrisTexte);
                                 }
                             });
                         }
@@ -162,10 +163,10 @@ public sealed class RapportAtelier5PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Plan de traitement du risque");
+                        SectionTitre(c, T("Plan de traitement du risque", "Risk treatment plan"));
                         if (data.Mesures.Count == 0)
                         {
-                            c.Item().PaddingTop(4).Text("Aucune mesure de traitement definie a ce stade.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                            c.Item().PaddingTop(4).Text(T("Aucune mesure de traitement definie a ce stade.", "No treatment measure defined at this stage.")).FontSize(8.5f).Italic().FontColor(GrisTexte);
                         }
                         else
                         {
@@ -175,13 +176,13 @@ public sealed class RapportAtelier5PdfGenerator
                                 {
                                     cd.RelativeColumn(2.3f); cd.RelativeColumn(1.4f); cd.RelativeColumn(1.3f); cd.RelativeColumn(1.3f); cd.RelativeColumn(1.0f); cd.RelativeColumn(0.9f); cd.RelativeColumn(1.0f);
                                 });
-                                EnteteCellule(table.Cell(), "Mesure de securite");
-                                EnteteCellule(table.Cell(), "Scenarios associes");
-                                EnteteCellule(table.Cell(), "Responsable");
-                                EnteteCellule(table.Cell(), "Freins et difficultes");
-                                EnteteCellule(table.Cell(), "Cout");
-                                EnteteCellule(table.Cell(), "Echeance");
-                                EnteteCellule(table.Cell(), "Statut");
+                                EnteteCellule(table.Cell(), T("Mesure de securite", "Security measure"));
+                                EnteteCellule(table.Cell(), T("Scenarios associes", "Associated scenarios"));
+                                EnteteCellule(table.Cell(), T("Responsable", "Owner"));
+                                EnteteCellule(table.Cell(), T("Freins et difficultes", "Obstacles and difficulties"));
+                                EnteteCellule(table.Cell(), T("Cout", "Cost"));
+                                EnteteCellule(table.Cell(), T("Echeance", "Deadline"));
+                                EnteteCellule(table.Cell(), T("Statut", "Status"));
 
                                 foreach (var axe in new[] { "Gouvernance", "Protection", "Defense", "Resilience" })
                                 {
@@ -189,7 +190,7 @@ public sealed class RapportAtelier5PdfGenerator
                                     if (mesuresAxe.Count == 0)
                                         continue;
 
-                                    BandeAxe(table, 7, axe);
+                                    BandeAxe(table, 7, axe, anglais);
 
                                     var alterne = false;
                                     foreach (var m in mesuresAxe)
@@ -202,7 +203,7 @@ public sealed class RapportAtelier5PdfGenerator
                                         table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.FreinsEtDifficultes ?? "--").FontSize(7).FontColor(GrisTexte);
                                         table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).AlignCenter().Text(m.CoutComplexite).FontFamily(MonoMedium).FontSize(7.5f);
                                         table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Padding(5).Text(m.Echeance ?? "--").FontSize(7.5f);
-                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Element(e => PastilleStatutMesure(e, m.Statut));
+                                        table.Cell().Background(fond).BorderBottom(0.6f).BorderColor(GrisLigne).Element(e => PastilleStatutMesure(e, m.Statut, anglais));
                                     }
                                 }
                             });
@@ -211,11 +212,11 @@ public sealed class RapportAtelier5PdfGenerator
 
                     col.Item().Column(c =>
                     {
-                        SectionTitre(c, "Registre d'acceptation des risques residuels");
+                        SectionTitre(c, T("Registre d'acceptation des risques residuels", "Register of residual-risk acceptance"));
                         var acceptes = data.ScenariosDeRisque.Where(s => s.AccepteParDirection).ToList();
                         if (acceptes.Count == 0)
                         {
-                            c.Item().PaddingTop(4).Text("Aucun risque residuel accepte formellement a ce stade.").FontSize(8.5f).Italic().FontColor(GrisTexte);
+                            c.Item().PaddingTop(4).Text(T("Aucun risque residuel accepte formellement a ce stade.", "No residual risk formally accepted at this stage.")).FontSize(8.5f).Italic().FontColor(GrisTexte);
                         }
                         else
                         {
@@ -228,12 +229,12 @@ public sealed class RapportAtelier5PdfGenerator
                                         row.RelativeItem().Text(s.LibelleCouple + " -- " + s.LibelleChemin).FontFamily(SansSemiBold).FontSize(9);
                                         row.ConstantItem(70).AlignRight().Text(s.NiveauRisqueResiduel ?? "--").FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(s.NiveauRisqueResiduel));
                                     });
-                                    sc.Item().PaddingTop(2).Text("Proprietaire du risque : " + s.NomProprietaireRisque).FontSize(7.8f);
-                                    sc.Item().Text("Validateur securite : " + s.NomValidateurSecurite).FontSize(7.8f);
+                                    sc.Item().PaddingTop(2).Text(T("Proprietaire du risque : ", "Risk owner: ") + s.NomProprietaireRisque).FontSize(7.8f);
+                                    sc.Item().Text(T("Validateur securite : ", "Security validator: ") + s.NomValidateurSecurite).FontSize(7.8f);
                                     if (s.NomSponsorExecutif is not null)
-                                        sc.Item().Text("Sponsor executif : " + s.NomSponsorExecutif).FontSize(7.8f);
+                                        sc.Item().Text(T("Sponsor executif : ", "Executive sponsor: ") + s.NomSponsorExecutif).FontSize(7.8f);
                                     if (s.DateAcceptationUtc is not null)
-                                        sc.Item().Text("Accepte le " + s.DateAcceptationUtc.Value.ToString("dd/MM/yyyy")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
+                                        sc.Item().Text(T("Accepte le ", "Accepted on ") + s.DateAcceptationUtc.Value.ToString(anglais ? "yyyy-MM-dd" : "dd/MM/yyyy")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                                     if (s.JustificationAcceptation is not null)
                                         sc.Item().PaddingTop(2).Text(s.JustificationAcceptation).FontSize(7.8f).Italic().FontColor(GrisTexte);
                                 });
@@ -247,7 +248,7 @@ public sealed class RapportAtelier5PdfGenerator
                     col.Item().PaddingBottom(4).LineHorizontal(0.6f).LineColor(GrisLigne);
                     col.Item().Row(row =>
                     {
-                        row.RelativeItem().Text("EBIOS Risk Manager -- Livrable Atelier 5").FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                        row.RelativeItem().Text(T("EBIOS Risk Manager -- Livrable Atelier 5", "EBIOS Risk Manager -- Workshop 5 deliverable")).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
                         row.RelativeItem().AlignRight().Text(DateTime.UtcNow.ToString("dd/MM/yyyy HH:mm")).FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
                     });
                 });
@@ -257,10 +258,10 @@ public sealed class RapportAtelier5PdfGenerator
         return document.GeneratePdf();
     }
 
-    private static void LigneRisque(TableDescriptor table, string label, string v1, string v2, string v3, string v4)
+    private static void LigneRisque(TableDescriptor table, string label, string v1, string v2, string v3, string v4, bool anglais)
     {
         table.Cell().Background(BleuFranceClair).Padding(5).Text(label).FontFamily(MonoMedium).FontSize(7.5f).FontColor(BleuFrance);
         foreach (var v in new[] { v1, v2, v3, v4 })
-            table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).PaddingVertical(5).AlignCenter().Text(v).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(v));
+            table.Cell().BorderBottom(0.6f).BorderColor(GrisLigne).PaddingVertical(5).AlignCenter().Text(LibellesRapport.NiveauRisque(v, anglais)).FontFamily(MonoMedium).FontSize(8).FontColor(CouleurNiveau(v));
     }
 }
