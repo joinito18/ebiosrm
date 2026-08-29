@@ -313,6 +313,26 @@ export function supprimerSourceRisqueBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/sources-risque/' + id, { method: 'DELETE' })
 }
 
+// --- Cartographie graphique de l'Atelier 3 (SVG genere cote serveur) ---
+
+export type CartographieType = 'ecosysteme' | 'chemins-attaque'
+
+// Renvoie le markup SVG (jeton injecte comme apiFetch). null si l'etude est
+// introuvable. Utilise <div dangerouslySetInnerHTML> pour un rendu inline
+// (redimensionnable, texte selectionnable) plutot qu'un <img>.
+export async function chargerCartographieSvg(etudeId: string, type: CartographieType, residuel?: boolean): Promise<string | null> {
+  var headers: Record<string, string> = {}
+  var token = obtenirToken()
+  if (token) headers['Authorization'] = 'Bearer ' + token
+
+  var suffixe = type === 'ecosysteme' && residuel ? '?residuel=true' : ''
+  var response = await fetch(API_BASE + '/etudes/' + etudeId + '/cartographie/' + type + '.svg' + suffixe, { headers })
+  if (response.status === 401) effacerToken()
+  if (response.status === 404) return null
+  if (!response.ok) throw new ApiError(response.status, 'Impossible de charger la cartographie (' + response.status + ')')
+  return await response.text()
+}
+
 export function demarrerAtelier1(etudeId: string): Promise<Etude> {
   return apiFetch('/etudes/' + etudeId + '/demarrer-atelier1', { method: 'POST' })
 }

@@ -52,7 +52,28 @@ public sealed class RapportAtelier3PdfGenerator
                     {
                         SectionTitre(c, "Cartographie de la dangerosite de l'ecosysteme");
                         c.Item().PaddingTop(4).Text("Niveau de dangerosite = (Dependance x Penetration) / (Maturite cyber x Confiance) -- formule officielle EBIOS Risk Manager, calculee automatiquement.").FontSize(8.5f).Italic().FontColor(GrisTexte);
-                        c.Item().PaddingTop(6).Table(table =>
+
+                        var partiesEvaluees = data.PartiesPrenantes.Where(p => p.NiveauDangerosite is not null).ToList();
+                        if (partiesEvaluees.Count > 0)
+                        {
+                            var radarInitial = data.PartiesPrenantes
+                                .Select(p => new CartographieSvg.PartieRadar(p.Nom, p.LibelleCategorie, p.NiveauDangerosite, p.Zone))
+                                .ToList();
+                            c.Item().PaddingTop(8).AlignCenter().Width(430).Svg(CartographieSvg.RadarEcosysteme(radarInitial, "initiale"));
+
+                            if (data.PartiesPrenantes.Any(p => p.NiveauDangerositeResiduel is not null))
+                            {
+                                var radarResiduel = data.PartiesPrenantes
+                                    .Select(p => new CartographieSvg.PartieRadar(
+                                        p.Nom, p.LibelleCategorie,
+                                        p.NiveauDangerositeResiduel ?? p.NiveauDangerosite,
+                                        p.ZoneResiduelle ?? p.Zone))
+                                    .ToList();
+                                c.Item().PaddingTop(10).AlignCenter().Width(430).Svg(CartographieSvg.RadarEcosysteme(radarResiduel, "apres mesures (residuelle)"));
+                            }
+                        }
+
+                        c.Item().PaddingTop(10).Table(table =>
                         {
                             table.ColumnsDefinition(cd =>
                             {
@@ -173,6 +194,18 @@ public sealed class RapportAtelier3PdfGenerator
                         }
                         else
                         {
+                            var arbre = data.ScenariosStrategiques
+                                .Select(s => new CartographieSvg.ScenarioArbre(
+                                    s.LibelleSourceRisque, s.LibelleObjectifVise, s.Description, s.Pertinence,
+                                    s.LibelleEvenementRedoute, s.Gravite,
+                                    s.CheminsAttaque
+                                        .Select(ch => new CartographieSvg.CheminArbre(
+                                            ch.Description,
+                                            ch.EvenementsIntermediaires.Select(e => e.LibellePartiePrenante).ToList()))
+                                        .ToList()))
+                                .ToList();
+                            c.Item().PaddingTop(8).Svg(CartographieSvg.ArbreCheminsAttaque(arbre));
+
                             foreach (var s in data.ScenariosStrategiques)
                             {
                                 c.Item().PaddingTop(12).Column(sc =>

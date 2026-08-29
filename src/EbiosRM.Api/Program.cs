@@ -1772,6 +1772,49 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier3", async (
     return Results.File(pdfBytes, "application/pdf", $"rapport-atelier3-{etudeId}.pdf");
 });
 
+// --- Cartographie graphique de l'Atelier 3 (radar ecosysteme + arbre des
+// chemins d'attaque). Meme geometrie que le rapport PDF (CartographieSvg),
+// exposee en SVG pour un rendu direct dans l'app. GET -> lecture, visible
+// par tout membre.
+app.MapGet("/api/v1/etudes/{etudeId:guid}/cartographie/ecosysteme.svg", async (
+    Guid etudeId, bool? residuel, RapportAtelier3Service rapportService, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null) return Results.NotFound();
+
+    var estResiduel = residuel == true;
+    var parties = data.PartiesPrenantes
+        .Select(p => new CartographieSvg.PartieRadar(
+            p.Nom, p.LibelleCategorie,
+            estResiduel ? p.NiveauDangerositeResiduel ?? p.NiveauDangerosite : p.NiveauDangerosite,
+            estResiduel ? p.ZoneResiduelle ?? p.Zone : p.Zone))
+        .ToList();
+
+    return Results.Text(
+        CartographieSvg.RadarEcosysteme(parties, estResiduel ? "après mesures (résiduelle)" : "initiale"),
+        "image/svg+xml");
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/cartographie/chemins-attaque.svg", async (
+    Guid etudeId, RapportAtelier3Service rapportService, CancellationToken ct) =>
+{
+    var data = await rapportService.ConstruireAsync(etudeId, ct);
+    if (data is null) return Results.NotFound();
+
+    var scenarios = data.ScenariosStrategiques
+        .Select(s => new CartographieSvg.ScenarioArbre(
+            s.LibelleSourceRisque, s.LibelleObjectifVise, s.Description, s.Pertinence,
+            s.LibelleEvenementRedoute, s.Gravite,
+            s.CheminsAttaque
+                .Select(c => new CartographieSvg.CheminArbre(
+                    c.Description,
+                    c.EvenementsIntermediaires.Select(e => e.LibellePartiePrenante).ToList()))
+                .ToList()))
+        .ToList();
+
+    return Results.Text(CartographieSvg.ArbreCheminsAttaque(scenarios), "image/svg+xml");
+});
+
 // --- Reporting Atelier 4 ---
 
 app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/atelier4", async (

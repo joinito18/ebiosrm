@@ -14,6 +14,7 @@ import Card from '../components/shared/Card'
 import EmptyState from '../components/shared/EmptyState'
 import RowActions from '../components/shared/RowActions'
 import SelecteurBibliotheque from '../components/shared/SelecteurBibliotheque'
+import CartographieAtelier3 from '../components/shared/CartographieAtelier3'
 import { toastSucces, toastErreur } from '../lib/toast'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
@@ -106,9 +107,13 @@ export default function AtelierPage() {
   var [chargement, setChargement] = useState(true)
   var [action, setAction] = useState('')
   var [messageErreur, setMessageErreur] = useState('')
+  // Incremente a chaque rechargement -> force le rafraichissement des schemas
+  // SVG (cartographie A3) generes cote serveur.
+  var [versionDonnees, setVersionDonnees] = useState(0)
 
   function charger() {
     setChargement(true)
+    setVersionDonnees(function (v) { return v + 1 })
     var numeroActuel = numero
     getEtude(etudeId).then(function (e) {
       setEtude(e)
@@ -448,6 +453,10 @@ export default function AtelierPage() {
           <MesuresEcosystemeSection etudeId={etudeId} parties={parties} onChange={charger} />
           <ScenariosStrategiquesSection etudeId={etudeId} couples={couples} scenarios={scenarios} evenements={evenements} valeurs={valeurs} onChange={charger} />
           <CheminsAttaqueSection etudeId={etudeId} scenarios={scenarios} couples={couples} chemins={cheminsAttaque} parties={parties} onChange={charger} />
+          <section>
+            <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE GRAPHIQUE</h2>
+            <CartographieAtelier3 etudeId={etudeId} rafraichir={versionDonnees} />
+          </section>
         </div>
       )}
 

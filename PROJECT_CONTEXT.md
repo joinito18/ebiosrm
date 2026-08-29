@@ -2319,5 +2319,19 @@ Périmètre acté avec l'utilisateur : **mesures + sources de risque**, catalogu
 - **À unifier plus tard** : `frontend/src/lib/iso27001.ts` (socle A1, conformité) et `CatalogueSysteme` backend contiennent tous deux les 93 contrôles ISO — à réconcilier au point 6 (mapping de conformité).
 - **Vérifié** : 247 tests backend (+4), 25 frontend, seed régénéré, + Playwright (page bibliothèque : filtre ISO → 93, recherche → A.8.15, ajout/suppression perso, onglet sources ; sélecteur A2 : « rançongiciel » → couple pré-rempli SR/descriptions/OV/thème/motivation 4/ressources 3, matrice TrèsPertinent).
 
+## Mise à jour — Cartographie graphique de l'Atelier 3 (feuille de route point 4, 1ʳᵉ passe)
+
+Deux schémas, **générés côté serveur en SVG** pour une seule géométrie partagée entre l'app et le rapport PDF.
+
+- **`Modules/Reporting/CartographieSvg.cs`** :
+  - `RadarEcosysteme(parties, titre)` : cartographie de la dangerosité en cercles concentriques (méthode ANSSI). Objet de l'étude au centre ; **plus une partie prenante est dangereuse, plus elle est proche du centre**. 3 zones (danger ≥ 4, contrôle 1–4, veille < 1), cercle en pointillés = seuil de criticité. Couleurs alignées sur le reste de l'app : **Danger rouge, Contrôle orange, Veille vert**. `<title>` par point pour l'infobulle native.
+  - `ArbreCheminsAttaque(scenarios)` : un bloc par scénario stratégique — source de risque → objectif visé + description → (parties prenantes traversées, une par événement intermédiaire) → objet de l'étude + gravité. Largeur du SVG calculée sur le nombre max de parties traversées.
+  - `LibellePertinence` interne (l'enum `TresPertinent`… → « très pertinent »).
+- **Endpoints** : `GET /etudes/{id}/cartographie/ecosysteme.svg?residuel=true` et `.../chemins-attaque.svg` → `image/svg+xml`. GET → lecture, visible par tout membre. Réutilisent `RapportAtelier3Service.ConstruireAsync`.
+- **PDF A3** (`RapportAtelier3PdfGenerator`) : `.Svg(...)` — le radar (initial, + résiduel si des réévaluations existent) sous le titre de la cartographie, l'arbre en tête de la section « Scénarios stratégiques ». Les tableaux/listes texte restent (détail).
+- **Frontend** : `chargerCartographieSvg()` dans `api.ts` (fetch texte, jeton injecté — `apiFetch` ne gère que le JSON) ; `components/shared/CartographieAtelier3.tsx` (inline via `dangerouslySetInnerHTML`, bascule Initiale / Après mesures) ; section « CARTOGRAPHIE GRAPHIQUE » à la fin de l'Atelier 3. `AtelierPage` : compteur `versionDonnees` incrémenté à chaque `charger()` → force le rechargement des SVG après une modif.
+- **Vérifié** : 250 tests backend (+3 : le SVG reflète le contenu de l'étude, 404 étude inconnue, non-membre 404), 25 frontend, + Playwright (radar + arbre rendus dans l'Atelier 3, bascule résiduelle) + relecture du rapport PDF A3 (radar cohérent avec le tableau, arbre lisible).
+- **Reste possible** : arbre détaillé A4 (modes opératoires / actions élémentaires par phase), interactivité (survol), export SVG autonome.
+
 *Fin du contexte.*
 
