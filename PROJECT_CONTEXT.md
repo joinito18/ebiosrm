@@ -2505,3 +2505,16 @@ Retour utilisateur : les PDF d'ateliers sont bons, mais la **synthèse globale**
 
 *Fin du contexte.*
 
+
+## Mise à jour — Traduction EN de l'interface (2026-08-29, branche `feat/traduction-en-phase2`)
+
+Suite de la demande #4. **Toute l'interface interactive** est désormais bilingue (dictionnaires plats `frontend/src/lib/i18n.tsx`, ~330 clés ajoutées ; enums via `frontend/src/lib/libelles.ts`).
+
+- **`pages/AtelierPage.tsx`** (3300 l.) : les 5 écrans d'atelier. ~230 chaînes figées → `traduire('ap.*')` ; 15 maps `LIBELLE_*` supprimées, remplacées par `libelle('categorie', v)` / `clesDe` / `optionsDe`. `libelles.ts` étendu (`zoneDangerosite` en phrases, `vraisemblance`, `theme`, labels de matrice `ap.mx.*`). Les libellés de boutons cliqués par le e2e restent identiques en FR (sans apostrophe).
+- **`pages/Bibliotheque.tsx`** (868 l.) : onglets, formulaires d'ajout, listes, vue communauté, confirmations/toasts → `bib.*` ; enums (référentiel, type de bien support, phase, catégories SR/OV/PP) via `libelle()`.
+- **Composants partagés** (`cmp.*`) : `RowActions`, `OverrideJugementExpert`, `SelecteurBibliotheque`, `SelecteurConformite`, `CartographieAtelier3`, `ChampTechniqueMitre`, `BoutonTelechargerRapport`, `Toaster`, `RiskMatrix`, `ErrorBoundary`, `Sidebar` (aria-label), `MembresEtude` (placeholder). `InlineForm`/`EmptyState` reçoivent déjà un `label`/`message` traduit par l'appelant. `Aide.tsx` avait déjà sa table `T` fr/en.
+- **Vérif** : `tsc -b` OK, `npm run build` OK, 25 tests frontend OK. Scan regex : plus aucune chaîne FR dans les nœuds de texte JSX ni les attributs `placeholder/title/aria-label/label`.
+
+**Reste** : les **8 générateurs PDF** (`Rapport*PdfGenerator.cs` + `ManuelPdfGenerator` déjà fait) restent en français. Chantier dédié : ~2100 l., threading `?langue=` endpoint → (Service/Data pour A2/A3/A4 à cause de `LibellesSourceRisqueObjectifVise` et des libellés conformité) → générateur, + variantes EN des helpers d'enum côté serveur.
+
+*Fin du contexte.*
