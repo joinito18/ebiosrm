@@ -47,6 +47,7 @@ import {
   getPlanTraitementRisque, creerPlanTraitementRisque,
   ajouterMesureTraitementRisque, modifierMesureTraitementRisque, supprimerMesureTraitementRisque,
   listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, listerMesuresBiblio, ajouterMesureBiblio,
+  listerPartiesPrenantesBiblio, listerValeursMetierBiblio, listerBiensSupportBiblio, listerEvenementsRedoutesBiblio,
   ApiError,
 } from '../lib/api'
 import type {
@@ -54,6 +55,7 @@ import type {
   ScenarioStrategique, CheminAttaque, ScenarioOperationnel, ModeOperatoire, ModeOperatoireInput, ActionElementaireInput,
   ScenarioDeRisque, PlanTraitementRisque, MesureTraitementRisque, MesureTraitementRisqueInput,
   SourceRisqueBiblio, MesureBiblio,
+  PartiePrenanteBiblio, ValeurMetierBiblio, BienSupportBiblio, EvenementRedouteBiblio,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
@@ -87,6 +89,47 @@ var COULEUR_BADGE_DEPUIS_CLASSE: { [key: string]: CouleurBadge } = {
 }
 function badgeCouleur(classeTexte: string): CouleurBadge {
   return COULEUR_BADGE_DEPUIS_CLASSE[classeTexte] || 'steel'
+}
+
+/**
+ * Bouton « Depuis la bibliotheque » + panneau de selection, a placer en tete
+ * d'un formulaire d'ajout. Choisir une entree pre-remplit les champs du
+ * formulaire (via onChoisir) ; l'analyste revoit puis valide normalement.
+ */
+function DepuisBiblio<T extends { id: string }>(props: {
+  titre: string
+  charger: (q: string) => Promise<T[]>
+  rendre: (item: T) => React.ReactNode
+  onChoisir: (item: T) => void
+  filtres?: { valeur: string; libelle: string }[]
+  filtreActif?: string
+  onFiltre?: (v: string) => void
+}) {
+  var [ouvert, setOuvert] = useState(false)
+  if (!ouvert) {
+    return (
+      <button type="button" onClick={function () { setOuvert(true) }} className="mb-2 font-mono text-[10px] text-signature hover:underline">
+        Depuis la bibliotheque
+      </button>
+    )
+  }
+  return (
+    <SelecteurBibliotheque<T>
+      titre={props.titre}
+      charger={props.charger}
+      cle={function (i) { return i.id }}
+      rendre={props.rendre}
+      filtres={props.filtres}
+      filtreActif={props.filtreActif}
+      onFiltre={props.onFiltre}
+      onChoisir={function (i) { props.onChoisir(i); setOuvert(false) }}
+      onFermer={function () { setOuvert(false) }}
+    />
+  )
+}
+
+function metaBiblio(systeme: boolean, ...parts: (string | number | null | undefined | false)[]) {
+  return [systeme ? 'catalogue' : 'ma bibliotheque'].concat(parts.filter(Boolean).map(String)).join(' -- ')
 }
 
 export default function AtelierPage() {
@@ -576,6 +619,19 @@ function ValeursMetierSection(props: { etudeId: string; valeurs: ValeurMetier[];
         {function (fermer) {
           return (
             <div>
+              <DepuisBiblio<ValeurMetierBiblio>
+                titre="Valeur metier de la bibliotheque"
+                charger={function (q) { return listerValeursMetierBiblio(q) }}
+                rendre={function (v) {
+                  return (
+                    <div>
+                      <div className="text-sm text-ink">{v.intitule}</div>
+                      <div className="text-[10px] text-steel-light">{metaBiblio(v.systeme, v.natureOuFinalite, v.entiteProprietaireTypique)}</div>
+                    </div>
+                  )
+                }}
+                onChoisir={function (v) { setDescription(v.intitule); if (v.entiteProprietaireTypique) setEntite(v.entiteProprietaireTypique) }}
+              />
               <input type="text" placeholder="Description" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <input type="text" placeholder="Entite proprietaire" value={entite} onChange={function (e) { setEntite(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
@@ -595,6 +651,7 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
   var [entite, setEntite] = useState('')
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
+  var [filtreBiblioBs, setFiltreBiblioBs] = useState('')
 
   useEffect(function () {
     if (props.valeurs.length === 0) return
@@ -685,6 +742,22 @@ function BiensSupportSection(props: { etudeId: string; valeurs: ValeurMetier[]; 
         {function (fermer) {
           return (
             <div>
+              <DepuisBiblio<BienSupportBiblio>
+                titre="Bien support de la bibliotheque"
+                filtres={[{ valeur: '', libelle: 'Tous' }].concat(TYPES_BIEN_SUPPORT.map(function (t) { return { valeur: t, libelle: LIBELLE_TYPE_BIEN_SUPPORT[t] } }))}
+                filtreActif={filtreBiblioBs}
+                onFiltre={setFiltreBiblioBs}
+                charger={function (q) { return listerBiensSupportBiblio(filtreBiblioBs, q) }}
+                rendre={function (b) {
+                  return (
+                    <div>
+                      <div className="text-sm text-ink">{b.intitule}</div>
+                      <div className="text-[10px] text-steel-light">{metaBiblio(b.systeme, LIBELLE_TYPE_BIEN_SUPPORT[b.type] || b.type, b.entiteProprietaireTypique)}</div>
+                    </div>
+                  )
+                }}
+                onChoisir={function (b) { setDescription(b.intitule); setType(b.type); if (b.entiteProprietaireTypique) setEntite(b.entiteProprietaireTypique) }}
+              />
               <select value={valeurMetierId} onChange={function (e) { setValeurMetierId(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
                 <option value="">Valeur metier associee</option>
                 {props.valeurs.map(function (v) { return <option key={v.id} value={v.id}>{v.description}</option> })}
@@ -796,6 +869,19 @@ function EvenementsRedoutesSection(props: { etudeId: string; valeurs: ValeurMeti
         {function (fermer) {
           return (
             <div>
+              <DepuisBiblio<EvenementRedouteBiblio>
+                titre="Evenement redoute de la bibliotheque"
+                charger={function (q) { return listerEvenementsRedoutesBiblio(q) }}
+                rendre={function (e) {
+                  return (
+                    <div>
+                      <div className="text-sm text-ink">{e.intitule}</div>
+                      <div className="text-[10px] text-steel-light">{metaBiblio(e.systeme, e.graviteIndicative && 'G' + e.graviteIndicative, e.impactsTypes)}</div>
+                    </div>
+                  )
+                }}
+                onChoisir={function (e) { setDescription(e.intitule); if (e.graviteIndicative) setGravite(String(e.graviteIndicative)) }}
+              />
               <select value={valeurMetierId} onChange={function (e) { setValeurMetierId(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
                 <option value="">Valeur metier associee</option>
                 {props.valeurs.map(function (v) { return <option key={v.id} value={v.id}>{v.description}</option> })}
@@ -1163,6 +1249,25 @@ function PartiesPrenantesSection(props: { etudeId: string; parties: PartiePrenan
         {function (fermer) {
           return (
             <div>
+              <DepuisBiblio<PartiePrenanteBiblio>
+                titre="Partie prenante de la bibliotheque"
+                charger={function (q) { return listerPartiesPrenantesBiblio(q) }}
+                rendre={function (pp) {
+                  return (
+                    <div>
+                      <div className="text-sm text-ink">{pp.nom}</div>
+                      <div className="text-[10px] text-steel-light">{metaBiblio(pp.systeme, pp.descriptionCategorie || pp.categorie)}</div>
+                      <div className="text-[10px] text-steel">{pp.rolesEtAttentes}</div>
+                    </div>
+                  )
+                }}
+                onChoisir={function (pp) {
+                  setNom(pp.nom); setRoles(pp.rolesEtAttentes)
+                  if (pp.representant) setRepresentant(pp.representant)
+                  if (['Client', 'Partenaire', 'Prestataire', 'Autre'].indexOf(pp.categorie) >= 0) setCategorie(pp.categorie)
+                  if (pp.descriptionCategorie) setDescCategorie(pp.descriptionCategorie)
+                }}
+              />
               <input type="text" placeholder="Nom" value={nom} onChange={function (e) { setNom(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <input type="text" placeholder="Roles et attentes" value={roles} onChange={function (e) { setRoles(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
               <input type="text" placeholder="Representant" value={representant} onChange={function (e) { setRepresentant(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />

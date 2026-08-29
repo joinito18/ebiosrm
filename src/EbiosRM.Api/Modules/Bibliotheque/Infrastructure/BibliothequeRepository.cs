@@ -13,45 +13,28 @@ public sealed class BibliothequeRepository : IBibliothequeRepository
         _db = db;
     }
 
-    public async Task<List<MesureBibliotheque>> ListerMesuresAsync(Guid proprietaireId, CancellationToken cancellationToken) =>
-        await _db.MesuresBibliotheque
-            .Where(m => m.ProprietaireId == proprietaireId)
-            .OrderByDescending(m => m.CreeLeUtc)
+    public async Task<List<T>> ListerAsync<T>(Guid proprietaireId, CancellationToken cancellationToken)
+        where T : class, IEntreeBibliotheque =>
+        await _db.Set<T>()
+            .Where(e => EF.Property<Guid?>(e, "ProprietaireId") == proprietaireId)
+            .OrderByDescending(e => EF.Property<DateTime>(e, "CreeLeUtc"))
             .ToListAsync(cancellationToken);
 
-    public Task<MesureBibliotheque?> ObtenirMesureAsync(Guid id, CancellationToken cancellationToken) =>
-        _db.MesuresBibliotheque.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+    public Task<T?> ObtenirAsync<T>(Guid id, CancellationToken cancellationToken)
+        where T : class, IEntreeBibliotheque =>
+        _db.Set<T>().FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == id, cancellationToken);
 
-    public async Task AjouterMesureAsync(MesureBibliotheque mesure, CancellationToken cancellationToken)
+    public async Task AjouterAsync<T>(T entree, CancellationToken cancellationToken)
+        where T : class, IEntreeBibliotheque
     {
-        _db.MesuresBibliotheque.Add(mesure);
+        _db.Set<T>().Add(entree);
         await _db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task SupprimerMesureAsync(MesureBibliotheque mesure, CancellationToken cancellationToken)
+    public async Task SupprimerAsync<T>(T entree, CancellationToken cancellationToken)
+        where T : class, IEntreeBibliotheque
     {
-        _db.MesuresBibliotheque.Remove(mesure);
-        await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task<List<SourceRisqueBibliotheque>> ListerSourcesRisqueAsync(Guid proprietaireId, CancellationToken cancellationToken) =>
-        await _db.SourcesRisqueBibliotheque
-            .Where(s => s.ProprietaireId == proprietaireId)
-            .OrderByDescending(s => s.CreeLeUtc)
-            .ToListAsync(cancellationToken);
-
-    public Task<SourceRisqueBibliotheque?> ObtenirSourceRisqueAsync(Guid id, CancellationToken cancellationToken) =>
-        _db.SourcesRisqueBibliotheque.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
-
-    public async Task AjouterSourceRisqueAsync(SourceRisqueBibliotheque source, CancellationToken cancellationToken)
-    {
-        _db.SourcesRisqueBibliotheque.Add(source);
-        await _db.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task SupprimerSourceRisqueAsync(SourceRisqueBibliotheque source, CancellationToken cancellationToken)
-    {
-        _db.SourcesRisqueBibliotheque.Remove(source);
+        _db.Set<T>().Remove(entree);
         await _db.SaveChangesAsync(cancellationToken);
     }
 }

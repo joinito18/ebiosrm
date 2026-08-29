@@ -8,33 +8,56 @@ import { toastSucces, toastErreur } from '../lib/toast'
 import {
   listerMesuresBiblio, ajouterMesureBiblio, supprimerMesureBiblio,
   listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, supprimerSourceRisqueBiblio,
+  listerPartiesPrenantesBiblio, ajouterPartiePrenanteBiblio, supprimerPartiePrenanteBiblio,
+  listerValeursMetierBiblio, ajouterValeurMetierBiblio, supprimerValeurMetierBiblio,
+  listerBiensSupportBiblio, ajouterBienSupportBiblio, supprimerBienSupportBiblio,
+  listerEvenementsRedoutesBiblio, ajouterEvenementRedouteBiblio, supprimerEvenementRedouteBiblio,
   ApiError,
 } from '../lib/api'
-import type { MesureBiblio, SourceRisqueBiblio } from '../lib/api'
+import type {
+  MesureBiblio, SourceRisqueBiblio, PartiePrenanteBiblio, ValeurMetierBiblio,
+  BienSupportBiblio, EvenementRedouteBiblio,
+} from '../lib/api'
 
 var LIBELLE_REFERENTIEL: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
 var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeologique', 'OfficineSpecialisee', 'Amateur', 'Vengeur', 'MalveillantPathologique', 'Autre']
 var CATEGORIES_OV = ['EspionnageEtatiqueOuIndustriel', 'PrePositionnementStrategique', 'InfluenceDestabilisation', 'EntraveAuFonctionnement', 'SabotageDestruction', 'Lucratif', 'DefiAmusement', 'Autre']
+var CATEGORIES_PP = ['Client', 'Partenaire', 'Prestataire', 'Autre']
+var TYPES_BS = ['SystemeInformation', 'Reseau', 'RessourcesHumaines', 'Local']
+var LIBELLE_TYPE_BS: { [key: string]: string } = {
+  SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local',
+}
+
+type Onglet = 'mesures' | 'sources' | 'parties-prenantes' | 'valeurs-metier' | 'biens-support' | 'evenements-redoutes'
+
+var ONGLETS: [Onglet, string][] = [
+  ['mesures', 'Mesures'],
+  ['sources', 'Sources de risque'],
+  ['parties-prenantes', 'Parties prenantes'],
+  ['valeurs-metier', 'Valeurs metier'],
+  ['biens-support', 'Biens support'],
+  ['evenements-redoutes', 'Evenements redoutes'],
+]
 
 export default function Bibliotheque() {
   var _t = useT()
-  var [onglet, setOnglet] = useState<'mesures' | 'sources'>('mesures')
+  var [onglet, setOnglet] = useState<Onglet>('mesures')
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
         eyebrow={_t('biblio.eyebrow')}
         titre={_t('biblio.titre')}
-        description="Catalogues fournis (ISO 27002, hygiene ANSSI) et vos propres elements, a reutiliser d'une etude a l'autre."
+        description="Catalogues fournis (ISO 27002, hygiene ANSSI, exemples EBIOS RM) et vos propres elements, a reutiliser d'une etude a l'autre."
       />
 
-      <div className="mb-8 flex gap-2 border-b border-paper-line">
-        {[['mesures', 'Mesures'], ['sources', 'Sources de risque']].map(function (o) {
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-paper-line">
+        {ONGLETS.map(function (o) {
           var actif = onglet === o[0]
           return (
             <button
               key={o[0]}
-              onClick={function () { setOnglet(o[0] as 'mesures' | 'sources') }}
+              onClick={function () { setOnglet(o[0]) }}
               className={'-mb-px border-b-2 px-3 py-2 text-xs font-medium transition ' + (actif ? 'border-signature text-signature' : 'border-transparent text-steel hover:text-ink')}
             >
               {o[1]}
@@ -43,9 +66,66 @@ export default function Bibliotheque() {
         })}
       </div>
 
-      {onglet === 'mesures' ? <OngletMesures /> : <OngletSources />}
+      {onglet === 'mesures' && <OngletMesures />}
+      {onglet === 'sources' && <OngletSources />}
+      {onglet === 'parties-prenantes' && <OngletPartiesPrenantes />}
+      {onglet === 'valeurs-metier' && <OngletValeursMetier />}
+      {onglet === 'biens-support' && <OngletBiensSupport />}
+      {onglet === 'evenements-redoutes' && <OngletEvenementsRedoutes />}
     </div>
   )
+}
+
+/** Champ texte inline, meme style partout. */
+function Champ(props: { valeur: string; onChange: (v: string) => void; placeholder: string; className?: string }) {
+  return (
+    <input
+      type="text"
+      placeholder={props.placeholder}
+      value={props.valeur}
+      onChange={function (e) { props.onChange(e.target.value) }}
+      className={'w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none ' + (props.className || '')}
+    />
+  )
+}
+
+/** Enveloppe commune : recherche + liste + etat vide + chargement. */
+function Liste<T extends { id: string; systeme: boolean }>(props: {
+  q: string; onQ: (v: string) => void
+  chargement: boolean; items: T[]; vide: string
+  rendre: (item: T) => React.ReactNode
+  onSupprimer: (item: T) => void
+}) {
+  var items = props.items || []
+  return (
+    <div>
+      <Champ valeur={props.q} onChange={props.onQ} placeholder="Rechercher..." className="mb-3" />
+      {props.chargement ? (
+        <p className="text-sm text-steel">Chargement...</p>
+      ) : items.length === 0 ? (
+        <EmptyState message={props.vide} />
+      ) : (
+        <ul className="divide-y divide-paper-line border-y border-paper-line">
+          {items.map(function (item) {
+            return (
+              <li key={item.id} className="flex items-start justify-between gap-4 py-2.5">
+                <div className="min-w-0">{props.rendre(item)}</div>
+                {!item.systeme && (
+                  <button onClick={function () { props.onSupprimer(item) }} aria-label="Retirer" className="shrink-0 text-steel-light transition hover:text-risk-critical">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function meta(...parts: (string | number | null | undefined | false)[]) {
+  return parts.filter(Boolean).join(' -- ')
 }
 
 function OngletMesures() {
@@ -94,14 +174,13 @@ function OngletMesures() {
     <div>
       <div className="mb-4 border border-paper-line p-4">
         <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE MESURE A MA BIBLIOTHEQUE</div>
-        <input type="text" placeholder="Titre de la mesure" value={titre} onChange={function (e) { setTitre(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-        <input type="text" placeholder="Description (optionnel)" value={description} onChange={function (e) { setDescription(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-        <input type="text" placeholder="Categorie / axe (optionnel)" value={categorie} onChange={function (e) { setCategorie(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+        <Champ valeur={titre} onChange={setTitre} placeholder="Titre de la mesure" className="mb-2" />
+        <Champ valeur={description} onChange={setDescription} placeholder="Description (optionnel)" className="mb-2" />
+        <Champ valeur={categorie} onChange={setCategorie} placeholder="Categorie / axe (optionnel)" className="mb-3" />
         <Button variante="primary" onClick={ajouter} disabled={!titre.trim()}>Ajouter</Button>
       </div>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <input type="text" placeholder="Rechercher..." value={q} onChange={function (e) { setQ(e.target.value) }} className="flex-1 border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
         {filtres.map(function (f) {
           var actif = referentiel === f[0]
           return (
@@ -110,32 +189,21 @@ function OngletMesures() {
         })}
       </div>
 
-      {chargement ? (
-        <p className="text-sm text-steel">Chargement...</p>
-      ) : mesures.length === 0 ? (
-        <EmptyState message="Aucune mesure." />
-      ) : (
-        <ul className="divide-y divide-paper-line border-y border-paper-line">
-          {mesures.map(function (m) {
-            return (
-              <li key={m.id} className="flex items-start justify-between gap-4 py-2.5">
-                <div>
-                  <div className="text-sm text-ink">{m.code ? m.code + ' -- ' : ''}{m.titre}</div>
-                  <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                    {LIBELLE_REFERENTIEL[m.referentiel] || m.referentiel}{m.categorie ? ' -- ' + m.categorie : ''}{m.systeme ? '' : ' -- ma bibliotheque'}
-                  </div>
-                  {m.description && <div className="mt-0.5 text-xs text-steel">{m.description}</div>}
-                </div>
-                {!m.systeme && (
-                  <button onClick={function () { supprimer(m) }} aria-label="Retirer" className="shrink-0 text-steel-light transition hover:text-risk-critical">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={mesures} vide="Aucune mesure."
+        onSupprimer={supprimer}
+        rendre={function (m) {
+          return (
+            <>
+              <div className="text-sm text-ink">{m.code ? m.code + ' -- ' : ''}{m.titre}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(LIBELLE_REFERENTIEL[m.referentiel] || m.referentiel, m.categorie, !m.systeme && 'ma bibliotheque')}
+              </div>
+              {m.description && <div className="mt-0.5 text-xs text-steel">{m.description}</div>}
+            </>
+          )
+        }}
+      />
     </div>
   )
 }
@@ -192,38 +260,325 @@ function OngletSources() {
             {CATEGORIES_OV.map(function (c) { return <option key={c} value={c}>{c}</option> })}
           </select>
         </div>
-        <input type="text" placeholder="Description de la source de risque" value={dsr} onChange={function (e) { setDsr(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
-        <input type="text" placeholder="Description de l objectif vise" value={dov} onChange={function (e) { setDov(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+        <Champ valeur={dsr} onChange={setDsr} placeholder="Description de la source de risque" className="mb-2" />
+        <Champ valeur={dov} onChange={setDov} placeholder="Description de l objectif vise" className="mb-3" />
         <Button variante="primary" onClick={ajouter} disabled={!dsr.trim() || !dov.trim()}>Ajouter</Button>
       </div>
 
-      <input type="text" placeholder="Rechercher..." value={q} onChange={function (e) { setQ(e.target.value) }} className="mb-3 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={sources} vide="Aucune source de risque."
+        onSupprimer={supprimer}
+        rendre={function (s) {
+          return (
+            <>
+              <div className="text-sm text-ink">{s.descriptionSourceRisque} &rarr; {s.descriptionObjectifVise}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(s.theme, s.motivationTypique && 'motivation ' + s.motivationTypique, s.ressourcesTypiques && 'ressources ' + s.ressourcesTypiques, !s.systeme && 'ma bibliotheque')}
+              </div>
+            </>
+          )
+        }}
+      />
+    </div>
+  )
+}
 
-      {chargement ? (
-        <p className="text-sm text-steel">Chargement...</p>
-      ) : sources.length === 0 ? (
-        <EmptyState message="Aucune source de risque." />
-      ) : (
-        <ul className="divide-y divide-paper-line border-y border-paper-line">
-          {sources.map(function (s) {
-            return (
-              <li key={s.id} className="flex items-start justify-between gap-4 py-2.5">
-                <div>
-                  <div className="text-sm text-ink">{s.descriptionSourceRisque} &rarr; {s.descriptionObjectifVise}</div>
-                  <div className="mt-0.5 font-mono text-[10px] text-steel-light">
-                    {s.theme || '--'}{s.motivationTypique ? ' -- motivation ' + s.motivationTypique : ''}{s.ressourcesTypiques ? ' / ressources ' + s.ressourcesTypiques : ''}{s.systeme ? '' : ' -- ma bibliotheque'}
-                  </div>
-                </div>
-                {!s.systeme && (
-                  <button onClick={function () { supprimer(s) }} aria-label="Retirer" className="shrink-0 text-steel-light transition hover:text-risk-critical">
-                    <Trash2 size={14} />
-                  </button>
-                )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+function OngletPartiesPrenantes() {
+  var [items, setItems] = useState<PartiePrenanteBiblio[]>([])
+  var [q, setQ] = useState('')
+  var [chargement, setChargement] = useState(true)
+  var [nom, setNom] = useState('')
+  var [categorie, setCategorie] = useState(CATEGORIES_PP[2])
+  var [roles, setRoles] = useState('')
+
+  function charger() {
+    setChargement(true)
+    listerPartiesPrenantesBiblio(q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q])
+
+  function ajouter() {
+    if (!nom.trim() || !roles.trim()) return
+    ajouterPartiePrenanteBiblio({ nom: nom, categorie: categorie, rolesEtAttentes: roles })
+      .then(function () {
+        toastSucces('Partie prenante ajoutee.')
+        setNom(''); setRoles('')
+        charger()
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function supprimer(p: PartiePrenanteBiblio) {
+    if (!window.confirm('Retirer "' + p.nom + '" de votre bibliotheque ?')) return
+    supprimerPartiePrenanteBiblio(p.id)
+      .then(function () { toastSucces('Partie prenante retiree.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  return (
+    <div>
+      <div className="mb-4 border border-paper-line p-4">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE PARTIE PRENANTE A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_180px]">
+          <Champ valeur={nom} onChange={setNom} placeholder="Nom (ex. Infogereur)" />
+          <select value={categorie} onChange={function (e) { setCategorie(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
+            {CATEGORIES_PP.map(function (c) { return <option key={c} value={c}>{c}</option> })}
+          </select>
+        </div>
+        <Champ valeur={roles} onChange={setRoles} placeholder="Roles et attentes dans l ecosysteme" className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!nom.trim() || !roles.trim()}>Ajouter</Button>
+      </div>
+
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune partie prenante."
+        onSupprimer={supprimer}
+        rendre={function (p) {
+          var niveaux = [p.dependanceTypique, p.penetrationTypique, p.maturiteCyberTypique, p.confianceTypique]
+          var aNiveaux = niveaux.some(function (n) { return n != null })
+          return (
+            <>
+              <div className="text-sm text-ink">{p.nom}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(p.descriptionCategorie || p.categorie, aNiveaux && 'dep/pen/mat/conf ' + niveaux.map(function (n) { return n == null ? '-' : n }).join('/'), !p.systeme && 'ma bibliotheque')}
+              </div>
+              <div className="mt-0.5 text-xs text-steel">{p.rolesEtAttentes}</div>
+            </>
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+function OngletValeursMetier() {
+  var [items, setItems] = useState<ValeurMetierBiblio[]>([])
+  var [q, setQ] = useState('')
+  var [chargement, setChargement] = useState(true)
+  var [intitule, setIntitule] = useState('')
+  var [nature, setNature] = useState('')
+  var [entite, setEntite] = useState('')
+
+  function charger() {
+    setChargement(true)
+    listerValeursMetierBiblio(q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q])
+
+  function ajouter() {
+    if (!intitule.trim()) return
+    ajouterValeurMetierBiblio({ intitule: intitule, natureOuFinalite: nature, entiteProprietaireTypique: entite })
+      .then(function () {
+        toastSucces('Valeur metier ajoutee.')
+        setIntitule(''); setNature(''); setEntite('')
+        charger()
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function supprimer(v: ValeurMetierBiblio) {
+    if (!window.confirm('Retirer "' + v.intitule + '" de votre bibliotheque ?')) return
+    supprimerValeurMetierBiblio(v.id)
+      .then(function () { toastSucces('Valeur metier retiree.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  return (
+    <div>
+      <div className="mb-4 border border-paper-line p-4">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UNE VALEUR METIER A MA BIBLIOTHEQUE</div>
+        <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule (ex. Processus de paie)" className="mb-2" />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Champ valeur={nature} onChange={setNature} placeholder="Nature / finalite (Processus, Information...)" />
+          <Champ valeur={entite} onChange={setEntite} placeholder="Entite proprietaire type (optionnel)" />
+        </div>
+        <div className="mt-3"><Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button></div>
+      </div>
+
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune valeur metier."
+        onSupprimer={supprimer}
+        rendre={function (v) {
+          return (
+            <>
+              <div className="text-sm text-ink">{v.intitule}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(v.natureOuFinalite, v.entiteProprietaireTypique, !v.systeme && 'ma bibliotheque')}
+              </div>
+            </>
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+function OngletBiensSupport() {
+  var [items, setItems] = useState<BienSupportBiblio[]>([])
+  var [q, setQ] = useState('')
+  var [type, setType] = useState('')
+  var [chargement, setChargement] = useState(true)
+  var [intitule, setIntitule] = useState('')
+  var [typeForm, setTypeForm] = useState(TYPES_BS[0])
+  var [entite, setEntite] = useState('')
+
+  function charger() {
+    setChargement(true)
+    listerBiensSupportBiblio(type, q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q, type])
+
+  function ajouter() {
+    if (!intitule.trim()) return
+    ajouterBienSupportBiblio({ intitule: intitule, type: typeForm, entiteProprietaireTypique: entite })
+      .then(function () {
+        toastSucces('Bien support ajoute.')
+        setIntitule(''); setEntite('')
+        charger()
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function supprimer(b: BienSupportBiblio) {
+    if (!window.confirm('Retirer "' + b.intitule + '" de votre bibliotheque ?')) return
+    supprimerBienSupportBiblio(b.id)
+      .then(function () { toastSucces('Bien support retire.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  var filtres = [['', 'Tous']].concat(TYPES_BS.map(function (t) { return [t, LIBELLE_TYPE_BS[t]] }))
+
+  return (
+    <div>
+      <div className="mb-4 border border-paper-line p-4">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN BIEN SUPPORT A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_200px]">
+          <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule (ex. Active Directory)" />
+          <select value={typeForm} onChange={function (e) { setTypeForm(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
+            {TYPES_BS.map(function (t) { return <option key={t} value={t}>{LIBELLE_TYPE_BS[t]}</option> })}
+          </select>
+        </div>
+        <Champ valeur={entite} onChange={setEntite} placeholder="Entite proprietaire type (optionnel)" className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {filtres.map(function (f) {
+          var actif = type === f[0]
+          return (
+            <button key={f[0]} onClick={function () { setType(f[0]) }} className={'border px-2 py-1 font-mono text-[10px] transition ' + (actif ? 'border-signature bg-signature text-white' : 'border-paper-line text-steel hover:border-signature')}>{f[1]}</button>
+          )
+        })}
+      </div>
+
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun bien support."
+        onSupprimer={supprimer}
+        rendre={function (b) {
+          return (
+            <>
+              <div className="text-sm text-ink">{b.intitule}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(LIBELLE_TYPE_BS[b.type] || b.type, b.entiteProprietaireTypique, !b.systeme && 'ma bibliotheque')}
+              </div>
+              {b.description && <div className="mt-0.5 text-xs text-steel">{b.description}</div>}
+            </>
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+function OngletEvenementsRedoutes() {
+  var [items, setItems] = useState<EvenementRedouteBiblio[]>([])
+  var [q, setQ] = useState('')
+  var [chargement, setChargement] = useState(true)
+  var [intitule, setIntitule] = useState('')
+  var [gravite, setGravite] = useState('')
+  var [impacts, setImpacts] = useState('')
+
+  function charger() {
+    setChargement(true)
+    listerEvenementsRedoutesBiblio(q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q])
+
+  function ajouter() {
+    if (!intitule.trim()) return
+    var g = gravite ? parseInt(gravite, 10) : null
+    ajouterEvenementRedouteBiblio({ intitule: intitule, graviteIndicative: g, impactsTypes: impacts })
+      .then(function () {
+        toastSucces('Evenement redoute ajoute.')
+        setIntitule(''); setGravite(''); setImpacts('')
+        charger()
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function supprimer(e: EvenementRedouteBiblio) {
+    if (!window.confirm('Retirer "' + e.intitule + '" de votre bibliotheque ?')) return
+    supprimerEvenementRedouteBiblio(e.id)
+      .then(function () { toastSucces('Evenement redoute retire.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  return (
+    <div>
+      <div className="mb-4 border border-paper-line p-4">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN EVENEMENT REDOUTE A MA BIBLIOTHEQUE</div>
+        <div className="mb-2 grid gap-2 sm:grid-cols-[1fr_120px]">
+          <Champ valeur={intitule} onChange={setIntitule} placeholder="Intitule de l evenement redoute" />
+          <select value={gravite} onChange={function (e) { setGravite(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
+            <option value="">Gravite ?</option>
+            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>G{n}</option> })}
+          </select>
+        </div>
+        <Champ valeur={impacts} onChange={setImpacts} placeholder="Types d impacts (ex. Financier, Juridique, Image)" className="mb-3" />
+        <Button variante="primary" onClick={ajouter} disabled={!intitule.trim()}>Ajouter</Button>
+      </div>
+
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun evenement redoute."
+        onSupprimer={supprimer}
+        rendre={function (e) {
+          return (
+            <>
+              <div className="text-sm text-ink">{e.intitule}</div>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(e.graviteIndicative && 'gravite indicative G' + e.graviteIndicative, e.impactsTypes, !e.systeme && 'ma bibliotheque')}
+              </div>
+            </>
+          )
+        }}
+      />
     </div>
   )
 }

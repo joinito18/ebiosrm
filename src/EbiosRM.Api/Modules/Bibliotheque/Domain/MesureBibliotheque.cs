@@ -23,7 +23,7 @@ public enum ReferentielMesure
 ///   - <b>bibliothèque personnelle</b> : mesures ajoutées par un utilisateur,
 ///     persistées, visibles de lui seul.
 /// </summary>
-public sealed class MesureBibliotheque
+public sealed class MesureBibliotheque : IEntreeBibliotheque
 {
     public Guid Id { get; private set; }
 

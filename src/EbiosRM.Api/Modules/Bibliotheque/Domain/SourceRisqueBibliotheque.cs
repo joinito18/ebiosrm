@@ -12,7 +12,7 @@ namespace EbiosRM.Api.Modules.Bibliotheque.Domain;
 /// + thème + motivation/ressources typiques). Le contexte de vulnérabilité
 /// reste propre à chaque étude et n'est pas mémorisé ici.
 /// </summary>
-public sealed class SourceRisqueBibliotheque
+public sealed class SourceRisqueBibliotheque : IEntreeBibliotheque
 {
     public Guid Id { get; private set; }
 

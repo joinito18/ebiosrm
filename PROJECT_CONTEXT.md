@@ -2409,5 +2409,19 @@ Le point 9 de la feuille de route (`docs/analyse-concurrentielle.md`) — **pont
 
 La feuille de route concurrentielle est donc considérée **terminée** (points 1 à 8 livrés, 3 à 8 en 1ʳᵉ passe). Ne pas reproposer le point 9 sauf demande explicite de l'utilisateur.
 
+## Mise à jour — Bibliothèques étendues (chantier hors feuille de route, 2026-08-29)
+
+Demande utilisateur : « ajoutons les bibliothèques pour tous » + guides d'utilisation ultra-détaillés. Découpé en 5 commits (branche `feat/bibliotheques-etendues`) : (1) 4 nouveaux types de bibliothèque, (2) modes opératoires, (3) partage communautaire, (4) aide intégrée `/aide`, (5) guide PDF. **Commit 1 fait.**
+
+### Étape 1 — Parties prenantes, valeurs métier, biens support, événements redoutés
+- **`Modules/Bibliotheque/Domain/IEntreeBibliotheque.cs`** : contrat commun (`Id`, `ProprietaireId?`, `CreeLeUtc`, `EstSysteme`). `MesureBibliotheque` + `SourceRisqueBibliotheque` l'implémentent aussi.
+- **`IBibliothequeRepository` rendu générique** : `ListerAsync<T>` / `ObtenirAsync<T>` / `AjouterAsync<T>` / `SupprimerAsync<T>` where `T : IEntreeBibliotheque`. Impl via `_db.Set<T>()` + `EF.Property<>()` (pas d'accès membre d'interface dans le LINQ). Anciennes méthodes spécifiques supprimées (seul `Program.cs` les utilisait).
+- 4 entités : `PartiePrenanteBibliotheque` (Nom, Categorie, DescriptionCategorie?, RolesEtAttentes, Representant?, Dependance/Penetration/MaturiteCyber/Confiance Typique? bornés 1..4), `ValeurMetierBibliotheque` (Intitule, NatureOuFinalite?, EntiteProprietaireTypique?), `BienSupportBibliotheque` (Intitule, Type, EntiteProprietaireTypique?, Description?), `EvenementRedouteBibliotheque` (Intitule, GraviteIndicative? 1..4, ImpactsTypes?). Chacune : `Creer(proprietaireId, …)` + `Systeme(cle, …)` avec Id déterministe (`MesureBibliotheque.IdDeterministe`).
+- **`CatalogueSysteme`** enrichi : `PartiesPrenantes` (15), `ValeursMetier` (15), `BiensSupport` (18), `EvenementsRedoutes` (15). `using …CoreEngine.Domain.Cadrage` ajouté (pour `TypeBienSupport`).
+- **EF** : 4 DbSets + configs dans `EbiosDbContext` (tables `bibliotheque_parties_prenantes` / `_valeurs_metier` / `_biens_support` / `_evenements_redoutes`). Migration `20260829142410_AjoutBibliothequesEtendues` (4 CreateTable, appliquée dev + test). **Seed `ebiosrm.seed.db` régénéré** (les 4 tables SQLite présentes, vides).
+- **`Program.cs`** : `GET/POST/DELETE /api/v1/bibliotheque/{parties-prenantes|valeurs-metier|biens-support|evenements-redoutes}` (mêmes conventions que mesures : catalogue système concaténé aux entrées perso, `?q=` plein texte, `biens-support?type=`, DELETE 404 si pas propriétaire). Records `Ajouter*BiblioRequest`.
+- **Frontend** : `pages/Bibliotheque.tsx` réécrit — 6 onglets, helpers `Champ` / `Liste` / `meta`. `lib/api.ts` : 4 interfaces + 12 fonctions. `pages/AtelierPage.tsx` : composant `DepuisBiblio<T>` (bouton « Depuis la bibliotheque » + `SelecteurBibliotheque`) branché dans `ValeursMetierSection`, `BiensSupportSection` (avec filtre par type), `EvenementsRedoutesSection`, `PartiesPrenantesSection` — choisir une entrée pré-remplit les champs du formulaire.
+- **Tests** : `BibliothequeTests` +2 (parties prenantes catalogue+perso+isolation, A1 catalogues fournis + gravité hors échelle rejetée). 264 backend, 25 frontend. Playwright : 6 onglets rendent le catalogue, « Depuis la bibliotheque » de l'Atelier 1 pré-remplit bien (Description + Entité propriétaire).
+
 *Fin du contexte.*
 

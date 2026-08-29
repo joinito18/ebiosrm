@@ -731,7 +731,7 @@ app.MapGet("/api/v1/bibliotheque/mesures", async (
     if (moiId is null) return Results.Unauthorized();
 
     IEnumerable<MesureBibliotheque> mesures = CatalogueSysteme.Mesures
-        .Concat(await repo.ListerMesuresAsync(moiId.Value, ct));
+        .Concat(await repo.ListerAsync<MesureBibliotheque>(moiId.Value, ct));
 
     if (Enum.TryParse<ReferentielMesure>(referentiel, ignoreCase: true, out var r))
         mesures = mesures.Where(m => m.Referentiel == r);
@@ -761,7 +761,7 @@ app.MapPost("/api/v1/bibliotheque/mesures", async (
     try
     {
         var mesure = MesureBibliotheque.Creer(moiId.Value, referentiel, request.Code, request.Titre, request.Description, request.Categorie);
-        await repo.AjouterMesureAsync(mesure, ct);
+        await repo.AjouterAsync(mesure, ct);
         return Results.Created($"/api/v1/bibliotheque/mesures/{mesure.Id}", VueMesureBiblio(mesure));
     }
     catch (ArgumentException ex)
@@ -776,11 +776,11 @@ app.MapDelete("/api/v1/bibliotheque/mesures/{id:guid}", async (
     var moiId = ObtenirUtilisateurId(principal);
     if (moiId is null) return Results.Unauthorized();
 
-    var mesure = await repo.ObtenirMesureAsync(id, ct);
+    var mesure = await repo.ObtenirAsync<MesureBibliotheque>(id, ct);
     if (mesure is null || mesure.ProprietaireId != moiId)
         return Results.NotFound(new { error = "Mesure introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
 
-    await repo.SupprimerMesureAsync(mesure, ct);
+    await repo.SupprimerAsync(mesure, ct);
     return Results.NoContent();
 });
 
@@ -799,7 +799,7 @@ app.MapGet("/api/v1/bibliotheque/sources-risque", async (
     if (moiId is null) return Results.Unauthorized();
 
     IEnumerable<SourceRisqueBibliotheque> sources = CatalogueSysteme.SourcesRisque
-        .Concat(await repo.ListerSourcesRisqueAsync(moiId.Value, ct));
+        .Concat(await repo.ListerAsync<SourceRisqueBibliotheque>(moiId.Value, ct));
 
     if (!string.IsNullOrWhiteSpace(q))
     {
@@ -829,7 +829,7 @@ app.MapPost("/api/v1/bibliotheque/sources-risque", async (
         var source = SourceRisqueBibliotheque.Creer(
             moiId.Value, sr, request.DescriptionSourceRisque, ov, request.DescriptionObjectifVise,
             request.Theme, request.MotivationTypique, request.RessourcesTypiques);
-        await repo.AjouterSourceRisqueAsync(source, ct);
+        await repo.AjouterAsync(source, ct);
         return Results.Created($"/api/v1/bibliotheque/sources-risque/{source.Id}", VueSourceRisqueBiblio(source));
     }
     catch (ArgumentException ex)
@@ -844,11 +844,256 @@ app.MapDelete("/api/v1/bibliotheque/sources-risque/{id:guid}", async (
     var moiId = ObtenirUtilisateurId(principal);
     if (moiId is null) return Results.Unauthorized();
 
-    var source = await repo.ObtenirSourceRisqueAsync(id, ct);
+    var source = await repo.ObtenirAsync<SourceRisqueBibliotheque>(id, ct);
     if (source is null || source.ProprietaireId != moiId)
         return Results.NotFound(new { error = "Source de risque introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
 
-    await repo.SupprimerSourceRisqueAsync(source, ct);
+    await repo.SupprimerAsync(source, ct);
+    return Results.NoContent();
+});
+
+// --- Bibliotheque : parties prenantes types (Atelier 3) --------------------
+static object VuePartiePrenanteBiblio(PartiePrenanteBibliotheque p) => new
+{
+    p.Id, systeme = p.EstSysteme, p.Nom,
+    categorie = p.Categorie.ToString(), p.DescriptionCategorie,
+    p.RolesEtAttentes, p.Representant,
+    p.DependanceTypique, p.PenetrationTypique, p.MaturiteCyberTypique, p.ConfianceTypique,
+};
+
+app.MapGet("/api/v1/bibliotheque/parties-prenantes", async (
+    string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<PartiePrenanteBibliotheque> items = CatalogueSysteme.PartiesPrenantes
+        .Concat(await repo.ListerAsync<PartiePrenanteBibliotheque>(moiId.Value, ct));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        items = items.Where(p => Contient(p.Nom, terme) || Contient(p.RolesEtAttentes, terme)
+            || Contient(p.Categorie.ToString(), terme) || Contient(p.DescriptionCategorie, terme));
+    }
+
+    return Results.Ok(items.OrderBy(p => p.EstSysteme ? 1 : 0).ThenBy(p => p.Nom).Select(VuePartiePrenanteBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/parties-prenantes", async (
+    AjouterPartiePrenanteBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    if (!Enum.TryParse<CategoriePartiePrenante>(request.Categorie, ignoreCase: true, out var cat))
+        return Results.BadRequest(new { error = "Categorie de partie prenante invalide." });
+
+    try
+    {
+        var pp = PartiePrenanteBibliotheque.Creer(
+            moiId.Value, request.Nom, cat, request.DescriptionCategorie, request.RolesEtAttentes, request.Representant,
+            request.DependanceTypique, request.PenetrationTypique, request.MaturiteCyberTypique, request.ConfianceTypique);
+        await repo.AjouterAsync(pp, ct);
+        return Results.Created($"/api/v1/bibliotheque/parties-prenantes/{pp.Id}", VuePartiePrenanteBiblio(pp));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/parties-prenantes/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var pp = await repo.ObtenirAsync<PartiePrenanteBibliotheque>(id, ct);
+    if (pp is null || pp.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Partie prenante introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerAsync(pp, ct);
+    return Results.NoContent();
+});
+
+// --- Bibliotheque : valeurs metier types (Atelier 1) ----------------------
+static object VueValeurMetierBiblio(ValeurMetierBibliotheque v) => new
+{
+    v.Id, systeme = v.EstSysteme, v.Intitule, v.NatureOuFinalite, v.EntiteProprietaireTypique,
+};
+
+app.MapGet("/api/v1/bibliotheque/valeurs-metier", async (
+    string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<ValeurMetierBibliotheque> items = CatalogueSysteme.ValeursMetier
+        .Concat(await repo.ListerAsync<ValeurMetierBibliotheque>(moiId.Value, ct));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        items = items.Where(v => Contient(v.Intitule, terme) || Contient(v.NatureOuFinalite, terme)
+            || Contient(v.EntiteProprietaireTypique, terme));
+    }
+
+    return Results.Ok(items.OrderBy(v => v.EstSysteme ? 1 : 0).ThenBy(v => v.Intitule).Select(VueValeurMetierBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/valeurs-metier", async (
+    AjouterValeurMetierBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    try
+    {
+        var vm = ValeurMetierBibliotheque.Creer(moiId.Value, request.Intitule, request.NatureOuFinalite, request.EntiteProprietaireTypique);
+        await repo.AjouterAsync(vm, ct);
+        return Results.Created($"/api/v1/bibliotheque/valeurs-metier/{vm.Id}", VueValeurMetierBiblio(vm));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/valeurs-metier/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var vm = await repo.ObtenirAsync<ValeurMetierBibliotheque>(id, ct);
+    if (vm is null || vm.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Valeur metier introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerAsync(vm, ct);
+    return Results.NoContent();
+});
+
+// --- Bibliotheque : biens support types (Atelier 1) -----------------------
+static object VueBienSupportBiblio(BienSupportBibliotheque b) => new
+{
+    b.Id, systeme = b.EstSysteme, b.Intitule, type = b.Type.ToString(), b.EntiteProprietaireTypique, b.Description,
+};
+
+app.MapGet("/api/v1/bibliotheque/biens-support", async (
+    string? type, string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<BienSupportBibliotheque> items = CatalogueSysteme.BiensSupport
+        .Concat(await repo.ListerAsync<BienSupportBibliotheque>(moiId.Value, ct));
+
+    if (Enum.TryParse<TypeBienSupport>(type, ignoreCase: true, out var t))
+        items = items.Where(b => b.Type == t);
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        items = items.Where(b => Contient(b.Intitule, terme) || Contient(b.Description, terme)
+            || Contient(b.EntiteProprietaireTypique, terme));
+    }
+
+    return Results.Ok(items.OrderBy(b => b.EstSysteme ? 1 : 0).ThenBy(b => b.Type).ThenBy(b => b.Intitule).Select(VueBienSupportBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/biens-support", async (
+    AjouterBienSupportBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    if (!Enum.TryParse<TypeBienSupport>(request.Type, ignoreCase: true, out var type))
+        return Results.BadRequest(new { error = "Type de bien support invalide." });
+
+    try
+    {
+        var bs = BienSupportBibliotheque.Creer(moiId.Value, request.Intitule, type, request.EntiteProprietaireTypique, request.Description);
+        await repo.AjouterAsync(bs, ct);
+        return Results.Created($"/api/v1/bibliotheque/biens-support/{bs.Id}", VueBienSupportBiblio(bs));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/biens-support/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var bs = await repo.ObtenirAsync<BienSupportBibliotheque>(id, ct);
+    if (bs is null || bs.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Bien support introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerAsync(bs, ct);
+    return Results.NoContent();
+});
+
+// --- Bibliotheque : evenements redoutes types (Atelier 1) -----------------
+static object VueEvenementRedouteBiblio(EvenementRedouteBibliotheque e) => new
+{
+    e.Id, systeme = e.EstSysteme, e.Intitule, e.GraviteIndicative, e.ImpactsTypes,
+};
+
+app.MapGet("/api/v1/bibliotheque/evenements-redoutes", async (
+    string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<EvenementRedouteBibliotheque> items = CatalogueSysteme.EvenementsRedoutes
+        .Concat(await repo.ListerAsync<EvenementRedouteBibliotheque>(moiId.Value, ct));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        items = items.Where(e => Contient(e.Intitule, terme) || Contient(e.ImpactsTypes, terme));
+    }
+
+    return Results.Ok(items.OrderBy(e => e.EstSysteme ? 1 : 0).ThenBy(e => e.Intitule).Select(VueEvenementRedouteBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/evenements-redoutes", async (
+    AjouterEvenementRedouteBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    try
+    {
+        var er = EvenementRedouteBibliotheque.Creer(moiId.Value, request.Intitule, request.GraviteIndicative, request.ImpactsTypes);
+        await repo.AjouterAsync(er, ct);
+        return Results.Created($"/api/v1/bibliotheque/evenements-redoutes/{er.Id}", VueEvenementRedouteBiblio(er));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/evenements-redoutes/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var er = await repo.ObtenirAsync<EvenementRedouteBibliotheque>(id, ct);
+    if (er is null || er.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Evenement redoute introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerAsync(er, ct);
     return Results.NoContent();
 });
 
@@ -3086,6 +3331,12 @@ record AjouterMesureBiblioRequest(string? Referentiel, string? Code, string Titr
 record AjouterSourceRisqueBiblioRequest(
     string SourceRisque, string DescriptionSourceRisque, string ObjectifVise, string DescriptionObjectifVise,
     string? Theme, int? MotivationTypique, int? RessourcesTypiques);
+record AjouterPartiePrenanteBiblioRequest(
+    string Nom, string Categorie, string? DescriptionCategorie, string RolesEtAttentes, string? Representant,
+    int? DependanceTypique, int? PenetrationTypique, int? MaturiteCyberTypique, int? ConfianceTypique);
+record AjouterValeurMetierBiblioRequest(string Intitule, string? NatureOuFinalite, string? EntiteProprietaireTypique);
+record AjouterBienSupportBiblioRequest(string Intitule, string Type, string? EntiteProprietaireTypique, string? Description);
+record AjouterEvenementRedouteBiblioRequest(string Intitule, int? GraviteIndicative, string? ImpactsTypes);
 record AjouterMembreRequest(string Email, string Role);
 record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);

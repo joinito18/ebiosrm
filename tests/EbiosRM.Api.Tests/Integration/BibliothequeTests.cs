@@ -121,4 +121,64 @@ public class BibliothequeTests : IClassFixture<EbiosApiFactory>
         });
         Assert.Equal(HttpStatusCode.BadRequest, mauvais.StatusCode);
     }
+
+    [Fact]
+    public async Task Parties_prenantes_catalogue_plus_perso_isole()
+    {
+        var alice = await NouveauCompteAsync(_factory, "biblio-pp-a");
+        var bob = await NouveauCompteAsync(_factory, "biblio-pp-b");
+
+        var catalogue = await (await alice.GetAsync("/api/v1/bibliotheque/parties-prenantes")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(catalogue.GetArrayLength() >= 15);
+        Assert.All(catalogue.EnumerateArray(), p => Assert.True(p.GetProperty("systeme").GetBoolean()));
+        Assert.Contains(catalogue.EnumerateArray(), p => p.GetProperty("nom").GetString() == "Infogéreur");
+
+        var ajout = await alice.PostAsJsonAsync("/api/v1/bibliotheque/parties-prenantes", new
+        {
+            Nom = "Prestataire de scan de vulnérabilités",
+            Categorie = "Prestataire",
+            RolesEtAttentes = "Audit technique périodique du SI exposé",
+            DependanceTypique = 2,
+            PenetrationTypique = 3,
+        });
+        Assert.Equal(HttpStatusCode.Created, ajout.StatusCode);
+        var id = (await ajout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var vueAlice = await (await alice.GetAsync("/api/v1/bibliotheque/parties-prenantes?q=scan")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(vueAlice.EnumerateArray(), p => p.GetProperty("id").GetGuid() == id && p.GetProperty("penetrationTypique").GetInt32() == 3);
+
+        var vueBob = await (await bob.GetAsync("/api/v1/bibliotheque/parties-prenantes")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.DoesNotContain(vueBob.EnumerateArray(), p => p.GetProperty("id").GetGuid() == id);
+        Assert.Equal(HttpStatusCode.NotFound, (await bob.DeleteAsync($"/api/v1/bibliotheque/parties-prenantes/{id}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await alice.DeleteAsync($"/api/v1/bibliotheque/parties-prenantes/{id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Valeurs_metier_biens_support_evenements_redoutes_catalogues_fournis()
+    {
+        var c = await NouveauCompteAsync(_factory, "biblio-a1");
+
+        var vm = await (await c.GetAsync("/api/v1/bibliotheque/valeurs-metier")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(vm.GetArrayLength() >= 15);
+
+        var bs = await (await c.GetAsync("/api/v1/bibliotheque/biens-support?type=Reseau")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(bs.GetArrayLength() >= 3);
+        Assert.All(bs.EnumerateArray(), b => Assert.Equal("Reseau", b.GetProperty("type").GetString()));
+
+        var er = await (await c.GetAsync("/api/v1/bibliotheque/evenements-redoutes?q=rançongiciel")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(1, er.GetArrayLength());
+        Assert.Equal(4, er[0].GetProperty("graviteIndicative").GetInt32());
+
+        // Ajout perso + gravité indicative hors échelle rejetée.
+        var ok = await c.PostAsJsonAsync("/api/v1/bibliotheque/evenements-redoutes", new { Intitule = "Perte du contrat cadre", GraviteIndicative = 3, ImpactsTypes = "Financier" });
+        Assert.Equal(HttpStatusCode.Created, ok.StatusCode);
+        var ko = await c.PostAsJsonAsync("/api/v1/bibliotheque/evenements-redoutes", new { Intitule = "x", GraviteIndicative = 9 });
+        Assert.Equal(HttpStatusCode.BadRequest, ko.StatusCode);
+
+        var vmAjout = await c.PostAsJsonAsync("/api/v1/bibliotheque/valeurs-metier", new { Intitule = "Processus d'homologation", NatureOuFinalite = "Processus" });
+        Assert.Equal(HttpStatusCode.Created, vmAjout.StatusCode);
+        var vmId = (await vmAjout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/v1/bibliotheque/valeurs-metier/{vmId}")).StatusCode);
+    }
 }

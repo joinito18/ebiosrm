@@ -35,6 +35,10 @@ public class EbiosDbContext : DbContext
     public DbSet<EtudeMembre> EtudeMembres => Set<EtudeMembre>();
     public DbSet<MesureBibliotheque> MesuresBibliotheque => Set<MesureBibliotheque>();
     public DbSet<SourceRisqueBibliotheque> SourcesRisqueBibliotheque => Set<SourceRisqueBibliotheque>();
+    public DbSet<PartiePrenanteBibliotheque> PartiesPrenantesBibliotheque => Set<PartiePrenanteBibliotheque>();
+    public DbSet<ValeurMetierBibliotheque> ValeursMetierBibliotheque => Set<ValeurMetierBibliotheque>();
+    public DbSet<BienSupportBibliotheque> BiensSupportBibliotheque => Set<BienSupportBibliotheque>();
+    public DbSet<EvenementRedouteBibliotheque> EvenementsRedoutesBibliotheque => Set<EvenementRedouteBibliotheque>();
     public DbSet<IndicateurSuivi> IndicateursSuivi => Set<IndicateurSuivi>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -421,6 +425,60 @@ public class EbiosDbContext : DbContext
             entity.Property(s => s.CreeLeUtc).IsRequired();
             entity.Ignore(s => s.EstSysteme);
             entity.HasIndex(s => s.ProprietaireId);
+        });
+
+        modelBuilder.Entity<PartiePrenanteBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_parties_prenantes");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.ProprietaireId).IsRequired();
+            entity.Property(p => p.Nom).IsRequired().HasMaxLength(300);
+            entity.Property(p => p.Categorie).IsRequired().HasConversion<string>().HasMaxLength(30);
+            entity.Property(p => p.DescriptionCategorie).HasMaxLength(200);
+            entity.Property(p => p.RolesEtAttentes).IsRequired().HasMaxLength(2000);
+            entity.Property(p => p.Representant).HasMaxLength(200);
+            entity.Property(p => p.CreeLeUtc).IsRequired();
+            entity.Ignore(p => p.EstSysteme);
+            entity.HasIndex(p => p.ProprietaireId);
+        });
+
+        modelBuilder.Entity<ValeurMetierBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_valeurs_metier");
+            entity.HasKey(v => v.Id);
+            entity.Property(v => v.ProprietaireId).IsRequired();
+            entity.Property(v => v.Intitule).IsRequired().HasMaxLength(500);
+            entity.Property(v => v.NatureOuFinalite).HasMaxLength(200);
+            entity.Property(v => v.EntiteProprietaireTypique).HasMaxLength(300);
+            entity.Property(v => v.CreeLeUtc).IsRequired();
+            entity.Ignore(v => v.EstSysteme);
+            entity.HasIndex(v => v.ProprietaireId);
+        });
+
+        modelBuilder.Entity<BienSupportBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_biens_support");
+            entity.HasKey(b => b.Id);
+            entity.Property(b => b.ProprietaireId).IsRequired();
+            entity.Property(b => b.Intitule).IsRequired().HasMaxLength(500);
+            entity.Property(b => b.Type).IsRequired().HasConversion<string>().HasMaxLength(30);
+            entity.Property(b => b.EntiteProprietaireTypique).HasMaxLength(300);
+            entity.Property(b => b.Description).HasMaxLength(2000);
+            entity.Property(b => b.CreeLeUtc).IsRequired();
+            entity.Ignore(b => b.EstSysteme);
+            entity.HasIndex(b => b.ProprietaireId);
+        });
+
+        modelBuilder.Entity<EvenementRedouteBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_evenements_redoutes");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ProprietaireId).IsRequired();
+            entity.Property(e => e.Intitule).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.ImpactsTypes).HasMaxLength(500);
+            entity.Property(e => e.CreeLeUtc).IsRequired();
+            entity.Ignore(e => e.EstSysteme);
+            entity.HasIndex(e => e.ProprietaireId);
         });
 
         base.OnModelCreating(modelBuilder);

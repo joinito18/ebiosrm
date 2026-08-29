@@ -313,6 +313,106 @@ export function supprimerSourceRisqueBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/sources-risque/' + id, { method: 'DELETE' })
 }
 
+export interface PartiePrenanteBiblio {
+  id: string
+  systeme: boolean
+  nom: string
+  categorie: string
+  descriptionCategorie: string | null
+  rolesEtAttentes: string
+  representant: string | null
+  dependanceTypique: number | null
+  penetrationTypique: number | null
+  maturiteCyberTypique: number | null
+  confianceTypique: number | null
+}
+
+export function listerPartiesPrenantesBiblio(q?: string): Promise<PartiePrenanteBiblio[]> {
+  return apiFetch('/bibliotheque/parties-prenantes' + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function ajouterPartiePrenanteBiblio(p: {
+  nom: string; categorie: string; descriptionCategorie?: string | null; rolesEtAttentes: string; representant?: string | null
+  dependanceTypique?: number | null; penetrationTypique?: number | null; maturiteCyberTypique?: number | null; confianceTypique?: number | null
+}): Promise<PartiePrenanteBiblio> {
+  return apiFetch('/bibliotheque/parties-prenantes', { method: 'POST', body: JSON.stringify(p) })
+}
+
+export function supprimerPartiePrenanteBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/parties-prenantes/' + id, { method: 'DELETE' })
+}
+
+export interface ValeurMetierBiblio {
+  id: string
+  systeme: boolean
+  intitule: string
+  natureOuFinalite: string | null
+  entiteProprietaireTypique: string | null
+}
+
+export function listerValeursMetierBiblio(q?: string): Promise<ValeurMetierBiblio[]> {
+  return apiFetch('/bibliotheque/valeurs-metier' + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function ajouterValeurMetierBiblio(v: {
+  intitule: string; natureOuFinalite?: string | null; entiteProprietaireTypique?: string | null
+}): Promise<ValeurMetierBiblio> {
+  return apiFetch('/bibliotheque/valeurs-metier', { method: 'POST', body: JSON.stringify(v) })
+}
+
+export function supprimerValeurMetierBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/valeurs-metier/' + id, { method: 'DELETE' })
+}
+
+export interface BienSupportBiblio {
+  id: string
+  systeme: boolean
+  intitule: string
+  type: string
+  entiteProprietaireTypique: string | null
+  description: string | null
+}
+
+export function listerBiensSupportBiblio(type?: string, q?: string): Promise<BienSupportBiblio[]> {
+  var params = new URLSearchParams()
+  if (type) params.set('type', type)
+  if (q) params.set('q', q)
+  var suffixe = params.toString() ? '?' + params.toString() : ''
+  return apiFetch('/bibliotheque/biens-support' + suffixe)
+}
+
+export function ajouterBienSupportBiblio(b: {
+  intitule: string; type: string; entiteProprietaireTypique?: string | null; description?: string | null
+}): Promise<BienSupportBiblio> {
+  return apiFetch('/bibliotheque/biens-support', { method: 'POST', body: JSON.stringify(b) })
+}
+
+export function supprimerBienSupportBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/biens-support/' + id, { method: 'DELETE' })
+}
+
+export interface EvenementRedouteBiblio {
+  id: string
+  systeme: boolean
+  intitule: string
+  graviteIndicative: number | null
+  impactsTypes: string | null
+}
+
+export function listerEvenementsRedoutesBiblio(q?: string): Promise<EvenementRedouteBiblio[]> {
+  return apiFetch('/bibliotheque/evenements-redoutes' + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function ajouterEvenementRedouteBiblio(e: {
+  intitule: string; graviteIndicative?: number | null; impactsTypes?: string | null
+}): Promise<EvenementRedouteBiblio> {
+  return apiFetch('/bibliotheque/evenements-redoutes', { method: 'POST', body: JSON.stringify(e) })
+}
+
+export function supprimerEvenementRedouteBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/evenements-redoutes/' + id, { method: 'DELETE' })
+}
+
 // --- Cartographie graphique de l'Atelier 3 (SVG genere cote serveur) ---
 
 export type CartographieType = 'ecosysteme' | 'chemins-attaque'

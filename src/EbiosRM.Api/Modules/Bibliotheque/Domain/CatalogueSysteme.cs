@@ -1,3 +1,4 @@
+using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 
 namespace EbiosRM.Api.Modules.Bibliotheque.Domain;
@@ -116,5 +117,121 @@ public static class CatalogueSysteme
             "Attaquant opportuniste peu qualifié",
             CategorieObjectifVise.DefiAmusement,
             "Exploitation de vulnérabilités connues par jeu ou par défi", "Technologique", 2, 1),
+    };
+
+    // --- Parties prenantes types de l'écosystème (Atelier 3) -----------------
+    // Les 4 niveaux (dépendance / pénétration / maturité cyber / confiance) sont
+    // sur l'échelle 1..4 et restent INDICATIFS : ils pré-remplissent l'évaluation
+    // de la dangerosité, l'analyste les confirme dans son contexte.
+    private static PartiePrenanteBibliotheque PP(
+        string cle, string nom, CategoriePartiePrenante cat, string roles, int dep, int pen, int mat, int conf, string? descCat = null)
+        => PartiePrenanteBibliotheque.Systeme(cle, nom, cat, descCat, roles, dep, pen, mat, conf);
+
+    public static readonly IReadOnlyList<PartiePrenanteBibliotheque> PartiesPrenantes = new[]
+    {
+        PP("infogerant", "Infogéreur", CategoriePartiePrenante.Prestataire,
+            "Exploitation et administration de tout ou partie du système d'information", 4, 4, 3, 3),
+        PP("hebergeur-iaas", "Hébergeur cloud (IaaS/PaaS)", CategoriePartiePrenante.Prestataire,
+            "Hébergement des serveurs et des données dans une infrastructure mutualisée", 4, 3, 4, 3),
+        PP("editeur-saas", "Éditeur de logiciel SaaS métier", CategoriePartiePrenante.Prestataire,
+            "Fourniture d'une application métier en ligne hébergeant des données de l'organisation", 3, 3, 3, 3),
+        PP("tma", "Prestataire de tierce maintenance applicative", CategoriePartiePrenante.Prestataire,
+            "Correction et évolution des applications, avec accès au code et aux environnements", 3, 3, 2, 2),
+        PP("operateur-telecom", "Opérateur télécom / fournisseur d'accès", CategoriePartiePrenante.Prestataire,
+            "Fourniture des liens réseau et de l'accès à Internet", 4, 2, 3, 3),
+        PP("mainteneur-ot", "Mainteneur d'équipements industriels (OT)", CategoriePartiePrenante.Prestataire,
+            "Maintenance des automates et systèmes industriels, souvent par accès distant", 3, 3, 2, 2),
+        PP("soc-mssp", "Prestataire de SOC / MSSP", CategoriePartiePrenante.Prestataire,
+            "Supervision de sécurité, détection et réponse aux incidents", 3, 4, 4, 3),
+        PP("sous-traitant-paie", "Sous-traitant paie / gestion RH", CategoriePartiePrenante.Prestataire,
+            "Production de la paie et gestion administrative du personnel", 2, 2, 2, 3),
+        PP("cabinet-comptable", "Cabinet comptable / commissaire aux comptes", CategoriePartiePrenante.Partenaire,
+            "Tenue ou révision de la comptabilité, accès aux données financières", 2, 1, 2, 3),
+        PP("regulateur", "Autorité de tutelle / régulateur", CategoriePartiePrenante.Autre,
+            "Contrôle du respect d'obligations réglementaires sectorielles", 2, 1, 3, 4,
+            "Autorité publique"),
+        PP("maison-mere", "Maison mère / groupe", CategoriePartiePrenante.Partenaire,
+            "Pilotage groupe, services partagés et interconnexions SI", 3, 3, 3, 4),
+        PP("partenaire-edi", "Partenaire d'échange de données (EDI / API)", CategoriePartiePrenante.Partenaire,
+            "Échanges automatisés de données métier de système à système", 3, 2, 2, 2),
+        PP("prestataire-archivage", "Prestataire d'archivage / éditique", CategoriePartiePrenante.Prestataire,
+            "Impression, mise sous pli et conservation de documents", 2, 2, 2, 3),
+        PP("gardiennage", "Prestataire de gardiennage / nettoyage", CategoriePartiePrenante.Prestataire,
+            "Accès physique récurrent aux locaux, hors heures ouvrées", 1, 2, 1, 2),
+        PP("client-grand-compte", "Client grand compte intégré", CategoriePartiePrenante.Client,
+            "Client disposant d'un accès à un portail ou d'une intégration SI dédiée", 2, 2, 3, 3),
+    };
+
+    // --- Valeurs métier types (Atelier 1) -----------------------------------
+    private static ValeurMetierBibliotheque VM(string cle, string intitule, string nature, string entite)
+        => ValeurMetierBibliotheque.Systeme(cle, intitule, nature, entite);
+
+    public static readonly IReadOnlyList<ValeurMetierBibliotheque> ValeursMetier = new[]
+    {
+        VM("paie", "Processus de paie et d'administration du personnel", "Processus", "Direction des ressources humaines"),
+        VM("facturation", "Processus de facturation et de recouvrement", "Processus", "Direction financière"),
+        VM("production", "Processus de production / chaîne industrielle", "Processus", "Direction industrielle"),
+        VM("vente", "Processus de vente et de prise de commande", "Processus", "Direction commerciale"),
+        VM("rd", "Processus de R&D et de conception produit", "Processus", "Direction R&D"),
+        VM("logistique", "Processus logistique et supply chain", "Processus", "Direction supply chain"),
+        VM("sav", "Processus de support et de relation client", "Processus", "Direction de la relation client"),
+        VM("services-numeriques", "Site web et services numériques exposés", "Processus", "Direction du numérique"),
+        VM("crm", "Référentiel clients (CRM)", "Information", "Direction commerciale"),
+        VM("donnees-salaries", "Données personnelles des salariés", "Information", "Direction des ressources humaines"),
+        VM("pi", "Propriété intellectuelle et savoir-faire", "Information", "Direction R&D"),
+        VM("donnees-financieres", "Données financières et comptables", "Information", "Direction financière"),
+        VM("contrats", "Contrats et engagements juridiques", "Information", "Direction juridique"),
+        VM("donnees-sante", "Données de santé des patients", "Information", "Direction des soins"),
+        VM("parametres-production", "Données et paramètres de production industrielle", "Information", "Direction industrielle"),
+    };
+
+    // --- Biens support types (Atelier 1) -----------------------------------
+    private static BienSupportBibliotheque BS(string cle, string intitule, TypeBienSupport type, string entite)
+        => BienSupportBibliotheque.Systeme(cle, intitule, type, entite);
+
+    public static readonly IReadOnlyList<BienSupportBibliotheque> BiensSupport = new[]
+    {
+        BS("annuaire", "Annuaire d'entreprise (Active Directory / LDAP)", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("messagerie", "Messagerie électronique", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("erp", "ERP / progiciel de gestion intégré", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("poste-travail", "Poste de travail bureautique", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("serveur-fichiers", "Serveur de fichiers / partage réseau", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("site-web", "Site web / plateforme e-commerce", TypeBienSupport.SystemeInformation, "Direction du numérique"),
+        BS("sauvegardes", "Sauvegardes et système de restauration", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("virtualisation", "Hyperviseur / infrastructure de virtualisation", TypeBienSupport.SystemeInformation, "Direction des systèmes d'information"),
+        BS("lan", "Réseau local (LAN) et équipements actifs", TypeBienSupport.Reseau, "Direction des systèmes d'information"),
+        BS("wan", "Interconnexion opérateur / WAN / VPN", TypeBienSupport.Reseau, "Direction des systèmes d'information"),
+        BS("wifi", "Réseau Wi-Fi", TypeBienSupport.Reseau, "Direction des systèmes d'information"),
+        BS("scada", "Système industriel / SCADA / automates", TypeBienSupport.Reseau, "Direction industrielle"),
+        BS("equipe-admin", "Équipe d'administration système et réseau", TypeBienSupport.RessourcesHumaines, "Direction des systèmes d'information"),
+        BS("infogerant-rh", "Prestataire d'infogérance", TypeBienSupport.RessourcesHumaines, "Direction des systèmes d'information"),
+        BS("developpeurs", "Développeurs / équipe applicative", TypeBienSupport.RessourcesHumaines, "Direction des systèmes d'information"),
+        BS("salle-serveurs", "Salle serveurs / centre de données", TypeBienSupport.Local, "Services généraux"),
+        BS("bureaux", "Locaux de bureaux", TypeBienSupport.Local, "Services généraux"),
+        BS("site-industriel", "Site industriel / usine", TypeBienSupport.Local, "Direction industrielle"),
+    };
+
+    // --- Événements redoutés types (Atelier 1) -----------------------------
+    // Gravité INDICATIVE sur l'échelle EBIOS RM 1..4, à réajuster au contexte.
+    private static EvenementRedouteBibliotheque ER(string cle, string intitule, int gravite, string impacts)
+        => EvenementRedouteBibliotheque.Systeme(cle, intitule, gravite, impacts);
+
+    public static readonly IReadOnlyList<EvenementRedouteBibliotheque> EvenementsRedoutes = new[]
+    {
+        ER("indispo-si", "Indisponibilité prolongée du SI de production", 4, "Financier, Opérationnel, Image"),
+        ER("rancongiciel", "Chiffrement de l'ensemble du SI par rançongiciel", 4, "Financier, Opérationnel, Image, Juridique"),
+        ER("fuite-clients", "Divulgation du fichier clients", 3, "Juridique, Image, Financier"),
+        ER("fuite-salaries", "Fuite de données personnelles des salariés", 3, "Juridique (RGPD), Image, Social"),
+        ER("vol-pi", "Vol de propriété intellectuelle / secrets industriels", 4, "Concurrentiel, Financier, Stratégique"),
+        ER("alteration-facturation", "Altération des données de facturation", 3, "Financier, Juridique, Opérationnel"),
+        ER("fraude-virement", "Fraude au virement / compromission de la chaîne comptable", 3, "Financier, Image"),
+        ER("indispo-ecommerce", "Indisponibilité du site e-commerce en période critique", 3, "Financier, Image"),
+        ER("arret-production", "Arrêt de la chaîne de production industrielle", 4, "Financier, Opérationnel, Sécurité des personnes"),
+        ER("fuite-sante", "Divulgation de données de santé de patients", 4, "Juridique, Image, Éthique"),
+        ER("defiguration", "Défiguration du site web institutionnel", 2, "Image"),
+        ER("compromission-admin", "Compromission des comptes à privilèges (administrateurs)", 4, "Opérationnel, Confidentialité, Intégrité"),
+        ER("perte-donnees", "Perte définitive de données faute de sauvegarde exploitable", 4, "Opérationnel, Financier, Juridique"),
+        ER("usurpation-marque", "Usurpation de l'identité numérique de l'organisation", 2, "Image, Financier (clients)"),
+        ER("non-conformite", "Non-conformité réglementaire entraînant une sanction", 3, "Juridique, Financier, Image"),
     };
 }
