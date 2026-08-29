@@ -48,7 +48,7 @@ import {
   ajouterMesureTraitementRisque, modifierMesureTraitementRisque, supprimerMesureTraitementRisque,
   listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, listerMesuresBiblio, ajouterMesureBiblio,
   listerPartiesPrenantesBiblio, listerValeursMetierBiblio, listerBiensSupportBiblio, listerEvenementsRedoutesBiblio,
-  listerModesOperatoiresBiblio,
+  listerModesOperatoiresBiblio, suggererMesuresBiblio,
   ApiError,
 } from '../lib/api'
 import type {
@@ -57,7 +57,7 @@ import type {
   ScenarioDeRisque, PlanTraitementRisque, MesureTraitementRisque, MesureTraitementRisqueInput,
   SourceRisqueBiblio, MesureBiblio,
   PartiePrenanteBiblio, ValeurMetierBiblio, BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio,
-  PhaseActionElementaire,
+  PhaseActionElementaire, SuggestionMesure,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
@@ -2948,9 +2948,61 @@ var AXES_MESURE = ['Gouvernance', 'Protection', 'Defense', 'Resilience']
 var LIBELLE_COUT_COMPLEXITE: { [key: string]: string } = { Plus: '+ (Faible)', PlusPlus: '++ (Modere)', PlusPlusPlus: '+++ (Eleve)' }
 var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', EnCours: 'En cours', Termine: 'Termine' }
 
+function SuggestionsMesuresBiblio(props: { etudeId: string; nbMesures: number; onUtiliser: (titre: string) => void }) {
+  var [suggestions, setSuggestions] = useState<SuggestionMesure[]>([])
+  var [ouvert, setOuvert] = useState(false)
+  var [charge, setCharge] = useState(false)
+  var lectureSeule = useLectureSeule()
+
+  useEffect(function () {
+    if (!ouvert || charge) return
+    suggererMesuresBiblio(props.etudeId)
+      .then(function (s) { setSuggestions(s); setCharge(true) })
+      .catch(function () { setCharge(true) })
+  }, [ouvert, props.nbMesures])
+
+  if (lectureSeule) return null
+
+  return (
+    <div className="border border-paper-line bg-paper-dim p-3">
+      <button type="button" onClick={function () { setOuvert(!ouvert); setCharge(false) }} className="font-mono text-[10px] tracking-wide text-signature hover:underline">
+        {ouvert ? '−' : '+'} SUGGESTIONS DE MESURES DE LA BIBLIOTHEQUE
+      </button>
+      {ouvert && (
+        <div className="mt-2">
+          {!charge ? (
+            <p className="text-xs text-steel">Analyse du contenu de l etude...</p>
+          ) : suggestions.length === 0 ? (
+            <p className="text-xs text-steel-light">Aucune suggestion (renseignez d abord les evenements redoutes, biens support et couples SR/OV).</p>
+          ) : (
+            <ul className="divide-y divide-paper-line">
+              {suggestions.map(function (s) {
+                return (
+                  <li key={s.mesure.id} className="flex items-start justify-between gap-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-xs text-ink">{s.mesure.code ? s.mesure.code + ' -- ' : ''}{s.mesure.titre}</div>
+                      <div className="mt-0.5 font-mono text-[9px] text-steel-light">
+                        {LIBELLE_REFERENTIEL_MESURE[s.mesure.referentiel] || s.mesure.referentiel} -- lie a : {s.motsCles.join(', ')}
+                      </div>
+                    </div>
+                    <button type="button" onClick={function () { props.onUtiliser(s.mesure.code ? s.mesure.titre + ' (' + s.mesure.code + ')' : s.mesure.titre) }} className="shrink-0 border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">
+                      Utiliser
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitementRisque | null; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var [enCours, setEnCours] = useState(false)
   var [erreur, setErreur] = useState('')
+  var [graine, setGraine] = useState<{ titre: string; n: number } | null>(null)
   var lectureSeulePlan = useLectureSeule()
 
   function creerPlan() {
@@ -2987,7 +3039,8 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
               </div>
             )
           })}
-          <AjoutMesureTraitementRisque etudeId={props.etudeId} scenariosDeRisque={props.scenariosDeRisque} onChange={props.onChange} />
+          <SuggestionsMesuresBiblio etudeId={props.etudeId} nbMesures={props.plan.mesures.length} onUtiliser={function (titre) { setGraine({ titre: titre, n: Date.now() }) }} />
+          <AjoutMesureTraitementRisque etudeId={props.etudeId} scenariosDeRisque={props.scenariosDeRisque} onChange={props.onChange} graine={graine} />
         </div>
       )}
     </section>
@@ -3122,9 +3175,13 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
 
 var LIBELLE_REFERENTIEL_MESURE: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
 
-export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
+export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void; graine?: { titre: string; n: number } | null }) {
   var [description, setDescription] = useState('')
   var [axe, setAxe] = useState('Gouvernance')
+
+  useEffect(function () {
+    if (props.graine) setDescription(props.graine.titre)
+  }, [props.graine ? props.graine.n : 0])
   var [selecteurBiblio, setSelecteurBiblio] = useState(false)
   var [refBiblio, setRefBiblio] = useState('')
   var [scenariosIds, setScenariosIds] = useState<string[]>([])
@@ -3159,7 +3216,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
   }
 
   return (
-    <InlineForm label="Ajouter une mesure de traitement">
+    <InlineForm label="Ajouter une mesure de traitement" signalOuvrir={props.graine ? props.graine.n : undefined}>
       {function (fermer) {
         return (
           <div className="space-y-1.5">

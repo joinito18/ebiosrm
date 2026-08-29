@@ -183,6 +183,42 @@ public class BibliothequeTests : IClassFixture<EbiosApiFactory>
     }
 
     [Fact]
+    public async Task Suggestions_de_mesures_croisent_le_contenu_de_l_etude()
+    {
+        var c = await NouveauCompteAsync(_factory, "biblio-suggest");
+
+        // Etude vide -> aucune suggestion (pas de contexte).
+        var vide = (await (await c.PostAsJsonAsync("/api/v1/etudes", new { Nom = "Vide", Perimetre = "P", Mission = "M" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        var suggVide = await (await c.GetAsync($"/api/v1/etudes/{vide}/suggestions/mesures")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(0, suggVide.GetArrayLength());
+
+        // Etude avec un evenement redoute riche en mots-cles presents dans ISO 27002.
+        var etudeId = (await (await c.PostAsJsonAsync("/api/v1/etudes", new { Nom = "Contextuelle", Perimetre = "P", Mission = "M" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await c.PostAsync($"/api/v1/etudes/{etudeId}/demarrer-atelier1", null);
+        var vmId = (await (await c.PostAsJsonAsync($"/api/v1/etudes/{etudeId}/valeurs-metier",
+            new { Description = "Annuaire", EntiteProprietaire = "DSI" })).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        await c.PostAsJsonAsync($"/api/v1/etudes/{etudeId}/valeurs-metier/{vmId}/biens-support",
+            new { Description = "Serveurs de sauvegarde et journalisation", Type = "SystemeInformation", EntiteProprietaire = "DSI" });
+        await c.PostAsJsonAsync($"/api/v1/etudes/{etudeId}/valeurs-metier/{vmId}/evenements-redoutes",
+            new { Description = "Divulgation d'informations confidentielles faute de controle d'acces et de chiffrement", Gravite = 4 });
+
+        var suggestions = await (await c.GetAsync($"/api/v1/etudes/{etudeId}/suggestions/mesures")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(suggestions.GetArrayLength() > 0, "Des mesures ISO 27002 devraient remonter (chiffrement, controle d'acces, sauvegarde...).");
+
+        foreach (var s in suggestions.EnumerateArray())
+        {
+            Assert.True(s.GetProperty("score").GetInt32() > 0);
+            Assert.True(s.GetProperty("motsCles").GetArrayLength() > 0);
+            Assert.False(string.IsNullOrWhiteSpace(s.GetProperty("mesure").GetProperty("titre").GetString()));
+        }
+        // La liste est triee par score decroissant.
+        var scores = suggestions.EnumerateArray().Select(s => s.GetProperty("score").GetInt32()).ToList();
+        Assert.Equal(scores.OrderByDescending(x => x), scores);
+    }
+
+    [Fact]
     public async Task Modes_operatoires_catalogue_avec_actions_et_ajout_perso()
     {
         var c = await NouveauCompteAsync(_factory, "biblio-mo");

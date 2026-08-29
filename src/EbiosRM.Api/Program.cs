@@ -173,6 +173,7 @@ builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
 builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<IBibliothequeRepository, BibliothequeRepository>();
 builder.Services.AddScoped<EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Bibliotheque.ServiceSuggestionsBibliotheque>();
 builder.Services.AddScoped<EbiosRM.Api.Modules.Conformite.ServiceConformite>();
 builder.Services.AddScoped<RapportConformitePdfGenerator>();
 builder.Services.AddScoped<IIndicateurSuiviRepository, IndicateurSuiviRepository>();
@@ -1255,6 +1256,25 @@ app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/signaler", async (
 // embarques (frontend/src/guides/*.md). Meme contenu que l'aide en ligne.
 app.MapGet("/api/v1/aide/manuel.pdf", (ManuelPdfGenerator generateur) =>
     Results.File(generateur.Generer(), "application/pdf", "manuel-ebiosrm.pdf"));
+
+// Suggestions de mesures de la bibliotheque pertinentes pour l'etude (croise
+// les mots-cles du contenu de l'etude avec les mesures candidates). Route avec
+// etudeId -> passe par le controle d'acces.
+app.MapGet("/api/v1/etudes/{id:guid}/suggestions/mesures", async (
+    Guid id, int? limite, EbiosRM.Api.Modules.Bibliotheque.ServiceSuggestionsBibliotheque service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var suggestions = await service.SuggererMesuresAsync(id, moiId.Value, Math.Clamp(limite ?? 8, 1, 20), ct);
+    return Results.Ok(suggestions.Select(s => new
+    {
+        mesure = VueMesureBiblio(s.Mesure),
+        s.Score,
+        motsCles = s.MotsCles,
+    }));
+});
 
 // Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans
 // le code. Filtre optionnel par phase EBIOS RM (Connaitre/Rentrer/Trouver/

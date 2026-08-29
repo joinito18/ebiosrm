@@ -447,6 +447,16 @@ export function supprimerModeOperatoireBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/modes-operatoires/' + id, { method: 'DELETE' })
 }
 
+export interface SuggestionMesure {
+  mesure: MesureBiblio
+  score: number
+  motsCles: string[]
+}
+
+export function suggererMesuresBiblio(etudeId: string): Promise<SuggestionMesure[]> {
+  return apiFetch('/etudes/' + etudeId + '/suggestions/mesures')
+}
+
 // --- Bibliotheque communautaire ---
 
 export interface EntreeCommunaute {

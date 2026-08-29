@@ -2458,5 +2458,16 @@ Demande utilisateur : « ajoutons les bibliothèques pour tous » + guides d'uti
 
 **→ Chantier « bibliothèques pour tous + guides » terminé (5 commits, branche `feat/bibliotheques-etendues`).**
 
+## Mise à jour — Suggestions contextuelles de la bibliothèque (2026-08-29, branche `feat/suggestions-et-traduction`)
+
+Demande : rendre la bibliothèque plus « proposée » (l'utilisateur a demandé si les infos de la bibliothèque sont proposées pendant une étude → elles l'étaient uniquement via le bouton « Depuis la bibliothèque », pas de suggestion contextuelle).
+
+- **`Modules/Bibliotheque/ServiceSuggestionsBibliotheque.cs`** (scoped) : `SuggererMesuresAsync(etudeId, proprietaireId, limite, ct)`. Construit un sac de mots-clés du contenu de l'étude (descriptions des événements redoutés + biens support + type + couples SR/OV + chemins d'attaque), tokenise (sans accents, minuscules, ≥ 4 lettres, stop-words FR/EN), puis score chaque mesure candidate (catalogue système + biblio perso) = `2 × (mots-clés communs) − (recouvrement avec les mesures déjà au plan)`. Retour trié par score décroissant, chaque suggestion porte les mots-clés qui l'ont fait remonter. Déterministe, explicable, sans dépendance.
+- **`IBibliothequeRepository`** inchangé (réutilise `ListerAsync<MesureBibliotheque>`).
+- **Endpoint** `GET /api/v1/etudes/{id}/suggestions/mesures?limite=` (route avec etudeId → passe le contrôle d'accès). `VueMesureBiblio` réutilisée.
+- **Frontend** : `AtelierPage.tsx` — nouveau `SuggestionsMesuresBiblio` (panneau dépliable dans `PlanTraitementRisqueSection`, sous le plan) : liste les mesures suggérées avec « lié à : <mots-clés> » + bouton **« Utiliser »**. « Utiliser » → `graine {titre, n}` remontée à `PlanTraitementRisqueSection`, passée à `AjoutMesureTraitementRisque` (nouveau prop `graine`, `useEffect` sur `graine.n` → `setDescription`) + `InlineForm` gagne un prop `signalOuvrir` (`useEffect` → `setOuvert(true)`) pour ouvrir le formulaire automatiquement. `api.ts` : `SuggestionMesure` + `suggererMesuresBiblio`.
+- **Tests** : `BibliothequeTests.Suggestions_de_mesures_croisent_le_contenu_de_l_etude` (étude vide → 0 suggestion ; étude avec ER « divulgation… contrôle d'accès… chiffrement… journalisation » → mesures ISO 27002 pertinentes, triées par score). 269 backend, 25 frontend. Playwright : panneau OK sur A5 (8 suggestions ISO/hygiène pertinentes), « Utiliser » ouvre le formulaire et pré-remplit « Contrôle d'accès (A.5.15) ».
+- **Extensible** : même principe possible pour les modes opératoires (A4) / parties prenantes (A3) — pas fait dans cette passe.
+
 *Fin du contexte.*
 
