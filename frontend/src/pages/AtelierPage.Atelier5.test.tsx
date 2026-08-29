@@ -250,6 +250,7 @@ describe('PlanTraitementRisqueSection', function () {
       expect(ajouterMesureTraitementRisque).toHaveBeenCalledWith('e1', {
         description: 'Chiffrement des flux', axe: 'Gouvernance', scenariosDeRisqueIds: ['s1'],
         responsable: 'RSSI', freinsEtDifficultes: null, coutComplexite: 'Plus', echeance: null, statut: 'ALancer',
+        codesConformite: [],
       })
       expect(onChange).toHaveBeenCalled()
     })

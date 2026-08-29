@@ -15,109 +15,16 @@ namespace EbiosRM.Api.Modules.Bibliotheque.Domain;
 /// </summary>
 public static class CatalogueSysteme
 {
-    private static MesureBibliotheque M(string code, string titre, string categorie)
-        => MesureBibliotheque.Systeme(ReferentielMesure.Iso27002, code, titre, categorie);
-
     private static MesureBibliotheque H(int numero, string titre, string rubrique)
         => MesureBibliotheque.Systeme(ReferentielMesure.HygieneAnssi, numero.ToString(), titre, rubrique);
 
-    public static readonly IReadOnlyList<MesureBibliotheque> Mesures = new[]
-    {
-        // --- ISO/IEC 27002:2022 -------------------------------------------------
-        M("A.5.1", "Politiques de sécurité de l’information", "Organisationnel"),
-        M("A.5.2", "Rôles et responsabilités liés à la sécurité de l’information", "Organisationnel"),
-        M("A.5.3", "Séparation des tâches", "Organisationnel"),
-        M("A.5.4", "Responsabilités de la direction", "Organisationnel"),
-        M("A.5.5", "Relations avec les autorités", "Organisationnel"),
-        M("A.5.6", "Relations avec des groupes de spécialistes", "Organisationnel"),
-        M("A.5.7", "Renseignement sur les menaces", "Organisationnel"),
-        M("A.5.8", "Sécurité de l’information dans la gestion de projet", "Organisationnel"),
-        M("A.5.9", "Inventaire des informations et autres actifs associés", "Organisationnel"),
-        M("A.5.10", "Utilisation correcte des informations et autres actifs associés", "Organisationnel"),
-        M("A.5.11", "Restitution des actifs", "Organisationnel"),
-        M("A.5.12", "Classification des informations", "Organisationnel"),
-        M("A.5.13", "Marquage des informations", "Organisationnel"),
-        M("A.5.14", "Transfert des informations", "Organisationnel"),
-        M("A.5.15", "Contrôle d’accès", "Organisationnel"),
-        M("A.5.16", "Gestion des identités", "Organisationnel"),
-        M("A.5.17", "Informations d’authentification", "Organisationnel"),
-        M("A.5.18", "Droits d’accès", "Organisationnel"),
-        M("A.5.19", "Sécurité de l’information dans les relations avec les fournisseurs", "Organisationnel"),
-        M("A.5.20", "Prise en compte de la sécurité de l’information dans les accords fournisseurs", "Organisationnel"),
-        M("A.5.21", "Gestion de la sécurité de l’information dans la chaîne d’approvisionnement TIC", "Organisationnel"),
-        M("A.5.22", "Surveillance, revue et gestion des changements des services fournisseurs", "Organisationnel"),
-        M("A.5.23", "Sécurité de l’information pour l’utilisation des services en nuage", "Organisationnel"),
-        M("A.5.24", "Planification et préparation de la gestion des incidents de sécurité", "Organisationnel"),
-        M("A.5.25", "Évaluation et décision relatives aux événements de sécurité", "Organisationnel"),
-        M("A.5.26", "Réponse aux incidents de sécurité de l’information", "Organisationnel"),
-        M("A.5.27", "Retour d’expérience sur les incidents de sécurité de l’information", "Organisationnel"),
-        M("A.5.28", "Collecte de preuves", "Organisationnel"),
-        M("A.5.29", "Sécurité de l’information pendant une perturbation", "Organisationnel"),
-        M("A.5.30", "Préparation des TIC pour la continuité d’activité", "Organisationnel"),
-        M("A.5.31", "Exigences légales, statutaires, réglementaires et contractuelles", "Organisationnel"),
-        M("A.5.32", "Droits de propriété intellectuelle", "Organisationnel"),
-        M("A.5.33", "Protection des enregistrements", "Organisationnel"),
-        M("A.5.34", "Confidentialité et protection des données à caractère personnel", "Organisationnel"),
-        M("A.5.35", "Revue indépendante de la sécurité de l’information", "Organisationnel"),
-        M("A.5.36", "Conformité aux politiques, règles et normes de sécurité de l’information", "Organisationnel"),
-        M("A.5.37", "Procédures d’exploitation documentées", "Organisationnel"),
-        M("A.6.1", "Sélection des candidats", "Personnes"),
-        M("A.6.2", "Termes et conditions du contrat de travail", "Personnes"),
-        M("A.6.3", "Sensibilisation, apprentissage et formation à la sécurité de l’information", "Personnes"),
-        M("A.6.4", "Processus disciplinaire", "Personnes"),
-        M("A.6.5", "Responsabilités après la fin ou le changement d’un contrat de travail", "Personnes"),
-        M("A.6.6", "Accords de confidentialité ou de non-divulgation", "Personnes"),
-        M("A.6.7", "Travail à distance", "Personnes"),
-        M("A.6.8", "Signalement des événements liés à la sécurité de l’information", "Personnes"),
-        M("A.7.1", "Périmètres de sécurité physique", "Physique"),
-        M("A.7.2", "Entrée physique", "Physique"),
-        M("A.7.3", "Sécurisation des bureaux, des salles et des installations", "Physique"),
-        M("A.7.4", "Surveillance de la sécurité physique", "Physique"),
-        M("A.7.5", "Protection contre les menaces physiques et environnementales", "Physique"),
-        M("A.7.6", "Travail dans les zones sécurisées", "Physique"),
-        M("A.7.7", "Bureau propre et écran vide", "Physique"),
-        M("A.7.8", "Emplacement et protection du matériel", "Physique"),
-        M("A.7.9", "Sécurité des actifs hors des locaux", "Physique"),
-        M("A.7.10", "Supports de stockage", "Physique"),
-        M("A.7.11", "Services généraux", "Physique"),
-        M("A.7.12", "Sécurité du câblage", "Physique"),
-        M("A.7.13", "Maintenance du matériel", "Physique"),
-        M("A.7.14", "Mise au rebut ou recyclage sécurisé du matériel", "Physique"),
-        M("A.8.1", "Terminaux finaux des utilisateurs", "Technologique"),
-        M("A.8.2", "Droits d’accès privilégiés", "Technologique"),
-        M("A.8.3", "Restriction d’accès à l’information", "Technologique"),
-        M("A.8.4", "Accès au code source", "Technologique"),
-        M("A.8.5", "Authentification sécurisée", "Technologique"),
-        M("A.8.6", "Gestion de la capacité", "Technologique"),
-        M("A.8.7", "Protection contre les logiciels malveillants", "Technologique"),
-        M("A.8.8", "Gestion des vulnérabilités techniques", "Technologique"),
-        M("A.8.9", "Gestion de la configuration", "Technologique"),
-        M("A.8.10", "Suppression des informations", "Technologique"),
-        M("A.8.11", "Masquage des données", "Technologique"),
-        M("A.8.12", "Prévention de la fuite de données", "Technologique"),
-        M("A.8.13", "Sauvegarde des informations", "Technologique"),
-        M("A.8.14", "Redondance des moyens de traitement de l’information", "Technologique"),
-        M("A.8.15", "Journalisation", "Technologique"),
-        M("A.8.16", "Activités de surveillance", "Technologique"),
-        M("A.8.17", "Synchronisation des horloges", "Technologique"),
-        M("A.8.18", "Utilisation de programmes utilitaires à privilèges", "Technologique"),
-        M("A.8.19", "Installation de logiciels sur des systèmes en exploitation", "Technologique"),
-        M("A.8.20", "Sécurité des réseaux", "Technologique"),
-        M("A.8.21", "Sécurité des services réseau", "Technologique"),
-        M("A.8.22", "Cloisonnement des réseaux", "Technologique"),
-        M("A.8.23", "Filtrage web", "Technologique"),
-        M("A.8.24", "Utilisation de la cryptographie", "Technologique"),
-        M("A.8.25", "Cycle de vie du développement sécurisé", "Technologique"),
-        M("A.8.26", "Exigences de sécurité des applications", "Technologique"),
-        M("A.8.27", "Principes d’ingénierie et d’architecture système sécurisées", "Technologique"),
-        M("A.8.28", "Codage sécurisé", "Technologique"),
-        M("A.8.29", "Tests de sécurité au cours du développement et de la réception", "Technologique"),
-        M("A.8.30", "Développement externalisé", "Technologique"),
-        M("A.8.31", "Séparation des environnements de développement, de test et de production", "Technologique"),
-        M("A.8.32", "Gestion des changements", "Technologique"),
-        M("A.8.33", "Informations de test", "Technologique"),
-        M("A.8.34", "Protection des systèmes d’information lors des tests d’audit", "Technologique"),
+    private static readonly IReadOnlyList<MesureBibliotheque> _iso =
+        CatalogueIso27002.Controles
+            .Select(c => MesureBibliotheque.Systeme(ReferentielMesure.Iso27002, c.Code, c.Titre, c.Theme))
+            .ToList();
 
+    private static readonly IReadOnlyList<MesureBibliotheque> _hygiene = new[]
+    {
         // --- Guide d'hygiène informatique de l'ANSSI (42 mesures) --------------
         H(1, "Former les équipes opérationnelles à la sécurité des systèmes d’information", "Sensibiliser et former"),
         H(2, "Sensibiliser les utilisateurs aux bonnes pratiques élémentaires de sécurité informatique", "Sensibiliser et former"),
@@ -162,6 +69,8 @@ public static class CatalogueSysteme
         H(41, "Mener une analyse de risques formelle", "Pour aller plus loin"),
         H(42, "Privilégier l’usage de produits et de services qualifiés par l’ANSSI", "Pour aller plus loin"),
     };
+
+    public static readonly IReadOnlyList<MesureBibliotheque> Mesures = _iso.Concat(_hygiene).ToList();
 
     private static SourceRisqueBibliotheque S(
         string cle, CategorieSourceRisque sr, string dsr, CategorieObjectifVise ov, string dov, string theme, int motiv, int ress)

@@ -2343,5 +2343,16 @@ Deux schémas, **générés côté serveur en SVG** pour une seule géométrie p
 - **Vérifié** : 252 tests backend (+2 : catalogue filtrable par phase, technique persistée sur une action + rapport A4 généré), 25 frontend, seed régénéré, + Playwright (sélecteur phase-aware : phase RENTRER + « phishing » → T1566 ; phase Exploiter → techniques Impact/Exfiltration/C2/Collection).
 - **Reste possible** : sous-techniques, matrice de couverture ATT&CK par étude, prise en compte dans le calcul de vraisemblance.
 
+## Mise à jour — Mapping de conformité ISO 27001 / NIS2 (feuille de route point 6, 1ʳᵉ passe)
+
+- **`Modules/Bibliotheque/Domain/CatalogueIso27002.cs`** : les 93 contrôles de l'Annexe A, **source backend unique** -- `CatalogueSysteme` (bibliothèque de mesures) et `CatalogueConformite` (exigences) en dérivent. Le frontend garde `iso27001.ts` (socle A1) pour l'instant.
+- **`Modules/Conformite/Domain/CatalogueConformite.cs`** : exigences ISO 27001 (93) + NIS2 art. 21(2) a-j (10 domaines), + `CorrespondanceNis2VersIso` (dict indicatif NIS2 -> contrôles ISO).
+- **`MesureTraitementRisque.CodesConformite`** (`List<string>`, primitive collection `codes_conformite`) : codes d'exigences couvertes (« A.8.24 », « 21.2.b »). Propagé dans `Creer`/`Modifier`, `AjouterMesure`/`ModifierMesure`, le snapshot A5 (`MesureTraitementRisqueSnapshot`, param défaut `= null`), l'export/import et la duplication (EF). Migration `AjoutCodesConformiteMesureTraitement` (`text[]` non null, `defaultValueSql: "'{}'"`).
+- **`Modules/Conformite/ServiceConformite.cs`** : construit le tableau de couverture d'une étude pour un référentiel. ISO : conforme si le socle a un référentiel de même code à l'état Conforme, partielle si NonConforme ou visé par une mesure, non couverte sinon, non applicable si le socle le déclare. NIS2 : max(mesure directe, dérivation de l'état ISO via la correspondance). `NormaliserCode` : « 5.1 » (socle historique) <-> « A.5.1 » (catalogue).
+- **Endpoints** : `GET /referentiels/conformite?referentiel=` (catalogue d'exigences), `GET /etudes/{id}/conformite?referentiel=` (tableau de couverture), `GET /etudes/{id}/rapports/conformite` (annexe PDF ISO + NIS2, `RapportConformitePdfGenerator`).
+- **Frontend** : `components/shared/SelecteurConformite.tsx` (multi-select à chips, filtre ISO/NIS2) sur le formulaire de mesure de traitement (A5, ajout + édition) ; badges de codes sur la vue lecture ; page `pages/ConformiteEtude.tsx` (`/etudes/:id/conformite`, onglets ISO/NIS2, synthèse + tableau + bouton PDF), lien « CONFORMITE » dans l'entête du Dashboard. `Reference/Ligne/RapportConformite` + fonctions dans `api.ts`.
+- **Vérifié** : 255 tests backend (+3 : catalogue ISO+NIS2, tableau croisant socle + plan taggé, annexe PDF), 25 frontend, seed régénéré, + Playwright (page conformité ISO/NIS2 : Atlas = 6 conforme / 4 partielle / 82 non couverte ISO ; NIS2 dérivé = 21.2.h Conforme via A.8.24 ; sélecteur de conformité dans le formulaire de mesure A5).
+- **Reste possible** : DORA, unification du catalogue ISO côté frontend (`iso27001.ts` -> endpoint), taux de conformité par thème dans la synthèse globale, statut Conforme dérivé de « toutes les mesures liées sont Terminées ».
+
 *Fin du contexte.*
 

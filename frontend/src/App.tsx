@@ -16,6 +16,7 @@ const AtelierPage = lazy(function () { return import('./pages/AtelierPage') })
 const Rapports = lazy(function () { return import('./pages/Rapports') })
 const Parametres = lazy(function () { return import('./pages/Parametres') })
 const Bibliotheque = lazy(function () { return import('./pages/Bibliotheque') })
+const ConformiteEtude = lazy(function () { return import('./pages/ConformiteEtude') })
 
 function Chargement() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
                 <Route path="/etudes/:etudeId" element={<Dashboard />} />
                 <Route path="/etudes/:etudeId/journal" element={<JournalEtude />} />
                 <Route path="/etudes/:etudeId/membres" element={<MembresEtude />} />
+                <Route path="/etudes/:etudeId/conformite" element={<ConformiteEtude />} />
                 <Route path="/etudes/:etudeId/ateliers/:numero" element={<AtelierPage />} />
                 <Route path="/bibliotheque" element={<Bibliotheque />} />
                 <Route path="/rapports" element={<Rapports />} />

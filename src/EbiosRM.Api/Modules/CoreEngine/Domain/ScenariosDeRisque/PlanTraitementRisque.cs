@@ -89,6 +89,14 @@ public sealed class MesureTraitementRisque
     private readonly List<Guid> _scenariosDeRisqueIds = new();
     public IReadOnlyList<Guid> ScenariosDeRisqueIds => _scenariosDeRisqueIds;
 
+    /// <summary>
+    /// Codes d'exigences de conformité couvertes par cette mesure (ex.
+    /// « A.8.24 » pour ISO 27001, « 21.2.b » pour NIS2). Optionnel -- alimente
+    /// la vue de conformité de l'étude (feuille de route point 6).
+    /// </summary>
+    private readonly List<string> _codesConformite = new();
+    public IReadOnlyList<string> CodesConformite => _codesConformite;
+
     public string Responsable { get; private set; } = default!;
     public string? FreinsEtDifficultes { get; private set; }
     public NiveauCoutComplexite CoutComplexite { get; private set; }
@@ -101,7 +109,7 @@ public sealed class MesureTraitementRisque
     internal static MesureTraitementRisque Creer(
         string description, AxeMesure axe, IReadOnlyList<Guid> scenariosDeRisqueIds,
         string responsable, string? freinsEtDifficultes, NiveauCoutComplexite coutComplexite,
-        string? echeance, StatutMesure statut)
+        string? echeance, StatutMesure statut, IReadOnlyList<string>? codesConformite = null)
     {
         Valider(description, scenariosDeRisqueIds, responsable);
 
@@ -119,13 +127,14 @@ public sealed class MesureTraitementRisque
             CreeLeUtc = DateTime.UtcNow
         };
         mesure._scenariosDeRisqueIds.AddRange(scenariosDeRisqueIds);
+        mesure._codesConformite.AddRange(NettoyerCodes(codesConformite));
         return mesure;
     }
 
     internal void Modifier(
         string description, AxeMesure axe, IReadOnlyList<Guid> scenariosDeRisqueIds,
         string responsable, string? freinsEtDifficultes, NiveauCoutComplexite coutComplexite,
-        string? echeance, StatutMesure statut)
+        string? echeance, StatutMesure statut, IReadOnlyList<string>? codesConformite = null)
     {
         Valider(description, scenariosDeRisqueIds, responsable);
 
@@ -133,6 +142,8 @@ public sealed class MesureTraitementRisque
         Axe = axe;
         _scenariosDeRisqueIds.Clear();
         _scenariosDeRisqueIds.AddRange(scenariosDeRisqueIds);
+        _codesConformite.Clear();
+        _codesConformite.AddRange(NettoyerCodes(codesConformite));
         Responsable = responsable.Trim();
         FreinsEtDifficultes = string.IsNullOrWhiteSpace(freinsEtDifficultes) ? null : freinsEtDifficultes.Trim();
         CoutComplexite = coutComplexite;
@@ -142,6 +153,12 @@ public sealed class MesureTraitementRisque
 
     /// <summary>Retire la référence à un scénario de risque supprimé, sans supprimer la mesure elle-même.</summary>
     internal bool RetirerScenario(Guid scenarioDeRisqueId) => _scenariosDeRisqueIds.Remove(scenarioDeRisqueId);
+
+    private static IEnumerable<string> NettoyerCodes(IReadOnlyList<string>? codes)
+        => (codes ?? Array.Empty<string>())
+            .Select(c => c?.Trim() ?? "")
+            .Where(c => c.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
 
     private static void Valider(string description, IReadOnlyList<Guid> scenariosDeRisqueIds, string responsable)
     {
@@ -179,21 +196,21 @@ public sealed class PlanTraitementRisque
     public void AjouterMesure(
         string description, AxeMesure axe, IReadOnlyList<Guid> scenariosDeRisqueIds,
         string responsable, string? freinsEtDifficultes, NiveauCoutComplexite coutComplexite,
-        string? echeance, StatutMesure statut)
+        string? echeance, StatutMesure statut, IReadOnlyList<string>? codesConformite = null)
     {
-        _mesures.Add(MesureTraitementRisque.Creer(description, axe, scenariosDeRisqueIds, responsable, freinsEtDifficultes, coutComplexite, echeance, statut));
+        _mesures.Add(MesureTraitementRisque.Creer(description, axe, scenariosDeRisqueIds, responsable, freinsEtDifficultes, coutComplexite, echeance, statut, codesConformite));
     }
 
     public void ModifierMesure(
         Guid mesureId, string description, AxeMesure axe, IReadOnlyList<Guid> scenariosDeRisqueIds,
         string responsable, string? freinsEtDifficultes, NiveauCoutComplexite coutComplexite,
-        string? echeance, StatutMesure statut)
+        string? echeance, StatutMesure statut, IReadOnlyList<string>? codesConformite = null)
     {
         var mesure = _mesures.FirstOrDefault(m => m.Id == mesureId);
         if (mesure is null)
             throw new ArgumentException("Mesure introuvable dans ce plan de traitement du risque.", nameof(mesureId));
 
-        mesure.Modifier(description, axe, scenariosDeRisqueIds, responsable, freinsEtDifficultes, coutComplexite, echeance, statut);
+        mesure.Modifier(description, axe, scenariosDeRisqueIds, responsable, freinsEtDifficultes, coutComplexite, echeance, statut, codesConformite);
     }
 
     public void SupprimerMesure(Guid mesureId)

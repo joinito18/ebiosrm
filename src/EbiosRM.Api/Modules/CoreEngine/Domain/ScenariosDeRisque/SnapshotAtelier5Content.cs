@@ -45,4 +45,5 @@ public record MesureTraitementRisqueSnapshot(
     string? FreinsEtDifficultes,
     NiveauCoutComplexite CoutComplexite,
     string? Echeance,
-    StatutMesure Statut);
+    StatutMesure Statut,
+    List<string>? CodesConformite = null);

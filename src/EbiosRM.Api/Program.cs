@@ -4,6 +4,7 @@ using EbiosRM.Api.Modules.Audit.Domain;
 using EbiosRM.Api.Modules.Audit.Infrastructure;
 using EbiosRM.Api.Modules.Bibliotheque.Domain;
 using EbiosRM.Api.Modules.Bibliotheque.Infrastructure;
+using EbiosRM.Api.Modules.Conformite;
 using EbiosRM.Api.Modules.Collaboration.Domain;
 using EbiosRM.Api.Modules.Collaboration.Infrastructure;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
@@ -168,6 +169,8 @@ builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
 builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<IBibliothequeRepository, BibliothequeRepository>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Conformite.ServiceConformite>();
+builder.Services.AddScoped<RapportConformitePdfGenerator>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -858,6 +861,53 @@ app.MapGet("/api/v1/referentiels/mitre", (string? phase, string? q) =>
     }
 
     return Results.Ok(techniques.OrderBy(t => t.Id, StringComparer.OrdinalIgnoreCase));
+});
+
+// Catalogue des exigences de conformite (ISO 27001 Annexe A + NIS2 art. 21),
+// embarque dans le code. Sert au selecteur cote frontend.
+app.MapGet("/api/v1/referentiels/conformite", (string? referentiel) =>
+{
+    IEnumerable<EbiosRM.Api.Modules.Conformite.Domain.ExigenceConformite> exigences =
+        EbiosRM.Api.Modules.Conformite.Domain.CatalogueConformite.Iso27001
+            .Concat(EbiosRM.Api.Modules.Conformite.Domain.CatalogueConformite.Nis2);
+
+    if (Enum.TryParse<EbiosRM.Api.Modules.Conformite.Domain.ReferentielConformite>(referentiel, ignoreCase: true, out var r))
+        exigences = EbiosRM.Api.Modules.Conformite.Domain.CatalogueConformite.Pour(r);
+
+    return Results.Ok(exigences.Select(e => new
+    {
+        referentiel = e.Referentiel.ToString(), e.Code, e.Titre, e.Categorie,
+    }));
+});
+
+// Tableau de couverture de conformite d'une etude (ISO 27001 ou NIS2) :
+// croise le socle de securite (A1) et le plan de traitement (A5) avec les
+// exigences du referentiel. GET -> lecture, visible par tout membre.
+app.MapGet("/api/v1/etudes/{etudeId:guid}/conformite", async (
+    Guid etudeId, string? referentiel, ServiceConformite service, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<EbiosRM.Api.Modules.Conformite.Domain.ReferentielConformite>(referentiel, ignoreCase: true, out var r))
+        r = EbiosRM.Api.Modules.Conformite.Domain.ReferentielConformite.Iso27001;
+
+    var rapport = await service.ConstruireAsync(etudeId, r, ct);
+    return rapport is null ? Results.NotFound() : Results.Ok(rapport);
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/conformite", async (
+    Guid etudeId, ServiceConformite service, RapportConformitePdfGenerator pdf,
+    IEtudeRepository etudeRepo, CancellationToken ct) =>
+{
+    var etude = await etudeRepo.ObtenirParIdAsync(etudeId, ct);
+    if (etude is null) return Results.NotFound();
+
+    var rapports = new List<ServiceConformite.RapportConformite>();
+    foreach (var r in new[] { EbiosRM.Api.Modules.Conformite.Domain.ReferentielConformite.Iso27001, EbiosRM.Api.Modules.Conformite.Domain.ReferentielConformite.Nis2 })
+    {
+        var rapport = await service.ConstruireAsync(etudeId, r, ct);
+        if (rapport is not null) rapports.Add(rapport);
+    }
+
+    return Results.File(pdf.Generer(etude.Nom, rapports), "application/pdf", $"conformite-{etudeId}.pdf");
 });
 
 app.MapGet("/api/v1/etudes", async (
@@ -2737,7 +2787,7 @@ app.MapPost("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures", asyn
 
     try
     {
-        plan.AjouterMesure(request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut);
+        plan.AjouterMesure(request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut, request.CodesConformite);
         await planRepo.MettreAJourAsync(plan, ct);
         return Results.Created($"/api/v1/etudes/{etudeId}/plan-traitement-risque", plan);
     }
@@ -2761,7 +2811,7 @@ app.MapPut("/api/v1/etudes/{etudeId:guid}/plan-traitement-risque/mesures/{mesure
 
     try
     {
-        plan.ModifierMesure(mesureId, request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut);
+        plan.ModifierMesure(mesureId, request.Description, axe, request.ScenariosDeRisqueIds, request.Responsable, request.FreinsEtDifficultes, coutComplexite, request.Echeance, statut, request.CodesConformite);
         await planRepo.MettreAJourAsync(plan, ct);
         return Results.Ok(plan);
     }
@@ -2908,7 +2958,8 @@ record EvaluerRisqueResiduelRequest(int GraviteResiduelle, string VraisemblanceR
 record AccepterRisqueResiduelRequest(string NomProprietaireRisque, string NomValidateurSecurite, string? NomSponsorExecutif, string? Justification);
 record MesureTraitementRisqueRequest(
     string Description, string Axe, List<Guid> ScenariosDeRisqueIds, string Responsable,
-    string? FreinsEtDifficultes, string CoutComplexite, string? Echeance, string Statut);
+    string? FreinsEtDifficultes, string CoutComplexite, string? Echeance, string Statut,
+    List<string>? CodesConformite = null);
 
 // Rend la classe Program (générée implicitement par les top-level statements)
 // accessible depuis le projet de tests, requis par WebApplicationFactory<Program>.

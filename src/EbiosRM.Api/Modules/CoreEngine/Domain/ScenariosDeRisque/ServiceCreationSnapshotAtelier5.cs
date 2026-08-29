@@ -50,7 +50,7 @@ public sealed class ServiceCreationSnapshotAtelier5
 
         var mesuresSnapshot = (plan?.Mesures ?? new List<MesureTraitementRisque>()).Select(m => new MesureTraitementRisqueSnapshot(
             m.Id, m.Description, m.Axe, m.ScenariosDeRisqueIds.ToList(), m.Responsable,
-            m.FreinsEtDifficultes, m.CoutComplexite, m.Echeance, m.Statut)).ToList();
+            m.FreinsEtDifficultes, m.CoutComplexite, m.Echeance, m.Statut, m.CodesConformite.ToList())).ToList();
 
         var versionPrecedente = await _snapshotRepository.CompterParEtudeIdAsync(etudeId, numeroAtelier: 5, cancellationToken);
         var nouvelleVersion = versionPrecedente + 1;

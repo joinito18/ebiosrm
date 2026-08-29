@@ -316,6 +316,7 @@ public class EbiosDbContext : DbContext
                 mesure.Property(m => m.Description).IsRequired().HasMaxLength(2000);
                 mesure.Property(m => m.Axe).IsRequired().HasConversion<string>().HasMaxLength(50);
                 mesure.PrimitiveCollection<List<Guid>>("_scenariosDeRisqueIds").HasColumnName("scenarios_de_risque_ids");
+                mesure.PrimitiveCollection<List<string>>("_codesConformite").HasColumnName("codes_conformite");
                 mesure.Property(m => m.Responsable).IsRequired().HasMaxLength(300);
                 mesure.Property(m => m.FreinsEtDifficultes).HasMaxLength(2000);
                 mesure.Property(m => m.CoutComplexite).IsRequired().HasConversion<string>().HasMaxLength(20);

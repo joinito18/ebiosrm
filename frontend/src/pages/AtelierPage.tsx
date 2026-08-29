@@ -16,6 +16,7 @@ import RowActions from '../components/shared/RowActions'
 import SelecteurBibliotheque from '../components/shared/SelecteurBibliotheque'
 import CartographieAtelier3 from '../components/shared/CartographieAtelier3'
 import ChampTechniqueMitre from '../components/shared/ChampTechniqueMitre'
+import SelecteurConformite from '../components/shared/SelecteurConformite'
 import { toastSucces, toastErreur } from '../lib/toast'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
@@ -2903,6 +2904,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
   var [coutComplexite, setCoutComplexite] = useState(m.coutComplexite)
   var [echeance, setEcheance] = useState(m.echeance || '')
   var [statut, setStatut] = useState(m.statut)
+  var [codesConformite, setCodesConformite] = useState<string[]>(m.codesConformite || [])
   var [erreur, setErreur] = useState('')
 
   function sauvegarder() {
@@ -2913,6 +2915,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
     var input: MesureTraitementRisqueInput = {
       description: description, axe: axe, scenariosDeRisqueIds: scenariosIds, responsable: responsable,
       freinsEtDifficultes: freins || null, coutComplexite: coutComplexite, echeance: echeance || null, statut: statut,
+      codesConformite: codesConformite,
     }
     modifierMesureTraitementRisque(props.etudeId, m.id, input).then(function () { setEdition(false); props.onChange() })
       .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
@@ -2950,6 +2953,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
         </div>
         <input type="text" placeholder="Freins et difficultes" value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
         <SelectionScenariosDeRisque scenariosDeRisque={props.scenariosDeRisque} selection={scenariosIds} onChange={setScenariosIds} />
+        <div><span className="font-mono text-[10px] tracking-wide text-steel-light">CONFORMITE COUVERTE</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
         {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
         <div className="flex gap-3">
           <button onClick={sauvegarder} className="text-xs font-medium text-signature hover:underline">OK</button>
@@ -2972,6 +2976,11 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
       <div className="mt-1 font-mono text-[10px] text-steel-light">Responsable {m.responsable} -- Cout {LIBELLE_COUT_COMPLEXITE[m.coutComplexite]} -- Echeance {m.echeance || '--'}</div>
       {m.freinsEtDifficultes && <div className="mt-0.5 text-[11px] italic text-steel">{m.freinsEtDifficultes}</div>}
       <div className="mt-0.5 text-[11px] text-steel-light">Scenarios : {libellesScenarios(props.scenariosDeRisque, m.scenariosDeRisqueIds).join('; ')}</div>
+      {m.codesConformite && m.codesConformite.length > 0 && (
+        <div className="mt-0.5 flex flex-wrap gap-1">
+          {m.codesConformite.map(function (c) { return <span key={c} className="border border-paper-line px-1 font-mono text-[10px] text-signature">{c}</span> })}
+        </div>
+      )}
     </div>
   )
 }
@@ -2989,6 +2998,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
   var [coutComplexite, setCoutComplexite] = useState('Plus')
   var [echeance, setEcheance] = useState('')
   var [statut, setStatut] = useState('ALancer')
+  var [codesConformite, setCodesConformite] = useState<string[]>([])
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
 
@@ -3002,10 +3012,11 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
     var input: MesureTraitementRisqueInput = {
       description: description, axe: axe, scenariosDeRisqueIds: scenariosIds, responsable: responsable,
       freinsEtDifficultes: freins || null, coutComplexite: coutComplexite, echeance: echeance || null, statut: statut,
+      codesConformite: codesConformite,
     }
     ajouterMesureTraitementRisque(props.etudeId, input)
       .then(function () {
-        setDescription(''); setScenariosIds([]); setResponsable(''); setFreins(''); setEcheance('')
+        setDescription(''); setScenariosIds([]); setResponsable(''); setFreins(''); setEcheance(''); setCodesConformite([])
         fermer(); props.onChange()
       })
       .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
@@ -3062,6 +3073,7 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
             </div>
             <input type="text" placeholder="Freins et difficultes (optionnel)" value={freins} onChange={function (e) { setFreins(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
             <SelectionScenariosDeRisque scenariosDeRisque={props.scenariosDeRisque} selection={scenariosIds} onChange={setScenariosIds} />
+            <div><span className="font-mono text-[10px] tracking-wide text-steel-light">CONFORMITE COUVERTE (ISO 27001 / NIS2)</span><div className="mt-1"><SelecteurConformite valeurs={codesConformite} onChange={setCodesConformite} /></div></div>
             {erreur && <p className="text-xs text-risk-critical">{erreur}</p>}
             <Button variante="primary" onClick={function () { soumettre(fermer) }} disabled={enCours}>{enCours ? 'Ajout...' : 'Ajouter'}</Button>
           </div>

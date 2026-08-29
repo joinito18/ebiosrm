@@ -989,6 +989,7 @@ export interface MesureTraitementRisque {
   echeance?: string | null
   statut: string
   creeLeUtc: string
+  codesConformite?: string[]
 }
 
 export interface PlanTraitementRisque {
@@ -1006,6 +1007,42 @@ export interface MesureTraitementRisqueInput {
   coutComplexite: string
   echeance?: string | null
   statut: string
+  codesConformite?: string[]
+}
+
+// --- Conformite (mapping ISO 27001 / NIS2) ---
+
+export type ReferentielConformite = 'Iso27001' | 'Nis2'
+export type CouvertureConformite = 'NonCouverte' | 'Partielle' | 'Conforme' | 'NonApplicable'
+
+export interface ExigenceConformite {
+  referentiel: ReferentielConformite
+  code: string
+  titre: string
+  categorie: string
+}
+
+export interface LigneConformite {
+  code: string
+  titre: string
+  categorie: string
+  couverture: CouvertureConformite
+  etatSocle?: string | null
+  mesures: { id: string; description: string; statut: string }[]
+}
+
+export interface RapportConformite {
+  referentiel: string
+  synthese: { total: number; conforme: number; partielle: number; nonCouverte: number; nonApplicable: number }
+  lignes: LigneConformite[]
+}
+
+export function listerExigencesConformite(referentiel?: string): Promise<ExigenceConformite[]> {
+  return apiFetch('/referentiels/conformite' + (referentiel ? '?referentiel=' + referentiel : ''))
+}
+
+export function chargerConformiteEtude(etudeId: string, referentiel: string): Promise<RapportConformite | null> {
+  return apiFetch('/etudes/' + etudeId + '/conformite?referentiel=' + referentiel)
 }
 
 export function getPlanTraitementRisque(etudeId: string): Promise<PlanTraitementRisque | null> {
