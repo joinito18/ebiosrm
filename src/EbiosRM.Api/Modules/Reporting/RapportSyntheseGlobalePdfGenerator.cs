@@ -126,62 +126,50 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                             var pctConforme = 100.0 * socle.NombreConforme / totalControles;
                             c.Item().PaddingTop(6).ShowEntire().Row(row =>
                             {
-                                row.ConstantItem(140).Height(140).Svg(Camembert(
+                                row.ConstantItem(130).Height(130).AlignMiddle().Svg(AnneauMultiSegments(
                                     new List<(double, string)>
                                     {
                                         (socle.NombreConforme, VertConforme),
                                         (socle.NombreNonConforme, RougeAlerte),
                                         (socle.NombreNonApplicable, GrisLigne),
-                                    })).FitWidth();
-                                row.RelativeItem().PaddingLeft(20).AlignMiddle().Column(cc =>
+                                    },
+                                    pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "%")).FitWidth();
+                                row.RelativeItem().PaddingLeft(24).AlignMiddle().Column(cc =>
                                 {
-                                    // Le camembert n'a pas de trou central pour un chiffre --
-                                    // le taux global est affiche en tete de la legende a la place.
-                                    cc.Item().Text(pctConforme.ToString("F0", CultureInfo.InvariantCulture) + "% conforme").FontFamily(SerifTitreSemiBold).FontSize(18).FontColor(BleuFrance);
+                                    cc.Item().Text("Socle conforme").FontFamily(SansSemiBold).FontSize(9).FontColor(Encre);
                                     cc.Item().PaddingTop(6).Row(r => Legende(r, VertConforme, socle.NombreConforme + " conforme(s)"));
                                     cc.Item().PaddingTop(3).Row(r => Legende(r, RougeAlerte, socle.NombreNonConforme + " non conforme(s)"));
                                     cc.Item().PaddingTop(3).Row(r => Legende(r, GrisLigne, socle.NombreNonApplicable + " non applicable(s)"));
-                                    cc.Item().PaddingTop(3).Text(totalControles + " controle(s) evalue(s) au total.").FontSize(7.5f).FontColor(GrisTexte);
+                                    cc.Item().PaddingTop(4).Text(totalControles + " controle(s) evalue(s) au total.").FontSize(7.5f).FontColor(GrisTexte);
                                 });
                             });
-                            if (socle.ParTheme.Count > 0)
+                            // Repartition des controles par etat -- utile des qu'il y a >= 2 etats
+                            // representes (sinon l'anneau ci-dessus dit deja tout).
+                            var etatsRepresentes = new[] { socle.NombreConforme, socle.NombreNonConforme, socle.NombreNonApplicable }.Count(x => x > 0);
+                            if (etatsRepresentes >= 2)
                             {
-                                // Un radar a moins de 3 axes degenere en point ou en segment (aucune
-                                // aire ne peut se former) -- on ne l'affiche que si au moins 3 themes
-                                // sont representes, sinon la seule barre de conformite occupe la ligne.
-                                var afficherRadar = socle.ParTheme.Count >= 3;
-                                c.Item().PaddingTop(14).ShowEntire().Row(row =>
-                                {
-                                    row.Spacing(24);
-                                    row.RelativeItem().Column(cc =>
-                                    {
-                                        cc.Item().AlignCenter().Text("Taux de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                        cc.Item().PaddingTop(4).Height(210).AlignMiddle().Svg(GraphiqueBarres(
-                                            socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct, BleuFrance)).ToList(),
-                                            100, "%")).FitArea();
-                                    });
-                                    if (afficherRadar)
-                                    {
-                                        row.RelativeItem().Column(cc =>
-                                        {
-                                            cc.Item().AlignCenter().Text("Cartographie de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                            cc.Item().PaddingTop(4).Height(210).AlignMiddle().Svg(GraphiqueRadar(
-                                                socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct)).ToList(),
-                                                BleuFrance)).FitArea();
-                                        });
-                                    }
-                                });
-                                c.Item().PaddingTop(10).ShowEntire().Column(cc =>
+                                c.Item().PaddingTop(12).ShowEntire().Column(cc =>
                                 {
                                     cc.Item().AlignCenter().Text("Repartition des controles par etat").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(300).Svg(GraphiqueBarres(
+                                    cc.Item().PaddingTop(4).AlignCenter().Height(150).Svg(GraphiqueBarres(
                                         new List<(string, double, string)>
                                         {
                                             ("Conforme", socle.NombreConforme, VertConforme),
                                             ("Non conforme", socle.NombreNonConforme, RougeAlerte),
                                             ("Non applicable", socle.NombreNonApplicable, GrisTexte),
                                         },
-                                        Math.Max(totalControles, 1), "")).FitWidth();
+                                        Math.Max(totalControles, 1), "")).FitHeight();
+                                });
+                            }
+                            // Taux de conformite par theme -- une seule barre n'apprend rien.
+                            if (socle.ParTheme.Count >= 2)
+                            {
+                                c.Item().PaddingTop(12).ShowEntire().Column(cc =>
+                                {
+                                    cc.Item().AlignCenter().Text("Taux de conformite par theme").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
+                                    cc.Item().PaddingTop(4).AlignCenter().Height(150).Svg(GraphiqueBarres(
+                                        socle.ParTheme.Select(t => (t.Theme, t.TauxConformitePct, BleuFrance)).ToList(),
+                                        100, "%")).FitHeight();
                                 });
                             }
                             if (socle.ControlesNonConformes.Count > 0)
@@ -316,14 +304,15 @@ public sealed class RapportSyntheseGlobalePdfGenerator
                                 })
                                 .Where(x => x.Total > 0)
                                 .ToList();
-                            if (parAxe.Count > 0)
+                            // Un seul axe -> l'anneau global ci-dessus dit deja tout.
+                            if (parAxe.Count >= 2)
                             {
                                 c.Item().PaddingTop(14).ShowEntire().Column(cc =>
                                 {
                                     cc.Item().AlignCenter().Text("Avancement du plan par axe de traitement").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(380).Svg(GraphiqueBarres(
+                                    cc.Item().PaddingTop(4).AlignCenter().Height(150).Svg(GraphiqueBarres(
                                         parAxe.Select(a => (a.Axe + " (" + a.Total + ")", a.Pct, VertConforme)).ToList(),
-                                        100, "%")).FitWidth();
+                                        100, "%")).FitHeight();
                                 });
                             }
                         }

@@ -210,34 +210,51 @@ public static class RapportPdfStyle
     /// Graphique en barres verticales (ex: taux de conformite par theme).
     /// echelleMax fixe la hauteur representant 100% de la barre -- passer 100
     /// pour des pourcentages, ou le plus grand effectif pour des comptages.
-    /// Une piste de fond (grise, pleine hauteur) est toujours dessinee sous
-    /// chaque barre : sans elle, une valeur a 0% ne laisse plus rien de
-    /// visible a l'ecran (deja arrive avec un seul axe de traitement encore
-    /// "a lancer") et le graphique a l'air casse plutot que de montrer un 0.
-    /// Une marge haute dediee evite aussi que l'etiquette d'une barre a 100%
-    /// soit rognee contre le bord superieur du SVG.
+    ///
+    /// Les barres occupent toute la largeur (reparties uniformement). Une piste
+    /// de fond tres discrete + une ligne de base garantissent qu'une valeur a
+    /// 0 reste visible sans "casser" le graphique. L'etiquette de valeur est
+    /// posee dans la barre (texte blanc) quand elle est assez haute, au-dessus
+    /// sinon -- pas de collision avec les graphiques voisins.
     /// </summary>
     public static string GraphiqueBarres(List<(string Label, double Valeur, string Couleur)> barres, double echelleMax, string suffixeValeur)
     {
-        const double largeurTotale = 340, margeHaut = 20, hauteurZone = 100, margeBas = 34, largeurBarre = 46;
+        var n = Math.Max(barres.Count, 1);
+        const double margeHaut = 14, hauteurZone = 110, margeBas = 26;
         const double hauteurTotale = margeHaut + hauteurZone + margeBas;
-        var n = barres.Count;
-        var espacement = n == 0 ? 0 : (largeurTotale - n * largeurBarre) / (n + 1);
+        // Largeur adaptee au nombre de barres : ni ecrasees, ni perdues dans du vide.
+        var largeurTotale = Math.Clamp(n * 88.0, 200, 460);
+        var pas = largeurTotale / n;
+        var largeurBarre = Math.Min(pas * 0.62, 56);
+        var baseY = margeHaut + hauteurZone;
+
         var sb = new StringBuilder();
-        sb.Append(FormattableString.Invariant($"<svg viewBox=\"0 0 {largeurTotale} {hauteurTotale}\" xmlns=\"http://www.w3.org/2000/svg\">"));
-        sb.Append(FormattableString.Invariant($"<line x1=\"0\" y1=\"{margeHaut + hauteurZone}\" x2=\"{largeurTotale}\" y2=\"{margeHaut + hauteurZone}\" stroke=\"{GrisLigne}\" stroke-width=\"1\" />"));
-        for (var i = 0; i < n; i++)
+        sb.Append(FormattableString.Invariant($"<svg viewBox=\"0 0 {largeurTotale:F0} {hauteurTotale:F0}\" xmlns=\"http://www.w3.org/2000/svg\">"));
+        // Ligne de base (les barres ne sont pas soulignees par une piste de fond
+        // pleine hauteur : trop presente visuellement, elle ecrasait les barres).
+        sb.Append(FormattableString.Invariant($"<line x1=\"0\" y1=\"{baseY:F1}\" x2=\"{largeurTotale:F0}\" y2=\"{baseY:F1}\" stroke=\"{GrisLigne}\" stroke-width=\"1\" />"));
+
+        for (var i = 0; i < barres.Count; i++)
         {
             var (label, valeur, couleur) = barres[i];
-            var x = espacement + i * (largeurBarre + espacement);
+            var cx = (i + 0.5) * pas;
+            var x = cx - largeurBarre / 2;
             var fraction = echelleMax <= 0 ? 0 : Math.Clamp(valeur / echelleMax, 0, 1);
             var hauteurBarre = fraction * hauteurZone;
-            var y = margeHaut + hauteurZone - hauteurBarre;
-            sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{margeHaut:F1}\" width=\"{largeurBarre}\" height=\"{hauteurZone}\" fill=\"#F2F2F2\" rx=\"2\" />"));
-            if (hauteurBarre > 0)
-                sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{y:F1}\" width=\"{largeurBarre}\" height=\"{hauteurBarre:F1}\" fill=\"{couleur}\" rx=\"2\" />"));
-            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{Math.Max(y - 6, margeHaut - 6):F1}\" text-anchor=\"middle\" font-size=\"11\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"{Encre}\">{valeur.ToString("F0", CultureInfo.InvariantCulture)}{suffixeValeur}</text>"));
-            sb.Append(FormattableString.Invariant($"<text x=\"{x + largeurBarre / 2:F1}\" y=\"{margeHaut + hauteurZone + 16:F1}\" text-anchor=\"middle\" font-size=\"8.5\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(label)}</text>"));
+            var y = baseY - hauteurBarre;
+
+            // Contour discret de la hauteur "100 %" pour situer la barre, sans aplat.
+            sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{margeHaut:F1}\" width=\"{largeurBarre:F1}\" height=\"{hauteurZone:F1}\" fill=\"none\" stroke=\"#EDEDED\" stroke-width=\"1\" rx=\"2\" />"));
+            if (hauteurBarre > 1.5)
+                sb.Append(FormattableString.Invariant($"<rect x=\"{x:F1}\" y=\"{y:F1}\" width=\"{largeurBarre:F1}\" height=\"{hauteurBarre:F1}\" fill=\"{couleur}\" rx=\"2\" />"));
+
+            var valeurTexte = valeur.ToString("F0", CultureInfo.InvariantCulture) + suffixeValeur;
+            if (hauteurBarre > 22)
+                sb.Append(FormattableString.Invariant($"<text x=\"{cx:F1}\" y=\"{y + 14:F1}\" text-anchor=\"middle\" font-size=\"10\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"#FFFFFF\">{valeurTexte}</text>"));
+            else
+                sb.Append(FormattableString.Invariant($"<text x=\"{cx:F1}\" y=\"{y - 5:F1}\" text-anchor=\"middle\" font-size=\"10\" font-family=\"IBM Plex Sans SemiBold, IBM Plex Sans, sans-serif\" fill=\"{Encre}\">{valeurTexte}</text>"));
+
+            sb.Append(FormattableString.Invariant($"<text x=\"{cx:F1}\" y=\"{baseY + 15:F1}\" text-anchor=\"middle\" font-size=\"8\" font-family=\"IBM Plex Sans, sans-serif\" fill=\"{GrisTexte}\">{System.Security.SecurityElement.Escape(label)}</text>"));
         }
         sb.Append("</svg>");
         return sb.ToString();

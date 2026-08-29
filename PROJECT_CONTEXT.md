@@ -2490,5 +2490,18 @@ Première tranche de la traduction EN du contenu (demande #4). **Périmètre : l
 - **Tests** : `BibliothequeTests.Suggestions_*` étendu (forme des 3 routes). 269 backend, 25 frontend. Playwright : panneaux A3/A4/A5 OK, « Utiliser » ouvre le formulaire et pré-remplit (mode « Rançongiciel par hameçonnage » → description + 6 lignes d'actions ; partie prenante ; mesure).
 - Les modes opératoires donnent les meilleurs scores (chemin d'attaque « compromission d'un compte à privilèges puis extraction de la base » → « Exploitation d'une vulnérabilité web » score 10).
 
+## Mise à jour — Graphiques du PDF de synthèse globale (2026-08-29, branche `fix/synthese-pdf-graphiques`)
+
+Retour utilisateur : les PDF d'ateliers sont bons, mais la **synthèse globale** l'est moins — « surtout les cercles et graphique ».
+
+- **`RapportPdfStyle.GraphiqueBarres` réécrit** : barres réparties sur toute la largeur (viewBox largeur = `clamp(n·88, 200, 460)`), plus d'aplat gris pleine hauteur (il écrasait les barres) → simple **contour `#EDEDED`** de la hauteur 100 %. Étiquette de valeur **dans la barre** (texte blanc) si assez haute, au-dessus sinon → plus de collision avec les graphiques voisins. Ligne de base conservée.
+- **`RapportSyntheseGlobalePdfGenerator`** :
+  - Socle conformité : **`AnneauMultiSegments`** (anneau vert/rouge/gris + **% centré dans le trou**) au lieu de `Camembert` (qui rendait un **disque plein** à 100 % — le « blob » signalé).
+  - Suppression du **radar** « cartographie de conformité par thème » (redondant avec l'histogramme, dégénéré en losange à 4 axes).
+  - Garde-fous : histogramme « par thème » seulement si **≥ 2 thèmes**, « répartition par état » seulement si **≥ 2 états représentés**, « avancement par axe » seulement si **≥ 2 axes** (une barre unique n'apprend rien de plus que l'anneau).
+- **`RapportCadreDeSuiviPdfGenerator`** : même garde-fou `≥ 2 axes` + `FitHeight`.
+- `Camembert` / `GraphiqueRadar` deviennent inutilisés (conservés).
+- 269 tests backend. Vérifié visuellement sur 3 études (riche / minimale / dégénérée) : anneau à 55 % et à 100 %, histogrammes 4 barres, cas 1-thème → graphiques masqués.
+
 *Fin du contexte.*
 

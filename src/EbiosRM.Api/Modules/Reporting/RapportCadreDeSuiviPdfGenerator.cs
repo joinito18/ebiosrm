@@ -80,14 +80,14 @@ public sealed class RapportCadreDeSuiviPdfGenerator
                                 })
                                 .Where(x => x.Total > 0)
                                 .ToList();
-                            if (parAxe.Count > 0)
+                            if (parAxe.Count >= 2)
                             {
                                 c.Item().PaddingTop(14).ShowEntire().Column(cc =>
                                 {
                                     cc.Item().AlignCenter().Text("Avancement par axe de traitement").FontFamily(SansSemiBold).FontSize(8).FontColor(Encre);
-                                    cc.Item().PaddingTop(4).AlignCenter().Width(280).Svg(GraphiqueBarres(
+                                    cc.Item().PaddingTop(4).AlignCenter().Height(150).Svg(GraphiqueBarres(
                                         parAxe.Select(a => (a.Axe + " (" + a.Total + ")", a.Pct, VertConforme)).ToList(),
-                                        100, "%")).FitWidth();
+                                        100, "%")).FitHeight();
                                 });
                             }
                         }
