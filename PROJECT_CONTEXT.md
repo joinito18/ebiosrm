@@ -2307,5 +2307,17 @@ Suite à `docs/analyse-concurrentielle.md` (écart 🔴 « pas de journal d'audi
 - **Frontend** : bouton « Importer un fichier » (`<input type=file>` caché) sur `Etudes.tsx` ; `fichier.text()` → `importerEtude(contenu)` → navigation vers l'étude créée. `importerEtude()` dans `api.ts` (passe le texte brut comme body).
 - **Vérifié** : 243 tests backend (+5 : duplication ×2 + import identité, 3 fichiers invalides en `[Theory]`, référence cassée rejetée), 25 frontend, + Playwright : Lecteur sans bouton d'écriture sur AtelierPage mais PDF ok ; duplication par Proprietaire et par Lecteur ; import d'un fichier réel via la liste (étude « (importée) » créée, 15 VM visibles) + fichier cassé → message d'erreur, pas de navigation.
 
+## Mise à jour — Bibliothèque d'éléments réutilisables (feuille de route point 3, 1ʳᵉ passe)
+
+Périmètre acté avec l'utilisateur : **mesures + sources de risque**, catalogues système **ISO 27002:2022 + hygiène ANSSI**.
+
+- **`Modules/Bibliotheque/`** : `MesureBibliotheque` (Id, ProprietaireId?, Referentiel `{Libre, Iso27002, HygieneAnssi}`, Code?, Titre, Description?, Categorie?) et `SourceRisqueBibliotheque` (catégories + descriptions SR/OV, Theme, Motivation/RessourcesTypiques). `ProprietaireId` null = **entrée du catalogue système** : jamais en base, construite en mémoire par `CatalogueSysteme`, Id **déterministe** (`MD5("mesure:{ref}:{code}")`, stable entre requêtes et installations).
+- **`CatalogueSysteme`** : 93 mesures ISO 27002:2022 (portées depuis `frontend/src/lib/iso27001.ts`) + 42 mesures du guide d'hygiène ANSSI + 9 couples SR/OV types. **Une mise à jour de catalogue = éditer ce fichier**, pas de migration ni de re-seed.
+- **Tables `bibliotheque_mesures` / `bibliotheque_sources_risque`** (entrées personnelles uniquement). Migration `AjoutBibliotheque`.
+- **Endpoints** (routes sans `etudeId` → hors middlewares isolation + journal) : `GET /bibliotheque/mesures?referentiel=&q=` (fusion catalogue + mes entrées), `POST` (défaut `Libre`), `DELETE {id}` (seulement les miennes, sinon 404). Idem `.../sources-risque` (`q` seul).
+- **Frontend** : `components/shared/SelecteurBibliotheque.tsx` (panneau de sélection en ligne générique, recherche débattue) ; bouton « Depuis la bibliothèque » dans le formulaire de couple SR/OV (A2) et de mesure de traitement (A5) → pré-remplit ; bouton « → biblio. » sur chaque ligne pour capitaliser (toujours visible, même Lecteur — c'est SA bibliothèque) ; page `/bibliotheque` (lien sidebar icône `Library`, onglets Mesures / Sources de risque). Thème des couples du catalogue aligné sur les 4 valeurs du `<select>` d'A2.
+- **À unifier plus tard** : `frontend/src/lib/iso27001.ts` (socle A1, conformité) et `CatalogueSysteme` backend contiennent tous deux les 93 contrôles ISO — à réconcilier au point 6 (mapping de conformité).
+- **Vérifié** : 247 tests backend (+4), 25 frontend, seed régénéré, + Playwright (page bibliothèque : filtre ISO → 93, recherche → A.8.15, ajout/suppression perso, onglet sources ; sélecteur A2 : « rançongiciel » → couple pré-rempli SR/descriptions/OV/thème/motivation 4/ressources 3, matrice TrèsPertinent).
+
 *Fin du contexte.*
 

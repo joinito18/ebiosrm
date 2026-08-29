@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate, useParams } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, FileText, Settings, LogOut, X } from 'lucide-react'
+import { LayoutDashboard, FolderOpen, FileText, Settings, LogOut, X, Library } from 'lucide-react'
 import { AtelierChainCompact } from '../methodology/AtelierChain'
 import type { AtelierNode } from '../methodology/AtelierChain'
 import { effacerToken, getEtude, obtenirUtilisateurCourant } from '../../lib/api'
@@ -125,6 +125,7 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
           <div className="my-7 border-t border-ink-line" />
 
           <nav className="space-y-0.5">
+            <NavItem to="/bibliotheque" icon={Library} onNavigate={props.onFermer}>Bibliotheque</NavItem>
             <NavItem to="/rapports" icon={FileText} onNavigate={props.onFermer}>Rapports</NavItem>
             <NavItem to="/parametres" icon={Settings} onNavigate={props.onFermer}>Parametres</NavItem>
           </nav>

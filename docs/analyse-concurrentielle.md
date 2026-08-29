@@ -83,7 +83,7 @@ Priorité : 🔴 critique (bloquant usage pro partagé) · 🟠 important (atten
 
 1. ~~**Socle collaboratif** : modèle organisation + rôles + partage d'étude + **journal d'audit**~~. **Fait** (3 rôles Lecteur/Éditeur/Propriétaire, partage par email, journal append-only, gating lecture seule de l'UI).
 2. ~~**Import JSON** (miroir de l'export) + **duplication d'étude** → base de « modèles »~~. **Fait** : `POST /etudes/{id}/dupliquer` (copie interne, accessible aux Lecteurs et à l'étude de démo) et `POST /etudes/importer` (fichier `.json` d'un export, autre installation / transfert). Moteur de ré-attribution des clés partagé (`RecableurClesEtude`), les 5 ateliers repartent en brouillon.
-3. **Bibliothèques réutilisables** + **catalogues multi-référentiels** (NIST, CIS, hygiène ANSSI).
+3. **Bibliothèques réutilisables** + **catalogues multi-référentiels**. **Fait (1ʳᵉ passe)** : bibliothèque de **mesures** (catalogue système ISO 27002:2022 + hygiène ANSSI, non modifiable, + entrées personnelles) et de **sources de risque** (couples SR/OV types + entrées personnelles), isolées par utilisateur. Sélecteur intégré à l'Atelier 2 (couples) et à l'Atelier 5 (mesures), bouton « → biblio. » pour capitaliser depuis une étude, page `/bibliotheque`. Reste possible plus tard : NIST CSF 2.0 / CIS v8, bibliothèque de parties prenantes et de modes opératoires.
 4. **Cartographie graphique** (écosystème A3 en cercles concentriques + arbres de chemins d'attaque A3/A4).
 5. **Intégration MITRE ATT&CK** (Atelier 4).
 6. **Mapping de conformité** ISO 27001 / NIS2 / DORA.

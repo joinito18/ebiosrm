@@ -2,6 +2,8 @@ using EbiosRM.Api.Infrastructure.Hebergement;
 using EbiosRM.Api.Infrastructure.Persistence;
 using EbiosRM.Api.Modules.Audit.Domain;
 using EbiosRM.Api.Modules.Audit.Infrastructure;
+using EbiosRM.Api.Modules.Bibliotheque.Domain;
+using EbiosRM.Api.Modules.Bibliotheque.Infrastructure;
 using EbiosRM.Api.Modules.Collaboration.Domain;
 using EbiosRM.Api.Modules.Collaboration.Infrastructure;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
@@ -165,6 +167,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
 builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
+builder.Services.AddScoped<IBibliothequeRepository, BibliothequeRepository>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -689,6 +692,150 @@ app.MapPost("/api/v1/etudes/importer", async (
         EtudeMembre.Creer(resultat.EtudeId!.Value, proprietaireId.Value, RoleEtude.Proprietaire, proprietaireId), ct);
 
     return Results.Created($"/api/v1/etudes/{resultat.EtudeId}", new { id = resultat.EtudeId });
+});
+
+// --- Bibliotheque : elements reutilisables d'une etude a l'autre ------------
+// Deux origines fusionnees a la lecture : le catalogue systeme (CatalogueSysteme,
+// dans le code, jamais en base -- ISO 27002 + hygiene ANSSI) et les entrees
+// personnelles de l'appelant (persistees). Routes sans etudeId -> hors des
+// middlewares d'isolation et de journal.
+
+static object VueMesureBiblio(MesureBibliotheque m) => new
+{
+    m.Id, systeme = m.EstSysteme, referentiel = m.Referentiel.ToString(),
+    m.Code, m.Titre, m.Description, m.Categorie,
+};
+
+static bool Contient(string? valeur, string terme)
+    => valeur is not null && valeur.Contains(terme, StringComparison.OrdinalIgnoreCase);
+
+app.MapGet("/api/v1/bibliotheque/mesures", async (
+    string? referentiel, string? q, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<MesureBibliotheque> mesures = CatalogueSysteme.Mesures
+        .Concat(await repo.ListerMesuresAsync(moiId.Value, ct));
+
+    if (Enum.TryParse<ReferentielMesure>(referentiel, ignoreCase: true, out var r))
+        mesures = mesures.Where(m => m.Referentiel == r);
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        mesures = mesures.Where(m => Contient(m.Titre, terme) || Contient(m.Code, terme) || Contient(m.Categorie, terme));
+    }
+
+    return Results.Ok(mesures
+        .OrderBy(m => m.EstSysteme ? 1 : 0)
+        .ThenBy(m => m.Referentiel).ThenBy(m => m.Code, StringComparer.OrdinalIgnoreCase)
+        .Select(VueMesureBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/mesures", async (
+    AjouterMesureBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    if (!Enum.TryParse<ReferentielMesure>(request.Referentiel, ignoreCase: true, out var referentiel))
+        referentiel = ReferentielMesure.Libre;
+
+    try
+    {
+        var mesure = MesureBibliotheque.Creer(moiId.Value, referentiel, request.Code, request.Titre, request.Description, request.Categorie);
+        await repo.AjouterMesureAsync(mesure, ct);
+        return Results.Created($"/api/v1/bibliotheque/mesures/{mesure.Id}", VueMesureBiblio(mesure));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/mesures/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var mesure = await repo.ObtenirMesureAsync(id, ct);
+    if (mesure is null || mesure.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Mesure introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerMesureAsync(mesure, ct);
+    return Results.NoContent();
+});
+
+static object VueSourceRisqueBiblio(SourceRisqueBibliotheque s) => new
+{
+    s.Id, systeme = s.EstSysteme,
+    sourceRisque = s.SourceRisque.ToString(), s.DescriptionSourceRisque,
+    objectifVise = s.ObjectifVise.ToString(), s.DescriptionObjectifVise,
+    s.Theme, s.MotivationTypique, s.RessourcesTypiques,
+};
+
+app.MapGet("/api/v1/bibliotheque/sources-risque", async (
+    string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<SourceRisqueBibliotheque> sources = CatalogueSysteme.SourcesRisque
+        .Concat(await repo.ListerSourcesRisqueAsync(moiId.Value, ct));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        sources = sources.Where(s =>
+            Contient(s.DescriptionSourceRisque, terme) || Contient(s.DescriptionObjectifVise, terme)
+            || Contient(s.SourceRisque.ToString(), terme) || Contient(s.ObjectifVise.ToString(), terme)
+            || Contient(s.Theme, terme));
+    }
+
+    return Results.Ok(sources.OrderBy(s => s.EstSysteme ? 1 : 0).ThenBy(s => s.DescriptionSourceRisque).Select(VueSourceRisqueBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/sources-risque", async (
+    AjouterSourceRisqueBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    if (!Enum.TryParse<CategorieSourceRisque>(request.SourceRisque, ignoreCase: true, out var sr)
+        || !Enum.TryParse<CategorieObjectifVise>(request.ObjectifVise, ignoreCase: true, out var ov))
+        return Results.BadRequest(new { error = "Categorie de source de risque ou d'objectif vise invalide." });
+
+    try
+    {
+        var source = SourceRisqueBibliotheque.Creer(
+            moiId.Value, sr, request.DescriptionSourceRisque, ov, request.DescriptionObjectifVise,
+            request.Theme, request.MotivationTypique, request.RessourcesTypiques);
+        await repo.AjouterSourceRisqueAsync(source, ct);
+        return Results.Created($"/api/v1/bibliotheque/sources-risque/{source.Id}", VueSourceRisqueBiblio(source));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/sources-risque/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var source = await repo.ObtenirSourceRisqueAsync(id, ct);
+    if (source is null || source.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Source de risque introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerSourceRisqueAsync(source, ct);
+    return Results.NoContent();
 });
 
 app.MapGet("/api/v1/etudes", async (
@@ -2665,6 +2812,10 @@ record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
 record ConnexionRequest(string Email, string MotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
 record DupliquerEtudeRequest(string? Nom);
+record AjouterMesureBiblioRequest(string? Referentiel, string? Code, string Titre, string? Description, string? Categorie);
+record AjouterSourceRisqueBiblioRequest(
+    string SourceRisque, string DescriptionSourceRisque, string ObjectifVise, string DescriptionObjectifVise,
+    string? Theme, int? MotivationTypique, int? RessourcesTypiques);
 record AjouterMembreRequest(string Email, string Role);
 record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);

@@ -1,4 +1,5 @@
 using EbiosRM.Api.Modules.Audit.Domain;
+using EbiosRM.Api.Modules.Bibliotheque.Domain;
 using EbiosRM.Api.Modules.Collaboration.Domain;
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
@@ -31,6 +32,8 @@ public class EbiosDbContext : DbContext
     public DbSet<Utilisateur> Utilisateurs => Set<Utilisateur>();
     public DbSet<EntreeJournal> JournalAudit => Set<EntreeJournal>();
     public DbSet<EtudeMembre> EtudeMembres => Set<EtudeMembre>();
+    public DbSet<MesureBibliotheque> MesuresBibliotheque => Set<MesureBibliotheque>();
+    public DbSet<SourceRisqueBibliotheque> SourcesRisqueBibliotheque => Set<SourceRisqueBibliotheque>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -356,6 +359,38 @@ public class EbiosDbContext : DbContext
             entity.Property(m => m.AjouteLeUtc).IsRequired();
             entity.HasIndex(m => new { m.EtudeId, m.UtilisateurId }).IsUnique();
             entity.HasIndex(m => m.UtilisateurId);
+        });
+
+        // Bibliotheque : seules les entrees personnelles sont persistees
+        // (ProprietaireId non null). Le catalogue systeme vit dans le code.
+        modelBuilder.Entity<MesureBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_mesures");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.ProprietaireId).IsRequired();
+            entity.Property(m => m.Referentiel).IsRequired().HasConversion<string>().HasMaxLength(30);
+            entity.Property(m => m.Code).HasMaxLength(30);
+            entity.Property(m => m.Titre).IsRequired().HasMaxLength(500);
+            entity.Property(m => m.Description).HasMaxLength(4000);
+            entity.Property(m => m.Categorie).HasMaxLength(200);
+            entity.Property(m => m.CreeLeUtc).IsRequired();
+            entity.Ignore(m => m.EstSysteme);
+            entity.HasIndex(m => m.ProprietaireId);
+        });
+
+        modelBuilder.Entity<SourceRisqueBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_sources_risque");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.ProprietaireId).IsRequired();
+            entity.Property(s => s.SourceRisque).IsRequired().HasConversion<string>().HasMaxLength(50);
+            entity.Property(s => s.DescriptionSourceRisque).IsRequired().HasMaxLength(500);
+            entity.Property(s => s.ObjectifVise).IsRequired().HasConversion<string>().HasMaxLength(50);
+            entity.Property(s => s.DescriptionObjectifVise).IsRequired().HasMaxLength(500);
+            entity.Property(s => s.Theme).HasMaxLength(100);
+            entity.Property(s => s.CreeLeUtc).IsRequired();
+            entity.Ignore(s => s.EstSysteme);
+            entity.HasIndex(s => s.ProprietaireId);
         });
 
         base.OnModelCreating(modelBuilder);

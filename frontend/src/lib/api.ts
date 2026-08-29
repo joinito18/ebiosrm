@@ -250,6 +250,69 @@ export function importerEtude(contenu: string): Promise<{ id: string }> {
   return apiFetch('/etudes/importer', { method: 'POST', body: contenu })
 }
 
+// --- Bibliotheque (elements reutilisables d'une etude a l'autre) ---
+
+export type ReferentielMesure = 'Libre' | 'Iso27002' | 'HygieneAnssi'
+
+export interface MesureBiblio {
+  id: string
+  systeme: boolean
+  referentiel: ReferentielMesure
+  code: string | null
+  titre: string
+  description: string | null
+  categorie: string | null
+}
+
+export interface SourceRisqueBiblio {
+  id: string
+  systeme: boolean
+  sourceRisque: string
+  descriptionSourceRisque: string
+  objectifVise: string
+  descriptionObjectifVise: string
+  theme: string | null
+  motivationTypique: number | null
+  ressourcesTypiques: number | null
+}
+
+export function listerMesuresBiblio(referentiel?: string, q?: string): Promise<MesureBiblio[]> {
+  var params = new URLSearchParams()
+  if (referentiel) params.set('referentiel', referentiel)
+  if (q) params.set('q', q)
+  var suffixe = params.toString() ? '?' + params.toString() : ''
+  return apiFetch('/bibliotheque/mesures' + suffixe)
+}
+
+export function ajouterMesureBiblio(m: { titre: string; description?: string | null; categorie?: string | null; code?: string | null; referentiel?: string }): Promise<MesureBiblio> {
+  return apiFetch('/bibliotheque/mesures', {
+    method: 'POST',
+    body: JSON.stringify({
+      titre: m.titre, description: m.description || null, categorie: m.categorie || null,
+      code: m.code || null, referentiel: m.referentiel || 'Libre',
+    }),
+  })
+}
+
+export function supprimerMesureBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/mesures/' + id, { method: 'DELETE' })
+}
+
+export function listerSourcesRisqueBiblio(q?: string): Promise<SourceRisqueBiblio[]> {
+  return apiFetch('/bibliotheque/sources-risque' + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function ajouterSourceRisqueBiblio(s: {
+  sourceRisque: string; descriptionSourceRisque: string; objectifVise: string; descriptionObjectifVise: string
+  theme?: string | null; motivationTypique?: number | null; ressourcesTypiques?: number | null
+}): Promise<SourceRisqueBiblio> {
+  return apiFetch('/bibliotheque/sources-risque', { method: 'POST', body: JSON.stringify(s) })
+}
+
+export function supprimerSourceRisqueBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/sources-risque/' + id, { method: 'DELETE' })
+}
+
 export function demarrerAtelier1(etudeId: string): Promise<Etude> {
   return apiFetch('/etudes/' + etudeId + '/demarrer-atelier1', { method: 'POST' })
 }

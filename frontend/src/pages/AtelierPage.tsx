@@ -13,6 +13,8 @@ import type { CouleurBadge } from '../components/shared/Badge'
 import Card from '../components/shared/Card'
 import EmptyState from '../components/shared/EmptyState'
 import RowActions from '../components/shared/RowActions'
+import SelecteurBibliotheque from '../components/shared/SelecteurBibliotheque'
+import { toastSucces, toastErreur } from '../lib/toast'
 import { MATRICE_VRAISEMBLANCE, MATRICE_PERTINENCE, MATRICE_RISQUE, calculerNiveauDangerosite, determinerZoneDangerosite } from '../lib/calculsEbios'
 import {
   getEtude, listValeursMetier, listBiensSupport, listEvenementsRedoutes, getSocleSecurite,
@@ -41,12 +43,14 @@ import {
   accepterRisqueResiduel, retirerAcceptation,
   getPlanTraitementRisque, creerPlanTraitementRisque,
   ajouterMesureTraitementRisque, modifierMesureTraitementRisque, supprimerMesureTraitementRisque,
+  listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, listerMesuresBiblio, ajouterMesureBiblio,
   ApiError,
 } from '../lib/api'
 import type {
   Etude, ValeurMetier, BienSupport, EvenementRedoute, SocleSecurite, CoupleSourceRisqueObjectifVise, PartiePrenante,
   ScenarioStrategique, CheminAttaque, ScenarioOperationnel, ModeOperatoire, ModeOperatoireInput, ActionElementaireInput,
   ScenarioDeRisque, PlanTraitementRisque, MesureTraitementRisque, MesureTraitementRisqueInput,
+  SourceRisqueBiblio, MesureBiblio,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
@@ -1221,6 +1225,16 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
       .catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
   }
 
+  function versBibliotheque() {
+    ajouterSourceRisqueBiblio({
+      sourceRisque: c.sourceRisque, descriptionSourceRisque: c.descriptionSourceRisque,
+      objectifVise: c.objectifVise, descriptionObjectifVise: c.descriptionObjectifVise,
+      theme: c.theme, motivationTypique: c.motivation, ressourcesTypiques: c.ressources,
+    })
+      .then(function () { toastSucces('Source de risque ajoutee a votre bibliotheque.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
   if (edition) {
     return (
       <div className="border-l-2 border-signature space-y-1.5 py-2.5 pl-3">
@@ -1260,6 +1274,7 @@ function CoupleRow(props: { etudeId: string; couple: CoupleSourceRisqueObjectifV
         <span className="text-sm text-ink">{libelleCouple(c)}</span>
         <div className="flex shrink-0 items-center gap-3">
           <Badge couleur={badgeCouleur(couleurPertinence(c.pertinence))}>{LIBELLE_PERTINENCE[c.pertinence] || c.pertinence}</Badge>
+          <button onClick={versBibliotheque} title="Ajouter a ma bibliotheque" className="text-[11px] text-steel-light hover:text-signature">&rarr; biblio.</button>
           <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
@@ -1290,6 +1305,8 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
   var [ressources, setRessources] = useState('2')
   var [erreur, setErreur] = useState('')
   var [enCours, setEnCours] = useState(false)
+
+  var [selecteurBiblio, setSelecteurBiblio] = useState(false)
 
   function soumettre(fermer: () => void) {
     if (!descSr.trim() || !descOv.trim() || !contexte.trim()) {
@@ -1343,6 +1360,36 @@ function CouplesSrOvSection(props: { etudeId: string; couples: CoupleSourceRisqu
         {function (fermer) {
           return (
             <div>
+              {!selecteurBiblio ? (
+                <button type="button" onClick={function () { setSelecteurBiblio(true) }} className="mb-2 font-mono text-[10px] text-signature hover:underline">
+                  Depuis la bibliotheque
+                </button>
+              ) : (
+                <SelecteurBibliotheque<SourceRisqueBiblio>
+                  titre="Sources de risque"
+                  charger={function (q) { return listerSourcesRisqueBiblio(q) }}
+                  cle={function (s) { return s.id }}
+                  rendre={function (s) {
+                    return (
+                      <>
+                        <div className="font-medium">{s.descriptionSourceRisque} &rarr; {s.descriptionObjectifVise}</div>
+                        <div className="text-[10px] text-steel-light">{s.theme || '--'}{s.systeme ? ' -- catalogue' : ' -- ma bibliotheque'}</div>
+                      </>
+                    )
+                  }}
+                  onChoisir={function (s) {
+                    setSourceRisque(s.sourceRisque)
+                    setDescSr(s.descriptionSourceRisque)
+                    setObjectifVise(s.objectifVise)
+                    setDescOv(s.descriptionObjectifVise)
+                    if (s.theme && THEMES_SR_OV.indexOf(s.theme) >= 0) setTheme(s.theme)
+                    if (s.motivationTypique) setMotivation(String(s.motivationTypique))
+                    if (s.ressourcesTypiques) setRessources(String(s.ressourcesTypiques))
+                    setSelecteurBiblio(false)
+                  }}
+                  onFermer={function () { setSelecteurBiblio(false) }}
+                />
+              )}
               <select value={sourceRisque} onChange={function (e) { setSourceRisque(e.target.value) }} className="mb-2 w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
                 {CATEGORIES_SR.map(function (c) { return <option key={c} value={c}>{LIBELLE_CATEGORIE_SR[c]}</option> })}
               </select>
@@ -2858,6 +2905,12 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
     supprimerMesureTraitementRisque(props.etudeId, m.id).then(props.onChange).catch(function (err) { setErreur(err instanceof ApiError ? err.message : 'Erreur.') })
   }
 
+  function versBibliotheque() {
+    ajouterMesureBiblio({ titre: m.description, categorie: m.axe })
+      .then(function () { toastSucces('Mesure ajoutee a votre bibliotheque.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
   if (edition) {
     return (
       <div className="space-y-1.5 border-l-2 border-signature pl-3">
@@ -2894,6 +2947,7 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
         <span className="text-sm text-ink">{m.description}</span>
         <div className="flex shrink-0 items-center gap-3">
           <span className="font-mono text-[11px] text-steel-light">{LIBELLE_STATUT_MESURE[m.statut]}</span>
+          <button onClick={versBibliotheque} title="Ajouter a ma bibliotheque" className="text-[11px] text-steel-light hover:text-signature">&rarr; biblio.</button>
           <RowActions onModifier={function () { setEdition(true) }} onSupprimer={supprimer} />
         </div>
       </div>
@@ -2904,9 +2958,13 @@ export function MesureTraitementRisqueRow(props: { etudeId: string; mesure: Mesu
   )
 }
 
+var LIBELLE_REFERENTIEL_MESURE: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
+
 export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var [description, setDescription] = useState('')
   var [axe, setAxe] = useState('Gouvernance')
+  var [selecteurBiblio, setSelecteurBiblio] = useState(false)
+  var [refBiblio, setRefBiblio] = useState('')
   var [scenariosIds, setScenariosIds] = useState<string[]>([])
   var [responsable, setResponsable] = useState('')
   var [freins, setFreins] = useState('')
@@ -2941,6 +2999,33 @@ export function AjoutMesureTraitementRisque(props: { etudeId: string; scenariosD
       {function (fermer) {
         return (
           <div className="space-y-1.5">
+            {!selecteurBiblio ? (
+              <button type="button" onClick={function () { setSelecteurBiblio(true) }} className="font-mono text-[10px] text-signature hover:underline">
+                Depuis la bibliotheque
+              </button>
+            ) : (
+              <SelecteurBibliotheque<MesureBiblio>
+                titre="Mesures de securite"
+                filtres={[{ valeur: '', libelle: 'Tous' }, { valeur: 'Iso27002', libelle: 'ISO 27002' }, { valeur: 'HygieneAnssi', libelle: 'Hygiene ANSSI' }, { valeur: 'Libre', libelle: 'Ma bibliotheque' }]}
+                filtreActif={refBiblio}
+                onFiltre={setRefBiblio}
+                charger={function (q) { return listerMesuresBiblio(refBiblio, q) }}
+                cle={function (m) { return m.id }}
+                rendre={function (m) {
+                  return (
+                    <>
+                      <div className="font-medium">{m.code ? m.code + ' -- ' : ''}{m.titre}</div>
+                      <div className="text-[10px] text-steel-light">{LIBELLE_REFERENTIEL_MESURE[m.referentiel] || m.referentiel}{m.categorie ? ' -- ' + m.categorie : ''}</div>
+                    </>
+                  )
+                }}
+                onChoisir={function (m) {
+                  setDescription(m.code ? m.titre + ' (' + m.code + ')' : m.titre)
+                  setSelecteurBiblio(false)
+                }}
+                onFermer={function () { setSelecteurBiblio(false) }}
+              />
+            )}
             <input type="text" placeholder="Description de la mesure" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none" />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <select value={axe} onChange={function (e) { setAxe(e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
