@@ -413,6 +413,40 @@ export function supprimerEvenementRedouteBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/evenements-redoutes/' + id, { method: 'DELETE' })
 }
 
+export interface ActionElementaireBiblio {
+  ordre: number
+  description: string
+  phase: string
+  cibleBienSupport: string | null
+  techniqueMitre: string | null
+}
+
+export interface ModeOperatoireBiblio {
+  id: string
+  systeme: boolean
+  nom: string
+  description: string | null
+  probabiliteSuccesTypique: number | null
+  difficulteTechniqueTypique: number | null
+  actions: ActionElementaireBiblio[]
+}
+
+export function listerModesOperatoiresBiblio(q?: string): Promise<ModeOperatoireBiblio[]> {
+  return apiFetch('/bibliotheque/modes-operatoires' + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function ajouterModeOperatoireBiblio(m: {
+  nom: string; description?: string | null
+  probabiliteSuccesTypique?: number | null; difficulteTechniqueTypique?: number | null
+  actions: { description: string; phase: string; cibleBienSupport?: string | null; techniqueMitre?: string | null }[]
+}): Promise<ModeOperatoireBiblio> {
+  return apiFetch('/bibliotheque/modes-operatoires', { method: 'POST', body: JSON.stringify(m) })
+}
+
+export function supprimerModeOperatoireBiblio(id: string): Promise<void> {
+  return apiFetch('/bibliotheque/modes-operatoires/' + id, { method: 'DELETE' })
+}
+
 // --- Cartographie graphique de l'Atelier 3 (SVG genere cote serveur) ---
 
 export type CartographieType = 'ecosysteme' | 'chemins-attaque'

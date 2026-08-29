@@ -181,4 +181,51 @@ public class BibliothequeTests : IClassFixture<EbiosApiFactory>
         var vmId = (await vmAjout.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
         Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/v1/bibliotheque/valeurs-metier/{vmId}")).StatusCode);
     }
+
+    [Fact]
+    public async Task Modes_operatoires_catalogue_avec_actions_et_ajout_perso()
+    {
+        var c = await NouveauCompteAsync(_factory, "biblio-mo");
+
+        var catalogue = await (await c.GetAsync("/api/v1/bibliotheque/modes-operatoires")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(catalogue.GetArrayLength() >= 5);
+        var rancongiciel = catalogue.EnumerateArray().First(m => m.GetProperty("nom").GetString()!.Contains("hameçonnage"));
+        var actions = rancongiciel.GetProperty("actions");
+        Assert.True(actions.GetArrayLength() >= 4);
+        // Les actions sont ordonnées et portent une phase de la séquence EBIOS RM.
+        Assert.Equal(1, actions[0].GetProperty("ordre").GetInt32());
+        Assert.Contains(actions.EnumerateArray(), a => a.GetProperty("phase").GetString() == "Exploiter");
+        Assert.Contains(actions.EnumerateArray(), a => a.GetProperty("techniqueMitre").GetString() == "T1486");
+
+        // Recherche plein texte jusque dans les actions.
+        var parMitre = await (await c.GetAsync("/api/v1/bibliotheque/modes-operatoires?q=T1486")).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains(parMitre.EnumerateArray(), m => m.GetProperty("nom").GetString()!.Contains("hameçonnage"));
+
+        var ajout = await c.PostAsJsonAsync("/api/v1/bibliotheque/modes-operatoires", new
+        {
+            Nom = "Attaque physique du datacenter",
+            Description = "Accès non autorisé aux baies",
+            ProbabiliteSuccesTypique = 2,
+            DifficulteTechniqueTypique = 3,
+            Actions = new[]
+            {
+                new { Description = "Repérage des accès et des rondes", Phase = "Connaitre", CibleBienSupport = "Salle serveurs", TechniqueMitre = (string?)null },
+                new { Description = "Intrusion et branchement d'un implant", Phase = "Exploiter", CibleBienSupport = "Baie de serveurs", TechniqueMitre = (string?)"T1200" },
+            },
+        });
+        Assert.Equal(HttpStatusCode.Created, ajout.StatusCode);
+        var cree = await ajout.Content.ReadFromJsonAsync<JsonElement>();
+        var id = cree.GetProperty("id").GetGuid();
+        Assert.Equal(2, cree.GetProperty("actions").GetArrayLength());
+        Assert.False(cree.GetProperty("systeme").GetBoolean());
+
+        // Sans action -> refusé.
+        var vide = await c.PostAsJsonAsync("/api/v1/bibliotheque/modes-operatoires", new { Nom = "x", Actions = new object[0] });
+        Assert.Equal(HttpStatusCode.BadRequest, vide.StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await c.DeleteAsync($"/api/v1/bibliotheque/modes-operatoires/{id}")).StatusCode);
+        // Le catalogue système reste non supprimable.
+        var idSys = rancongiciel.GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.NotFound, (await c.DeleteAsync($"/api/v1/bibliotheque/modes-operatoires/{idSys}")).StatusCode);
+    }
 }

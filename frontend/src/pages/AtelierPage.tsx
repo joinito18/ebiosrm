@@ -48,6 +48,7 @@ import {
   ajouterMesureTraitementRisque, modifierMesureTraitementRisque, supprimerMesureTraitementRisque,
   listerSourcesRisqueBiblio, ajouterSourceRisqueBiblio, listerMesuresBiblio, ajouterMesureBiblio,
   listerPartiesPrenantesBiblio, listerValeursMetierBiblio, listerBiensSupportBiblio, listerEvenementsRedoutesBiblio,
+  listerModesOperatoiresBiblio,
   ApiError,
 } from '../lib/api'
 import type {
@@ -55,7 +56,8 @@ import type {
   ScenarioStrategique, CheminAttaque, ScenarioOperationnel, ModeOperatoire, ModeOperatoireInput, ActionElementaireInput,
   ScenarioDeRisque, PlanTraitementRisque, MesureTraitementRisque, MesureTraitementRisqueInput,
   SourceRisqueBiblio, MesureBiblio,
-  PartiePrenanteBiblio, ValeurMetierBiblio, BienSupportBiblio, EvenementRedouteBiblio,
+  PartiePrenanteBiblio, ValeurMetierBiblio, BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio,
+  PhaseActionElementaire,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 import { CATALOGUE_ISO_27001, THEMES_ISO } from '../lib/iso27001'
@@ -2644,7 +2646,32 @@ function AjoutModeOperatoire(props: { etudeId: string; scenarioOperationnelId: s
 
   return (
     <div className="mt-3 space-y-1.5 border-l-2 border-signature pl-3">
+      <DepuisBiblio<ModeOperatoireBiblio>
+        titre="Mode operatoire de la bibliotheque"
+        charger={function (q) { return listerModesOperatoiresBiblio(q) }}
+        rendre={function (mo) {
+          return (
+            <div>
+              <div className="text-sm text-ink">{mo.nom}</div>
+              <div className="text-[10px] text-steel-light">{metaBiblio(mo.systeme, mo.actions.length + ' actions')}</div>
+              {mo.description && <div className="text-[10px] text-steel">{mo.description}</div>}
+            </div>
+          )
+        }}
+        onChoisir={function (mo) {
+          setDescription(mo.nom + (mo.description ? ' — ' + mo.description : ''))
+          if (mo.probabiliteSuccesTypique) setProbabiliteSucces(String(mo.probabiliteSuccesTypique))
+          if (mo.difficulteTechniqueTypique) setDifficulteTechnique(String(mo.difficulteTechniqueTypique))
+          var bienDefaut = props.biens.length > 0 ? props.biens[0].id : ''
+          setActions(mo.actions.map(function (a) {
+            return { description: a.cibleBienSupport ? a.description + ' (cible : ' + a.cibleBienSupport + ')' : a.description, phase: a.phase as PhaseActionElementaire, bienSupportId: bienDefaut, techniqueMitre: a.techniqueMitre }
+          }))
+        }}
+      />
       <input type="text" placeholder="Description du mode operatoire" value={description} onChange={function (e) { setDescription(e.target.value) }} className="w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none" />
+      {actions.some(function (a) { return /\(cible : /.test(a.description) }) && (
+        <p className="text-[11px] text-risk-high">Associez chaque action au bon bien support (le libelle de cible n est qu un repere).</p>
+      )}
       <ActionElementaireListEditor actions={actions} biens={props.biens} onChange={setActions} />
       <p className="text-[11px] leading-snug text-steel">Probabilite de succes : chance que cette action reussisse une fois tentee (defense/resilience). Difficulte technique : effort que l attaquant doit fournir pour la tenter (protection) -- plus elle est elevee, plus la vraisemblance baisse.</p>
       <div className="grid grid-cols-2 gap-2">

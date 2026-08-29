@@ -39,6 +39,7 @@ public class EbiosDbContext : DbContext
     public DbSet<ValeurMetierBibliotheque> ValeursMetierBibliotheque => Set<ValeurMetierBibliotheque>();
     public DbSet<BienSupportBibliotheque> BiensSupportBibliotheque => Set<BienSupportBibliotheque>();
     public DbSet<EvenementRedouteBibliotheque> EvenementsRedoutesBibliotheque => Set<EvenementRedouteBibliotheque>();
+    public DbSet<ModeOperatoireBibliotheque> ModesOperatoiresBibliotheque => Set<ModeOperatoireBibliotheque>();
     public DbSet<IndicateurSuivi> IndicateursSuivi => Set<IndicateurSuivi>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -479,6 +480,32 @@ public class EbiosDbContext : DbContext
             entity.Property(e => e.CreeLeUtc).IsRequired();
             entity.Ignore(e => e.EstSysteme);
             entity.HasIndex(e => e.ProprietaireId);
+        });
+
+        modelBuilder.Entity<ModeOperatoireBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_modes_operatoires");
+            entity.HasKey(m => m.Id);
+            entity.Property(m => m.ProprietaireId).IsRequired();
+            entity.Property(m => m.Nom).IsRequired().HasMaxLength(300);
+            entity.Property(m => m.Description).HasMaxLength(2000);
+            entity.Property(m => m.CreeLeUtc).IsRequired();
+            entity.Ignore(m => m.EstSysteme);
+            entity.HasIndex(m => m.ProprietaireId);
+
+            entity.OwnsMany(m => m.Actions, action =>
+            {
+                action.ToTable("bibliotheque_actions_elementaires");
+                action.WithOwner().HasForeignKey("ModeOperatoireBibliothequeId");
+                action.HasKey(a => a.Id);
+                action.Property(a => a.Id).ValueGeneratedOnAdd();
+                action.Property(a => a.Ordre).IsRequired();
+                action.Property(a => a.Description).IsRequired().HasMaxLength(1000);
+                action.Property(a => a.Phase).IsRequired().HasConversion<string>().HasMaxLength(20);
+                action.Property(a => a.CibleBienSupport).HasMaxLength(300);
+                action.Property(a => a.TechniqueMitre).HasMaxLength(20);
+                action.HasIndex("ModeOperatoireBibliothequeId");
+            });
         });
 
         base.OnModelCreating(modelBuilder);

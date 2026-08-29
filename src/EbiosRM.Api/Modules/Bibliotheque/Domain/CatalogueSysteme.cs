@@ -1,4 +1,5 @@
 using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
+using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 
 namespace EbiosRM.Api.Modules.Bibliotheque.Domain;
@@ -233,5 +234,62 @@ public static class CatalogueSysteme
         ER("perte-donnees", "Perte définitive de données faute de sauvegarde exploitable", 4, "Opérationnel, Financier, Juridique"),
         ER("usurpation-marque", "Usurpation de l'identité numérique de l'organisation", 2, "Image, Financier (clients)"),
         ER("non-conformite", "Non-conformité réglementaire entraînant une sanction", 3, "Juridique, Financier, Image"),
+    };
+
+    // --- Modes opératoires types (Atelier 4) -------------------------------
+    // Séquences classiques CONNAÎTRE / RENTRER / TROUVER / EXPLOITER avec
+    // techniques MITRE ATT&CK indicatives. Cotations indicatives.
+    private static ActionElementaireBiblioEntree AE(PhaseActionElementaire phase, string desc, string cible, string mitre)
+        => new(desc, phase, cible, mitre);
+
+    public static readonly IReadOnlyList<ModeOperatoireBibliotheque> ModesOperatoires = new[]
+    {
+        ModeOperatoireBibliotheque.Systeme("rancongiciel-hameconnage",
+            "Rançongiciel par hameçonnage",
+            "L'attaquant obtient un premier accès par un courriel piégé, élève ses privilèges, se propage puis chiffre le système.",
+            3, 2,
+            AE(PhaseActionElementaire.Connaitre, "Reconnaissance des adresses et de l'organisation (réseaux sociaux, site web)", "Informations publiques", "T1589"),
+            AE(PhaseActionElementaire.Rentrer, "Envoi d'un courriel d'hameçonnage avec pièce jointe piégée", "Messagerie électronique", "T1566.001"),
+            AE(PhaseActionElementaire.Rentrer, "Exécution de la charge et prise de contrôle du poste", "Poste de travail bureautique", "T1204.002"),
+            AE(PhaseActionElementaire.Trouver, "Collecte d'identifiants et découverte de l'annuaire", "Annuaire Active Directory", "T1003"),
+            AE(PhaseActionElementaire.Trouver, "Déplacement latéral vers les serveurs", "Serveur de fichiers", "T1021"),
+            AE(PhaseActionElementaire.Exploiter, "Suppression des sauvegardes puis chiffrement généralisé", "Sauvegardes", "T1486")),
+
+        ModeOperatoireBibliotheque.Systeme("acces-distant-expose",
+            "Intrusion par un accès distant exposé",
+            "L'attaquant exploite un service d'accès distant (VPN, RDP, bastion) exposé sur Internet, avec des identifiants faibles ou volés.",
+            3, 2,
+            AE(PhaseActionElementaire.Connaitre, "Balayage Internet à la recherche de services d'accès distant", "Passerelle d'accès distant", "T1595"),
+            AE(PhaseActionElementaire.Rentrer, "Attaque par force brute ou rejeu d'identifiants achetés", "Passerelle d'accès distant", "T1110"),
+            AE(PhaseActionElementaire.Trouver, "Cartographie du réseau interne et des comptes à privilèges", "Réseau local", "T1046"),
+            AE(PhaseActionElementaire.Exploiter, "Exfiltration de données sensibles puis extorsion", "Serveur de fichiers", "T1567")),
+
+        ModeOperatoireBibliotheque.Systeme("rebond-prestataire",
+            "Rebond par un prestataire",
+            "L'attaquant compromet d'abord un prestataire disposant d'un accès au SI (infogérant, TMA, éditeur) et l'utilise comme tremplin.",
+            2, 3,
+            AE(PhaseActionElementaire.Connaitre, "Identification des prestataires et de leurs accès au SI", "Contrats et accès prestataires", "T1591"),
+            AE(PhaseActionElementaire.Rentrer, "Compromission du poste ou du tenant du prestataire", "Poste d'administration du prestataire", "T1199"),
+            AE(PhaseActionElementaire.Rentrer, "Utilisation de l'accès légitime du prestataire vers le SI", "Interconnexion prestataire", "T1078"),
+            AE(PhaseActionElementaire.Trouver, "Reconnaissance depuis la zone d'administration", "Réseau d'administration", "T1018"),
+            AE(PhaseActionElementaire.Exploiter, "Action sur les biens support ciblés (sabotage, exfiltration)", "Serveurs de production", "T1485")),
+
+        ModeOperatoireBibliotheque.Systeme("vuln-web-bdd",
+            "Exploitation d'une vulnérabilité web",
+            "L'attaquant exploite une faille applicative d'un service web exposé pour accéder au serveur puis à la base de données.",
+            3, 2,
+            AE(PhaseActionElementaire.Connaitre, "Analyse de l'application web exposée et de ses paramètres", "Site web / plateforme e-commerce", "T1595.002"),
+            AE(PhaseActionElementaire.Rentrer, "Exploitation d'une injection ou d'un téléversement non filtré (webshell)", "Site web / plateforme e-commerce", "T1190"),
+            AE(PhaseActionElementaire.Trouver, "Lecture de la configuration et des identifiants applicatifs", "Serveur applicatif", "T1552.001"),
+            AE(PhaseActionElementaire.Exploiter, "Extraction du contenu de la base de données", "Base de données", "T1213")),
+
+        ModeOperatoireBibliotheque.Systeme("compromission-ad",
+            "Domination du domaine Active Directory",
+            "Depuis un accès interne, l'attaquant récupère des identifiants à privilèges et prend le contrôle complet de l'annuaire.",
+            3, 3,
+            AE(PhaseActionElementaire.Connaitre, "Énumération de l'annuaire et des chemins vers les administrateurs", "Annuaire Active Directory", "T1087"),
+            AE(PhaseActionElementaire.Trouver, "Vol d'empreintes d'authentification en mémoire ou sur disque", "Poste de travail bureautique", "T1003.001"),
+            AE(PhaseActionElementaire.Trouver, "Rejeu d'empreintes et déplacement vers un contrôleur de domaine", "Contrôleur de domaine", "T1550.002"),
+            AE(PhaseActionElementaire.Exploiter, "Réplication des secrets du domaine (DCSync) et création d'accès persistants", "Contrôleur de domaine", "T1003.006")),
     };
 }

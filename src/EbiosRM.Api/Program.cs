@@ -1097,6 +1097,79 @@ app.MapDelete("/api/v1/bibliotheque/evenements-redoutes/{id:guid}", async (
     return Results.NoContent();
 });
 
+// --- Bibliotheque : modes operatoires types (Atelier 4) -------------------
+static object VueModeOperatoireBiblio(ModeOperatoireBibliotheque m) => new
+{
+    m.Id, systeme = m.EstSysteme, m.Nom, m.Description,
+    m.ProbabiliteSuccesTypique, m.DifficulteTechniqueTypique,
+    actions = m.Actions.OrderBy(a => a.Ordre).Select(a => new
+    {
+        a.Ordre, a.Description, phase = a.Phase.ToString(), a.CibleBienSupport, a.TechniqueMitre,
+    }),
+};
+
+app.MapGet("/api/v1/bibliotheque/modes-operatoires", async (
+    string? q, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    IEnumerable<ModeOperatoireBibliotheque> items = CatalogueSysteme.ModesOperatoires
+        .Concat(await repo.ListerAsync<ModeOperatoireBibliotheque>(moiId.Value, ct));
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var terme = q.Trim();
+        items = items.Where(m => Contient(m.Nom, terme) || Contient(m.Description, terme)
+            || m.Actions.Any(a => Contient(a.Description, terme) || Contient(a.TechniqueMitre, terme)));
+    }
+
+    return Results.Ok(items.OrderBy(m => m.EstSysteme ? 1 : 0).ThenBy(m => m.Nom).Select(VueModeOperatoireBiblio));
+});
+
+app.MapPost("/api/v1/bibliotheque/modes-operatoires", async (
+    AjouterModeOperatoireBiblioRequest request, IBibliothequeRepository repo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var actions = new List<ActionElementaireBiblioEntree>();
+    foreach (var a in request.Actions ?? new())
+    {
+        if (!Enum.TryParse<PhaseActionElementaire>(a.Phase, ignoreCase: true, out var phase))
+            return Results.BadRequest(new { error = $"Phase d'action elementaire invalide : {a.Phase}." });
+        actions.Add(new ActionElementaireBiblioEntree(a.Description, phase, a.CibleBienSupport, a.TechniqueMitre));
+    }
+
+    try
+    {
+        var mode = ModeOperatoireBibliotheque.Creer(
+            moiId.Value, request.Nom, request.Description,
+            request.ProbabiliteSuccesTypique, request.DifficulteTechniqueTypique, actions);
+        await repo.AjouterAsync(mode, ct);
+        return Results.Created($"/api/v1/bibliotheque/modes-operatoires/{mode.Id}", VueModeOperatoireBiblio(mode));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/bibliotheque/modes-operatoires/{id:guid}", async (
+    Guid id, IBibliothequeRepository repo, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var mode = await repo.ObtenirAsync<ModeOperatoireBibliotheque>(id, ct);
+    if (mode is null || mode.ProprietaireId != moiId)
+        return Results.NotFound(new { error = "Mode operatoire introuvable dans votre bibliotheque (le catalogue systeme n'est pas modifiable)." });
+
+    await repo.SupprimerAsync(mode, ct);
+    return Results.NoContent();
+});
+
 // Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans
 // le code. Filtre optionnel par phase EBIOS RM (Connaitre/Rentrer/Trouver/
 // Exploiter) et recherche plein texte sur l'identifiant / le nom / la tactique.
@@ -3337,6 +3410,10 @@ record AjouterPartiePrenanteBiblioRequest(
 record AjouterValeurMetierBiblioRequest(string Intitule, string? NatureOuFinalite, string? EntiteProprietaireTypique);
 record AjouterBienSupportBiblioRequest(string Intitule, string Type, string? EntiteProprietaireTypique, string? Description);
 record AjouterEvenementRedouteBiblioRequest(string Intitule, int? GraviteIndicative, string? ImpactsTypes);
+record AjouterModeOperatoireBiblioRequest(
+    string Nom, string? Description, int? ProbabiliteSuccesTypique, int? DifficulteTechniqueTypique,
+    List<ActionElementaireBiblioRequest>? Actions);
+record ActionElementaireBiblioRequest(string Description, string Phase, string? CibleBienSupport, string? TechniqueMitre);
 record AjouterMembreRequest(string Email, string Role);
 record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);

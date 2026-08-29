@@ -12,12 +12,14 @@ import {
   listerValeursMetierBiblio, ajouterValeurMetierBiblio, supprimerValeurMetierBiblio,
   listerBiensSupportBiblio, ajouterBienSupportBiblio, supprimerBienSupportBiblio,
   listerEvenementsRedoutesBiblio, ajouterEvenementRedouteBiblio, supprimerEvenementRedouteBiblio,
+  listerModesOperatoiresBiblio, ajouterModeOperatoireBiblio, supprimerModeOperatoireBiblio,
   ApiError,
 } from '../lib/api'
 import type {
   MesureBiblio, SourceRisqueBiblio, PartiePrenanteBiblio, ValeurMetierBiblio,
-  BienSupportBiblio, EvenementRedouteBiblio,
+  BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio,
 } from '../lib/api'
+import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 
 var LIBELLE_REFERENTIEL: { [key: string]: string } = { Libre: 'Libre', Iso27002: 'ISO 27002', HygieneAnssi: 'Hygiene ANSSI' }
 var CATEGORIES_SR = ['Etatique', 'CrimeOrganise', 'Terroriste', 'ActivisteIdeologique', 'OfficineSpecialisee', 'Amateur', 'Vengeur', 'MalveillantPathologique', 'Autre']
@@ -28,7 +30,9 @@ var LIBELLE_TYPE_BS: { [key: string]: string } = {
   SystemeInformation: 'Systeme d information', Reseau: 'Reseau', RessourcesHumaines: 'Ressources humaines', Local: 'Local',
 }
 
-type Onglet = 'mesures' | 'sources' | 'parties-prenantes' | 'valeurs-metier' | 'biens-support' | 'evenements-redoutes'
+var LIBELLE_PHASE_AE: { [key: string]: string } = { Connaitre: 'CONNAITRE', Rentrer: 'RENTRER', Trouver: 'TROUVER', Exploiter: 'EXPLOITER' }
+
+type Onglet = 'mesures' | 'sources' | 'parties-prenantes' | 'valeurs-metier' | 'biens-support' | 'evenements-redoutes' | 'modes-operatoires'
 
 var ONGLETS: [Onglet, string][] = [
   ['mesures', 'Mesures'],
@@ -37,6 +41,7 @@ var ONGLETS: [Onglet, string][] = [
   ['valeurs-metier', 'Valeurs metier'],
   ['biens-support', 'Biens support'],
   ['evenements-redoutes', 'Evenements redoutes'],
+  ['modes-operatoires', 'Modes operatoires'],
 ]
 
 export default function Bibliotheque() {
@@ -72,6 +77,7 @@ export default function Bibliotheque() {
       {onglet === 'valeurs-metier' && <OngletValeursMetier />}
       {onglet === 'biens-support' && <OngletBiensSupport />}
       {onglet === 'evenements-redoutes' && <OngletEvenementsRedoutes />}
+      {onglet === 'modes-operatoires' && <OngletModesOperatoires />}
     </div>
   )
 }
@@ -575,6 +581,130 @@ function OngletEvenementsRedoutes() {
               <div className="mt-0.5 font-mono text-[10px] text-steel-light">
                 {meta(e.graviteIndicative && 'gravite indicative G' + e.graviteIndicative, e.impactsTypes, !e.systeme && 'ma bibliotheque')}
               </div>
+            </>
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+type LigneAction = { description: string; phase: string; cibleBienSupport: string; techniqueMitre: string }
+
+function OngletModesOperatoires() {
+  var [items, setItems] = useState<ModeOperatoireBiblio[]>([])
+  var [q, setQ] = useState('')
+  var [chargement, setChargement] = useState(true)
+  var [nom, setNom] = useState('')
+  var [description, setDescription] = useState('')
+  var [proba, setProba] = useState('2')
+  var [diff, setDiff] = useState('2')
+  var [actions, setActions] = useState<LigneAction[]>([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])
+  var [deplie, setDeplie] = useState('')
+
+  function charger() {
+    setChargement(true)
+    listerModesOperatoiresBiblio(q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q])
+
+  function majAction(i: number, champ: keyof LigneAction, v: string) {
+    var copie = actions.slice()
+    copie[i] = { ...copie[i], [champ]: v }
+    setActions(copie)
+  }
+
+  function ajouter() {
+    var lignes = actions.filter(function (a) { return a.description.trim() })
+    if (!nom.trim() || lignes.length === 0) return
+    ajouterModeOperatoireBiblio({
+      nom: nom, description: description,
+      probabiliteSuccesTypique: parseInt(proba, 10), difficulteTechniqueTypique: parseInt(diff, 10),
+      actions: lignes.map(function (a) {
+        return { description: a.description, phase: a.phase, cibleBienSupport: a.cibleBienSupport || null, techniqueMitre: a.techniqueMitre || null }
+      }),
+    })
+      .then(function () {
+        toastSucces('Mode operatoire ajoute.')
+        setNom(''); setDescription('')
+        setActions([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])
+        charger()
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function supprimer(m: ModeOperatoireBiblio) {
+    if (!window.confirm('Retirer "' + m.nom + '" de votre bibliotheque ?')) return
+    supprimerModeOperatoireBiblio(m.id)
+      .then(function () { toastSucces('Mode operatoire retire.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  return (
+    <div>
+      <div className="mb-4 border border-paper-line p-4">
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">AJOUTER UN MODE OPERATOIRE A MA BIBLIOTHEQUE</div>
+        <Champ valeur={nom} onChange={setNom} placeholder="Nom (ex. Rançongiciel par hameçonnage)" className="mb-2" />
+        <Champ valeur={description} onChange={setDescription} placeholder="Description courte (optionnel)" className="mb-2" />
+        <div className="mb-2 grid gap-2 sm:grid-cols-2">
+          <select value={proba} onChange={function (e) { setProba(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
+            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>Probabilite de succes {n}</option> })}
+          </select>
+          <select value={diff} onChange={function (e) { setDiff(e.target.value) }} className="border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none">
+            {[1, 2, 3, 4].map(function (n) { return <option key={n} value={n}>Difficulte technique {n}</option> })}
+          </select>
+        </div>
+        <div className="mb-2 font-mono text-[10px] tracking-wide text-steel-light">ACTIONS ELEMENTAIRES</div>
+        {actions.map(function (a, i) {
+          return (
+            <div key={i} className="mb-1.5 grid grid-cols-[110px_1fr_1fr_110px_auto] items-center gap-1.5">
+              <select value={a.phase} onChange={function (e) { majAction(i, 'phase', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none">
+                {PHASES_ACTION_ELEMENTAIRE.map(function (p) { return <option key={p} value={p}>{LIBELLE_PHASE_AE[p]}</option> })}
+              </select>
+              <input type="text" placeholder="Description de l action" value={a.description} onChange={function (e) { majAction(i, 'description', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder="Cible (libelle bien support)" value={a.cibleBienSupport} onChange={function (e) { majAction(i, 'cibleBienSupport', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <input type="text" placeholder="MITRE" value={a.techniqueMitre} onChange={function (e) { majAction(i, 'techniqueMitre', e.target.value) }} className="border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none" />
+              <button type="button" onClick={function () { if (actions.length > 1) setActions(actions.filter(function (_, j) { return j !== i })) }} disabled={actions.length <= 1} className="text-[11px] text-steel-light hover:text-risk-critical disabled:opacity-30">×</button>
+            </div>
+          )
+        })}
+        <button type="button" onClick={function () { setActions(actions.concat([{ description: '', phase: PHASES_ACTION_ELEMENTAIRE[0], cibleBienSupport: '', techniqueMitre: '' }])) }} className="mb-3 font-mono text-[10px] text-signature hover:underline">+ Action elementaire</button>
+        <div><Button variante="primary" onClick={ajouter} disabled={!nom.trim()}>Ajouter</Button></div>
+      </div>
+
+      <Liste
+        q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun mode operatoire."
+        onSupprimer={supprimer}
+        rendre={function (m) {
+          var ouvert = deplie === m.id
+          return (
+            <>
+              <button type="button" onClick={function () { setDeplie(ouvert ? '' : m.id) }} className="text-left text-sm text-ink hover:text-signature">{m.nom}</button>
+              <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                {meta(m.actions.length + ' action' + (m.actions.length > 1 ? 's' : ''), m.probabiliteSuccesTypique && 'proba ' + m.probabiliteSuccesTypique, m.difficulteTechniqueTypique && 'diff ' + m.difficulteTechniqueTypique, !m.systeme && 'ma bibliotheque')}
+              </div>
+              {m.description && <div className="mt-0.5 text-xs text-steel">{m.description}</div>}
+              {ouvert && (
+                <ol className="mt-1.5 space-y-0.5 border-l border-paper-line pl-3">
+                  {m.actions.map(function (a, i) {
+                    return (
+                      <li key={i} className="text-[11px] text-steel">
+                        <span className="font-mono text-[9px] text-steel-light">{LIBELLE_PHASE_AE[a.phase] || a.phase}</span>{' '}
+                        {a.description}
+                        {a.cibleBienSupport ? ' — ' + a.cibleBienSupport : ''}
+                        {a.techniqueMitre ? ' [' + a.techniqueMitre + ']' : ''}
+                      </li>
+                    )
+                  })}
+                </ol>
+              )}
             </>
           )
         }}
