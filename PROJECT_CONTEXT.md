@@ -2401,5 +2401,13 @@ Notifications sur dérive d'un KRI, historisation automatique des indicateurs au
 ### Reste possible
 Traduction du reste de l'app et des PDF, export Word du rapport complet des 5 ateliers, export du tableau de conformité en Excel dédié.
 
+## Mise à jour — Point 9 abandonné (décision 2026-08-29)
+
+Le point 9 de la feuille de route (`docs/analyse-concurrentielle.md`) — **pont EBIOS RM → FAIR** (quantification € / Monte Carlo) et/ou **assistance IA** — est **abandonné**. Motifs :
+- **FAIR** : pas de traduction automatique fiable de la gravité EBIOS en euros (la quantification des pertes reste une saisie analyste incontournable) ; on ne livrerait qu'un Monte Carlo « FAIR-inspiré », pas un vrai pont méthodologique.
+- **Assistance IA** : suppose un LLM externe (réseau, clé API, coût, confidentialité des analyses) ou embarqué (binaire lourd, RAM/GPU) — incompatible avec le positionnement **hors-ligne / air-gap** et « .exe simple » de l'outil.
+
+La feuille de route concurrentielle est donc considérée **terminée** (points 1 à 8 livrés, 3 à 8 en 1ʳᵉ passe). Ne pas reproposer le point 9 sauf demande explicite de l'utilisateur.
+
 *Fin du contexte.*
 
