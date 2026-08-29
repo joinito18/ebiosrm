@@ -238,6 +238,13 @@ export function supprimerEtude(id: string): Promise<void> {
   return apiFetch('/etudes/' + id, { method: 'DELETE' })
 }
 
+export function dupliquerEtude(id: string, nom?: string): Promise<{ id: string }> {
+  return apiFetch('/etudes/' + id + '/dupliquer', {
+    method: 'POST',
+    body: JSON.stringify({ nom: nom || null }),
+  })
+}
+
 export function demarrerAtelier1(etudeId: string): Promise<Etude> {
   return apiFetch('/etudes/' + etudeId + '/demarrer-atelier1', { method: 'POST' })
 }

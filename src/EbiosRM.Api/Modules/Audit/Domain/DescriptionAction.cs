@@ -52,6 +52,8 @@ public static class DescriptionAction
                 return $"{libelle} de l'atelier {premier[prefixe.Length..]}";
         }
 
+        if (premier is "dupliquer")
+            return "Duplication de l'étude vers une nouvelle étude";
         if (premier is "acceptation")
             return methode == "DELETE" ? "Retrait de l'acceptation formelle du risque" : "Acceptation formelle du risque";
         if (premier.Contains("retenue") || premier.Contains("dangerosite") || premier.Contains("vraisemblance")

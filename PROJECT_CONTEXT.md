@@ -2283,9 +2283,24 @@ Suite à `docs/analyse-concurrentielle.md` (écart 🔴 « pas de journal d'audi
 - **Vérifié** : 236 tests backend (+6 : créateur = Proprietaire, non-membre 404, Editeur modifie mais pas les membres, Lecteur lit mais 403 en écriture, email inconnu 404, dernier Proprietaire non retirable), 25 frontend, + navigateur (Playwright) : page Membres côté Proprietaire vs Lecteur, bandeau lecture seule, partage rendant l'étude visible.
 
 ### Reste à faire (améliorations, non bloquant)
-- **Gating fin de l'UI** : sur `AtelierPage.tsx`, masquer les boutons Ajouter/Modifier/Supprimer pour un Lecteur (aujourd'hui ils sont visibles mais le backend renvoie 403 → toast). Bandeau « lecture seule » déjà présent sur le Dashboard.
 - **« Quitter l'étude »** : self-removal d'un Lecteur/Editeur (aujourd'hui seul le Proprietaire gère les membres).
 - **Invitation d'un compte inexistant** : aujourd'hui la personne doit déjà avoir un compte. Un vrai flux d'invitation par email dépend de la branche `feat/reinitialisation-mot-de-passe` (envoi d'emails).
+
+## Mise à jour — Gating UI lecture seule + duplication d'étude (feuille de route points 1 fin & 2)
+
+### Gating UI du rôle Lecteur (fin du point 1)
+- **`lib/lectureSeule.tsx`** : contexte React `LectureSeuleProvider` / `useLectureSeule()`. `AtelierPage.tsx` enveloppe son rendu avec `valeur={etude.monRole === 'Lecteur'}` + bandeau « lecture seule ».
+- Composants partagés qui consomment le contexte : `Button` (masque `primary` / `danger` / `ghost` — toutes des actions d'écriture dans AtelierPage ; seul `secondary` = navigation reste), `RowActions` et `InlineForm` (rendu nul), `OverrideJugementExpert` (résumé lecture seule, ou masqué si pas d'écart).
+- Cas particuliers gérés à la main dans `AtelierPage.tsx` : `LigneEvaluationDangerosite` (plus de formulaire forcé si non évaluée), `AcceptationFormelleSection` et `PlanTraitementRisqueSection` (texte « pas encore fait » au lieu du formulaire).
+- Les boutons de **téléchargement des rapports PDF** restent accessibles au Lecteur (composant `BoutonTelechargerRapport`, non géré par le contexte).
+
+### Duplication d'étude (point 2 — « base de modèles »)
+- **`ServiceDuplicationEtude`** (`Modules/CoreEngine/Domain/Cadrage/`) : recharge chaque agrégat `AsNoTracking`, réserve un nouvel `Id` par racine (table de correspondance ancien→nouveau), rattache comme `Added` en réécrivant `Id` + `EtudeId` + toutes les FK inter-agrégats via la table, régénère récursivement les clés des entités owned (Referentiels, Mesures ×2, EvenementsIntermediaires, ModesOperatoires/ActionsElementaires) et remappe leurs FK (`PartiePrenanteId`, `BienSupportId`, `_scenariosDeRisqueIds`). Pas de vraie FK inter-agrégats en base → ordre d'insertion indifférent, une seule `SaveChanges` sous transaction.
+- **Non copié** : snapshots figés (comme l'export), journal, membres. **Les 5 ateliers repartent en brouillon** (une copie sans snapshot ne peut pas se dire « validée »).
+- **`POST /api/v1/etudes/{etudeId}/dupliquer` `{ nom? }`** → 201 `{ id }`. L'appelant devient Proprietaire de la copie. **Exempté du contrôle d'écriture du middleware** (`estDuplication` : ne fait que lire la source) → un **Lecteur** peut dupliquer, et l'**étude de démo publique** aussi. `DescriptionAction` : cas `dupliquer`.
+- **Frontend** : icône `Copy` (bouton « Dupliquer ») sur chaque ligne de `Etudes.tsx`, à côté de l'export ; `window.prompt` pour le nom ; navigation vers la copie. Bouton Supprimer resserré à `monRole === 'Proprietaire'` (Editeur et démo ne peuvent pas supprimer de toute façon). `dupliquerEtude()` dans `api.ts`.
+- **Vérifié** : 238 tests backend (+2 : deep-copy complète des 5 ateliers avec intégrité référentielle vérifiée sur toutes les collections + owned, aucun Id partagé ; Lecteur peut dupliquer une étude partagée et devient Proprietaire de sa copie), 25 frontend, + navigateur (Playwright) : Lecteur ne voit aucun bouton d'écriture sur AtelierPage mais garde le téléchargement PDF ; duplication via la liste par le Proprietaire et par un Lecteur.
+- **Reste** : **import JSON** (miroir de l'export) — même moteur de reconstruction que la duplication, il manque l'entrée « fichier uploadé » + validation du schéma.
 
 *Fin du contexte.*
 

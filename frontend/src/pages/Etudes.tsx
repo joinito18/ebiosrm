@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Download } from 'lucide-react'
+import { Plus, Trash2, Download, Copy } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
 import Button from '../components/shared/Button'
 import Card from '../components/shared/Card'
 import EmptyState from '../components/shared/EmptyState'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
-import { listEtudes, createEtude, supprimerEtude, ApiError } from '../lib/api'
-import { toastSucces } from '../lib/toast'
+import { listEtudes, createEtude, supprimerEtude, dupliquerEtude, ApiError } from '../lib/api'
+import { toastSucces, toastErreur } from '../lib/toast'
 import type { Etude } from '../lib/api'
 
 export default function Etudes() {
@@ -59,6 +59,24 @@ export default function Etudes() {
         setErreurCreation(message)
       })
       .finally(function () { setCreationEnCours(false) })
+  }
+
+  var [duplicationEnCours, setDuplicationEnCours] = useState('')
+
+  function handleDupliquer(e: React.MouseEvent, etude: Etude) {
+    e.stopPropagation()
+    var nom = window.prompt('Nom de la copie :', etude.nom + ' (copie)')
+    if (nom === null) return
+    setDuplicationEnCours(etude.id)
+    dupliquerEtude(etude.id, nom.trim() || undefined)
+      .then(function (res) {
+        toastSucces('Etude dupliquee.')
+        navigate('/etudes/' + res.id)
+      })
+      .catch(function (err) {
+        toastErreur(err instanceof ApiError ? err.message : 'Impossible de dupliquer l etude.')
+      })
+      .finally(function () { setDuplicationEnCours('') })
   }
 
   function handleSupprimer(e: React.MouseEvent, etude: Etude) {
@@ -185,12 +203,23 @@ export default function Etudes() {
                           </span>
                         </BoutonTelechargerRapport>
                         <button
-                          onClick={function (e) { handleSupprimer(e, etude) }}
-                          aria-label={'Supprimer ' + etude.nom}
-                          className="text-steel-light transition hover:text-risk-critical"
+                          onClick={function (e) { handleDupliquer(e, etude) }}
+                          disabled={duplicationEnCours === etude.id}
+                          aria-label={'Dupliquer ' + etude.nom}
+                          title="Dupliquer (nouvelle etude a partir de celle-ci)"
+                          className="text-steel-light transition hover:text-signature disabled:opacity-40"
                         >
-                          <Trash2 size={14} />
+                          <Copy size={14} />
                         </button>
+                        {etude.monRole === 'Proprietaire' && (
+                          <button
+                            onClick={function (e) { handleSupprimer(e, etude) }}
+                            aria-label={'Supprimer ' + etude.nom}
+                            className="text-steel-light transition hover:text-risk-critical"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

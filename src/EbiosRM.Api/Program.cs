@@ -168,6 +168,7 @@ builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
+builder.Services.AddScoped<ServiceDuplicationEtude>();
 builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
 builder.Services.AddScoped<IBienSupportRepository, BienSupportRepository>();
 builder.Services.AddScoped<IEvenementRedouteRepository, EvenementRedouteRepository>();
@@ -293,7 +294,14 @@ app.Use(async (context, next) =>
                 .ObtenirParIdAsync(etudeId, context.RequestAborted);
             if (etude is not null)
             {
-                var estEcriture = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
+                // La duplication est un POST sur l'etude *source* mais ne fait
+                // que la lire (le contenu recopie va dans une nouvelle etude
+                // dont l'appelant devient proprietaire) : accessible a tout
+                // membre, y compris Lecteur, et sur l'etude de demonstration.
+                var estDuplication = (context.Request.Path.Value ?? "").EndsWith("/dupliquer", StringComparison.OrdinalIgnoreCase);
+                var estEcriture = !HttpMethods.IsGet(context.Request.Method)
+                    && !HttpMethods.IsHead(context.Request.Method)
+                    && !estDuplication;
 
                 if (etude.ProprietaireId is null)
                 {
@@ -627,6 +635,30 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/export", async (
     };
 
     return Results.Ok(export);
+});
+
+// Duplication d'une etude (base de "modeles") : recopie tout le contenu
+// editable des 5 ateliers dans une nouvelle etude dont l'appelant devient
+// proprietaire. Snapshots figes, journal et membres non copies ; les 5
+// ateliers repartent en brouillon. Accessible a tout membre de la source
+// (y compris Lecteur) et a l'etude de demonstration -- cf. middleware.
+app.MapPost("/api/v1/etudes/{etudeId:guid}/dupliquer", async (
+    Guid etudeId, DupliquerEtudeRequest? request, ServiceDuplicationEtude service,
+    IEtudeMembreRepository membreRepo, System.Security.Claims.ClaimsPrincipal principal,
+    CancellationToken ct) =>
+{
+    var proprietaireId = ObtenirUtilisateurId(principal);
+    if (proprietaireId is null)
+        return Results.Unauthorized();
+
+    var nouvelleId = await service.DupliquerAsync(etudeId, request?.Nom, proprietaireId, ct);
+    if (nouvelleId is null)
+        return Results.NotFound(new { error = "Étude introuvable." });
+
+    await membreRepo.AjouterAsync(
+        EtudeMembre.Creer(nouvelleId.Value, proprietaireId.Value, RoleEtude.Proprietaire, proprietaireId), ct);
+
+    return Results.Created($"/api/v1/etudes/{nouvelleId}", new { id = nouvelleId });
 });
 
 app.MapGet("/api/v1/etudes", async (
@@ -2602,6 +2634,7 @@ static async Task<(List<ActionElementaireEntree>? Actions, IResult? Erreur)> Par
 record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
 record ConnexionRequest(string Email, string MotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
+record DupliquerEtudeRequest(string? Nom);
 record AjouterMembreRequest(string Email, string Role);
 record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);

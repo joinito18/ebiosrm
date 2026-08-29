@@ -81,8 +81,8 @@ Priorité : 🔴 critique (bloquant usage pro partagé) · 🟠 important (atten
 
 ## 5. Feuille de route recommandée (par ordre)
 
-1. **Socle collaboratif** : modèle organisation + rôles + partage d'étude + **journal d'audit**. Le plus structurant.
-2. **Import JSON** (miroir de l'export) + **duplication d'étude** → base de « modèles ».
+1. ~~**Socle collaboratif** : modèle organisation + rôles + partage d'étude + **journal d'audit**~~. **Fait** (3 rôles Lecteur/Éditeur/Propriétaire, partage par email, journal append-only, gating lecture seule de l'UI).
+2. **Duplication d'étude** → base de « modèles » : **fait** (`POST /etudes/{id}/dupliquer`, deep-copy des 5 ateliers avec ré-attribution de toutes les clés, accessible aux Lecteurs et à l'étude de démo). Reste à faire : **import JSON** (miroir de l'export ; même moteur de reconstruction, il manque l'entrée « fichier »).
 3. **Bibliothèques réutilisables** + **catalogues multi-référentiels** (NIST, CIS, hygiène ANSSI).
 4. **Cartographie graphique** (écosystème A3 en cercles concentriques + arbres de chemins d'attaque A3/A4).
 5. **Intégration MITRE ATT&CK** (Atelier 4).
