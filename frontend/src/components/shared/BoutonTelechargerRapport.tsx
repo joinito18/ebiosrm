@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { telechargerRapport, ApiError } from '../../lib/api'
 import { toastErreur } from '../../lib/toast'
+import { traduire } from '../../lib/i18n'
 
 export default function BoutonTelechargerRapport(props: { path: string; nomFichier: string; children: React.ReactNode; className?: string }) {
   var [enCours, setEnCours] = useState(false)
@@ -9,7 +10,7 @@ export default function BoutonTelechargerRapport(props: { path: string; nomFichi
     setEnCours(true)
     telechargerRapport(props.path, props.nomFichier)
       .catch(function (err) {
-        toastErreur(err instanceof ApiError ? err.message : 'Erreur lors du telechargement du rapport.')
+        toastErreur(err instanceof ApiError ? err.message : traduire('cmp.errTelechargement'))
       })
       .finally(function () { setEnCours(false) })
   }

@@ -259,7 +259,7 @@ function Liste<T extends { id: string; systeme: boolean }>(props: {
                         {publiees[item.id] ? traduire('bib.publieCheck') : traduire('bib.publier')}
                       </button>
                     )}
-                    <button onClick={function () { props.onSupprimer(item) }} aria-label="Retirer" className="text-steel-light transition hover:text-risk-critical">
+                    <button onClick={function () { props.onSupprimer(item) }} aria-label={traduire('commun.supprimer')} className="text-steel-light transition hover:text-risk-critical">
                       <Trash2 size={14} />
                     </button>
                   </div>

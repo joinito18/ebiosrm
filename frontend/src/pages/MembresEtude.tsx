@@ -92,7 +92,7 @@ export default function MembresEtude() {
                     type="email"
                     value={email}
                     onChange={function (e) { setEmail(e.target.value) }}
-                    placeholder="collegue@organisation.fr"
+                    placeholder={_t('membres.emailPh')}
                     className="w-full border-b border-paper-line bg-transparent py-1.5 text-sm text-ink focus:border-signature focus:outline-none"
                   />
                 </div>

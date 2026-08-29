@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { traduire } from '../../lib/i18n'
 
 /**
  * Panneau de sélection d'un élément de bibliothèque (mesure, source de risque).
@@ -28,7 +29,7 @@ export default function SelecteurBibliotheque<T>(props: {
     var minuteur = setTimeout(function () {
       props.charger(q)
         .then(function (r) { if (!annule) { setItems(r); setErreur('') } })
-        .catch(function () { if (!annule) setErreur('Bibliotheque indisponible.') })
+        .catch(function () { if (!annule) setErreur(traduire('cmp.biblioIndispo')) })
         .finally(function () { if (!annule) setChargement(false) })
     }, 200)
     return function () { annule = true; clearTimeout(minuteur) }
@@ -44,7 +45,7 @@ export default function SelecteurBibliotheque<T>(props: {
       <input
         type="text"
         autoFocus
-        placeholder="Rechercher..."
+        placeholder={traduire('commun.rechercher')}
         value={q}
         onChange={function (e) { setQ(e.target.value) }}
         className="mb-2 w-full border-b border-paper-line bg-transparent py-1 text-sm text-ink focus:border-signature focus:outline-none"

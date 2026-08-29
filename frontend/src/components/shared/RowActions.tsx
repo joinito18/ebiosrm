@@ -1,4 +1,5 @@
 import { useLectureSeule } from '../../lib/lectureSeule'
+import { traduire } from '../../lib/i18n'
 
 // Paire Modifier/Suppr., dupliquee 26 fois a la main dans AtelierPage.tsx.
 // Reste volontairement du texte (pas des boutons pleins) : ce sont des
@@ -10,11 +11,11 @@ export default function RowActions(props: { onModifier?: () => void; onSupprimer
     <div className="flex shrink-0 items-center gap-3">
       {props.onModifier && (
         <button onClick={props.onModifier} className="text-[11px] text-steel-light hover:text-signature">
-          {props.labelModifier || 'Modifier'}
+          {props.labelModifier || traduire('commun.modifier')}
         </button>
       )}
       <button onClick={props.onSupprimer} className="text-[11px] text-steel-light hover:text-risk-critical">
-        {props.labelSupprimer || 'Suppr.'}
+        {props.labelSupprimer || traduire('cmp.suppr')}
       </button>
     </div>
   )

@@ -1,3 +1,4 @@
+import { traduire } from '../../lib/i18n'
 var GRAVITES = [4, 3, 2, 1]
 var VRAISEMBLANCES = [1, 2, 3, 4]
 
@@ -35,7 +36,7 @@ export default function RiskMatrix(props: { scenarios: ScenarioPourMatrice[] }) 
       <div className="flex min-w-0">
         <div className="flex w-6 shrink-0 flex-col items-center justify-center">
           <span className="rotate-180 font-mono text-[9px] tracking-wide text-steel-light" style={{ writingMode: 'vertical-rl' }}>
-            GRAVITE
+            {traduire('cmp.rm.gravite')}
           </span>
         </div>
 
@@ -49,7 +50,7 @@ export default function RiskMatrix(props: { scenarios: ScenarioPourMatrice[] }) 
                   <div
                     key={String(gravite) + '-' + String(vraisemblance)}
                     className="flex aspect-square items-center justify-center rounded-sm bg-paper-dim"
-                    title={'Gravite ' + gravite + ' x Vraisemblance ' + vraisemblance + ' : ' + count + ' scenarios'}
+                    title={traduire('cmp.rm.gravite') + ' ' + gravite + ' x ' + traduire('cmp.rm.vraisemblance') + ' ' + vraisemblance + ' : ' + count + ' ' + traduire('cmp.rm.scenarios')}
                   >
                     {count > 0 && (
                       <div
@@ -73,17 +74,17 @@ export default function RiskMatrix(props: { scenarios: ScenarioPourMatrice[] }) 
             })}
           </div>
           <div className="mt-0.5 text-center font-mono text-[9px] tracking-wide text-steel-light">
-            VRAISEMBLANCE
+            {traduire('cmp.rm.vraisemblance')}
           </div>
         </div>
       </div>
 
       <div className="mt-5 flex flex-wrap gap-x-5 gap-y-1.5 border-t border-paper-line pt-4">
         {[
-          ['Critique', 'bg-risk-critical'],
-          ['Eleve', 'bg-risk-high'],
-          ['Modere', 'bg-risk-moderate'],
-          ['Faible', 'bg-risk-low'],
+          [traduire('cmp.rm.critique'), 'bg-risk-critical'],
+          [traduire('cmp.rm.eleve'), 'bg-risk-high'],
+          [traduire('cmp.rm.modere'), 'bg-risk-moderate'],
+          [traduire('cmp.rm.faible'), 'bg-risk-low'],
         ].map(function (pair) {
           return (
             <div key={pair[0]} className="flex items-center gap-1.5">

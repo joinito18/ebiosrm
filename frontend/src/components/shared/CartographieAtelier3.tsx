@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { chargerCartographieSvg } from '../../lib/api'
 import type { CartographieType } from '../../lib/api'
+import { traduire } from '../../lib/i18n'
 
 function VueSvg(props: { etudeId: string; type: CartographieType; residuel?: boolean; rafraichir: number }) {
   var [svg, setSvg] = useState<string | null>(null)
@@ -12,12 +13,12 @@ function VueSvg(props: { etudeId: string; type: CartographieType; residuel?: boo
     setChargement(true)
     chargerCartographieSvg(props.etudeId, props.type, props.residuel)
       .then(function (s) { if (!annule) { setSvg(s); setErreur('') } })
-      .catch(function () { if (!annule) setErreur('Cartographie indisponible.') })
+      .catch(function () { if (!annule) setErreur(traduire('cmp.cartoIndispo')) })
       .finally(function () { if (!annule) setChargement(false) })
     return function () { annule = true }
   }, [props.etudeId, props.type, props.residuel, props.rafraichir])
 
-  if (chargement) return <p className="py-4 text-xs text-steel-light">Generation du schema...</p>
+  if (chargement) return <p className="py-4 text-xs text-steel-light">{traduire('cmp.cartoGen')}</p>
   if (erreur) return <p className="py-4 text-xs text-risk-critical">{erreur}</p>
   if (!svg) return null
 
@@ -45,9 +46,9 @@ export default function CartographieAtelier3(props: { etudeId: string; rafraichi
     <div className="space-y-8">
       <section>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-mono text-[11px] tracking-wide text-steel-light">CARTOGRAPHIE DE LA DANGEROSITE DE L ECOSYSTEME</h3>
+          <h3 className="font-mono text-[11px] tracking-wide text-steel-light">{traduire('cmp.cartoTitreEco')}</h3>
           <div className="flex gap-1">
-            {[['Initiale', false], ['Apres mesures', true]].map(function (o) {
+            {[[traduire('cmp.cartoInitiale'), false], [traduire('cmp.cartoApresMesures'), true]].map(function (o) {
               var actif = residuel === o[1]
               return (
                 <button
@@ -65,7 +66,7 @@ export default function CartographieAtelier3(props: { etudeId: string; rafraichi
       </section>
 
       <section>
-        <h3 className="mb-2 font-mono text-[11px] tracking-wide text-steel-light">SCENARIOS STRATEGIQUES ET CHEMINS D ATTAQUE</h3>
+        <h3 className="mb-2 font-mono text-[11px] tracking-wide text-steel-light">{traduire('cmp.cartoTitreChemins')}</h3>
         <VueSvg etudeId={props.etudeId} type="chemins-attaque" rafraichir={props.rafraichir} />
       </section>
     </div>

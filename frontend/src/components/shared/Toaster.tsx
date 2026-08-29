@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sabonner, retirerToast } from '../../lib/toast'
 import type { Toast } from '../../lib/toast'
+import { traduire } from '../../lib/i18n'
 
 var STYLE_BARRE: Record<Toast['type'], string> = {
   succes: 'border-l-signature',
@@ -27,7 +28,7 @@ export default function Toaster() {
             <span className="flex-1 leading-snug">{t.message}</span>
             <button
               onClick={function () { retirerToast(t.id) }}
-              aria-label="Fermer"
+              aria-label={traduire('commun.fermer')}
               className="-mr-1 -mt-0.5 shrink-0 rounded px-1 text-steel-light transition hover:text-ink"
             >
               &times;

@@ -95,7 +95,7 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
           </div>
           <button
             onClick={props.onFermer}
-            aria-label="Fermer le menu"
+            aria-label={traduire('cmp.fermerMenu')}
             className="text-steel-light hover:text-white lg:hidden"
           >
             <X size={20} strokeWidth={1.75} />

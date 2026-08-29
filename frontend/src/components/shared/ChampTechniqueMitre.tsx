@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { listerTechniquesMitre } from '../../lib/api'
 import type { PhaseActionElementaire, TechniqueMitre } from '../../lib/api'
+import { traduire } from '../../lib/i18n'
 
 /**
  * Sélecteur de technique MITRE ATT&CK pour une action élémentaire. Bouton
@@ -43,7 +44,7 @@ export default function ChampTechniqueMitre(props: {
         type="button"
         onClick={function () { setOuvert(!ouvert) }}
         className={'w-full truncate border-b border-paper-line bg-transparent py-1 text-left text-[11px] focus:border-signature focus:outline-none ' + (props.valeur ? 'text-signature' : 'text-steel-light')}
-        title={props.valeur ? 'Technique MITRE ATT&CK : ' + props.valeur : 'Associer une technique MITRE ATT&CK'}
+        title={props.valeur ? traduire('cmp.mitreTitre') + ' ' + props.valeur : traduire('cmp.mitreAssocier')}
       >
         {props.valeur || '+ ATT&CK'}
       </button>
@@ -53,7 +54,7 @@ export default function ChampTechniqueMitre(props: {
           <input
             type="text"
             autoFocus
-            placeholder="Rechercher (T1078, Phishing...)"
+            placeholder={traduire('cmp.mitreRecherche')}
             value={q}
             onChange={function (e) { setQ(e.target.value) }}
             className="mb-1.5 w-full border-b border-paper-line bg-transparent py-1 text-xs text-ink focus:border-signature focus:outline-none"
@@ -63,7 +64,7 @@ export default function ChampTechniqueMitre(props: {
             onClick={function () { props.onChange(null); setOuvert(false) }}
             className="mb-1 block w-full px-1 py-1 text-left text-[11px] text-steel-light hover:bg-signature/5"
           >
-            Aucune
+            {traduire('cmp.mitreAucune')}
           </button>
           <ul className="max-h-56 overflow-y-auto border-t border-paper-line">
             {items.map(function (t) {
@@ -80,7 +81,7 @@ export default function ChampTechniqueMitre(props: {
                 </li>
               )
             })}
-            {items.length === 0 && <li className="px-1 py-2 text-[11px] text-steel-light">Aucune technique.</li>}
+            {items.length === 0 && <li className="px-1 py-2 text-[11px] text-steel-light">{traduire('cmp.mitreAucuneTech')}</li>}
           </ul>
         </div>
       )}
