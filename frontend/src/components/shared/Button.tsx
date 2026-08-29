@@ -1,3 +1,5 @@
+import { useLectureSeule } from '../../lib/lectureSeule'
+
 export type VarianteBouton = 'primary' | 'secondary' | 'ghost' | 'danger'
 export type TailleBouton = 'sm' | 'md'
 
@@ -28,6 +30,12 @@ export default function Button(props: {
 }) {
   var variante = props.variante || 'secondary'
   var taille = props.taille || 'sm'
+
+  // En consultation seule, les boutons qui declenchent une ecriture (primary /
+  // danger / ghost -- ce dernier ouvre toujours un formulaire de creation dans
+  // AtelierPage) ne sont pas rendus. Seuls les "secondary" (navigation) restent.
+  if (useLectureSeule() && variante !== 'secondary') return null
+
   var basePadding = variante === 'ghost' ? 'text-[11px]' : TAILLES[taille] + ' rounded-sm'
   return (
     <button

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import { useLectureSeule } from '../../lib/lectureSeule'
 
 export default function InlineForm(props: { label: string; children: (fermer: () => void) => React.ReactNode }) {
   var [ouvert, setOuvert] = useState(false)
+  if (useLectureSeule()) return null
 
   if (!ouvert) {
     return (

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLectureSeule } from '../../lib/lectureSeule'
 
 interface OverrideJugementExpertProps {
   valeurCalculee: string
@@ -22,6 +23,17 @@ export default function OverrideJugementExpert(props: OverrideJugementExpertProp
   var [enCours, setEnCours] = useState(false)
 
   var aUnEcart = !!props.valeurRetenue
+  var lectureSeule = useLectureSeule()
+
+  if (lectureSeule) {
+    if (!aUnEcart) return null
+    return (
+      <div className="border-l-2 border-signature pl-3 text-xs text-steel">
+        <span className="font-mono text-[10px] text-steel-light">Jugement d expert &mdash; valeur calculee : {props.valeurCalculee}.</span>
+        {props.justification && <div className="mt-0.5">{props.justification}</div>}
+      </div>
+    )
+  }
 
   function soumettre() {
     if (!justification.trim()) {

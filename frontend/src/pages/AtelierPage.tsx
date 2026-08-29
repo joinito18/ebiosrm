@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { LectureSeuleProvider, useLectureSeule } from '../lib/lectureSeule'
 import PageHeader from '../components/shared/PageHeader'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import InlineForm from '../components/shared/InlineForm'
@@ -386,9 +387,18 @@ export default function AtelierPage() {
     )
   }
 
+  var lectureSeule = etude.monRole === 'Lecteur'
+
   return (
+    <LectureSeuleProvider valeur={lectureSeule}>
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader eyebrow={'ATELIER ' + (numero < 10 ? '0' + numero : numero) + ' / 05 -- ' + etude.nom} titre={nom} />
+
+      {lectureSeule && (
+        <div className="mb-6 inline-block border border-paper-line bg-paper-dim px-3 py-1.5 text-[11px] text-steel">
+          Vous consultez cet atelier en lecture seule. Les rapports restent telechargeables.
+        </div>
+      )}
 
       {messageErreur && <div className="mb-6 border border-risk-critical/30 bg-risk-critical/5 px-5 py-3 text-xs text-risk-critical">{messageErreur}</div>}
 
@@ -462,6 +472,7 @@ export default function AtelierPage() {
         <Link to={lienRetour} className="font-mono text-[11px] text-steel hover:text-signature">Retour au dossier de l etude</Link>
       </div>
     </div>
+    </LectureSeuleProvider>
   )
 }
 
@@ -1488,7 +1499,8 @@ function EvaluationDangerositeSection(props: { etudeId: string; parties: PartieP
 
 function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePrenante; onChange: () => void }) {
   var p = props.partie
-  var jamaisEvaluee = p.niveauDangerosite == null
+  var lectureSeule = useLectureSeule()
+  var jamaisEvaluee = p.niveauDangerosite == null && !lectureSeule
   var [edition, setEdition] = useState(false)
   var [dependance, setDependance] = useState(String(p.dependance || 2))
   var [penetration, setPenetration] = useState(String(p.penetration || 2))
@@ -1546,8 +1558,12 @@ function LigneEvaluationDangerosite(props: { etudeId: string; partie: PartiePren
       <div className="flex items-center justify-between gap-6">
         <div className="text-sm text-ink">{p.nom}</div>
         <div className="flex shrink-0 items-center gap-3">
-          <Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</Badge>
-          <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>
+          {p.niveauDangerosite == null ? (
+            <span className="font-mono text-[11px] text-steel-light">Non evaluee</span>
+          ) : (
+            <Badge couleur={badgeCouleur(couleurZone(p.zone || ''))}>{libelleZone(p.zone || '')} ({p.niveauDangerosite})</Badge>
+          )}
+          {!lectureSeule && <button onClick={ouvrirEvaluation} className="text-[11px] text-steel-light hover:text-signature">Reevaluer</button>}
         </div>
       </div>
       {p.niveauDangerositeCalcule != null && (
@@ -2665,6 +2681,7 @@ export function AcceptationFormelleSection(props: { etudeId: string; scenario: S
   var [enCours, setEnCours] = useState(false)
 
   var risqueEleve = s.niveauRisqueResiduel === 'Eleve'
+  var lectureSeule = useLectureSeule()
 
   function accepter() {
     if (!proprietaire.trim() || !validateur.trim()) {
@@ -2698,8 +2715,10 @@ export function AcceptationFormelleSection(props: { etudeId: string; scenario: S
           {s.nomSponsorExecutif && <div>Sponsor executif : <span className="font-medium">{s.nomSponsorExecutif}</span></div>}
           {s.justificationAcceptation && <div className="italic text-steel">{s.justificationAcceptation}</div>}
           {s.dateAcceptationUtc && <div className="font-mono text-[10px] text-steel-light">Accepte le {new Date(s.dateAcceptationUtc).toLocaleDateString('fr-FR')}</div>}
-          <button onClick={retirer} className="text-[11px] text-steel-light hover:text-risk-critical">Retirer l acceptation</button>
+          {!lectureSeule && <button onClick={retirer} className="text-[11px] text-steel-light hover:text-risk-critical">Retirer l acceptation</button>}
         </div>
+      ) : lectureSeule ? (
+        <div className="mt-1.5 font-mono text-[11px] text-steel-light">Risque residuel pas encore accepte formellement.</div>
       ) : (
         <div className="mt-1.5 space-y-1.5">
           <div className="grid grid-cols-2 gap-2">
@@ -2731,6 +2750,7 @@ var LIBELLE_STATUT_MESURE: { [key: string]: string } = { ALancer: 'A lancer', En
 export function PlanTraitementRisqueSection(props: { etudeId: string; plan: PlanTraitementRisque | null; scenariosDeRisque: ScenarioDeRisque[]; onChange: () => void }) {
   var [enCours, setEnCours] = useState(false)
   var [erreur, setErreur] = useState('')
+  var lectureSeulePlan = useLectureSeule()
 
   function creerPlan() {
     setEnCours(true)
@@ -2743,7 +2763,10 @@ export function PlanTraitementRisqueSection(props: { etudeId: string; plan: Plan
       <h2 className="mb-4 font-mono text-[11px] tracking-wide text-steel-light">PLAN DE TRAITEMENT DU RISQUE {props.plan ? '(' + props.plan.mesures.length + ' MESURE(S))' : ''}</h2>
       {erreur && <p className="mb-2 text-xs text-risk-critical">{erreur}</p>}
       {!props.plan ? (
-        <Button variante="ghost" onClick={creerPlan} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le plan de traitement du risque'}</Button>
+        <>
+          <Button variante="ghost" onClick={creerPlan} disabled={enCours}>{enCours ? 'Creation...' : '+ Creer le plan de traitement du risque'}</Button>
+          {lectureSeulePlan && <p className="text-xs text-steel-light">Aucun plan de traitement n a encore ete cree.</p>}
+        </>
       ) : (
         <div className="space-y-6">
           {AXES_MESURE.map(function (axe) {
