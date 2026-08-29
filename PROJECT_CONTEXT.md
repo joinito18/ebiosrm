@@ -2469,5 +2469,18 @@ Demande : rendre la bibliothèque plus « proposée » (l'utilisateur a demandé
 - **Tests** : `BibliothequeTests.Suggestions_de_mesures_croisent_le_contenu_de_l_etude` (étude vide → 0 suggestion ; étude avec ER « divulgation… contrôle d'accès… chiffrement… journalisation » → mesures ISO 27002 pertinentes, triées par score). 269 backend, 25 frontend. Playwright : panneau OK sur A5 (8 suggestions ISO/hygiène pertinentes), « Utiliser » ouvre le formulaire et pré-remplit « Contrôle d'accès (A.5.15) ».
 - **Extensible** : même principe possible pour les modes opératoires (A4) / parties prenantes (A3) — pas fait dans cette passe.
 
+## Mise à jour — Guides d'utilisation en anglais (2026-08-29, même branche)
+
+Première tranche de la traduction EN du contenu (demande #4). **Périmètre : les guides** (in-app + manuel PDF). Le reste du contenu applicatif (libellés d'enums, textes pédagogiques des ateliers, rapports PDF des ateliers, en-tête `Header`) **reste en français** — chantier bien plus gros, non entamé.
+
+- **`frontend/src/guides/en/*.md`** : 10 guides traduits (getting-started, workshop-1..5, library, compliance, tracking-portfolio, exports-sharing). Terminologie EBIOS RM EN : *risk origin / target objective* (RO/TO), *business value*, *supporting asset*, *feared event*, *strategic/operational scenario*, *operating mode*, *KNOW/GET IN/FIND/EXPLOIT*, *threat level*, *residual risk*.
+- **`frontend/src/guides/index.ts`** réécrit : `META` (slug + titres/résumés fr & en), `CONTENU_FR` / `CONTENU_EN`, `GUIDES` (fr, export conservé), `guidesPour(langue)`. Slugs identiques fr/en (les deep-links `/aide/atelier-3` marchent dans les deux langues).
+- **`pages/Aide.tsx`** : `useLangue()` → `guidesPour(langue)` + libellés de page fr/en, bouton PDF pointe `/aide/manuel.pdf?langue=en` en anglais.
+- **Backend** : `EbiosRM.Api.csproj` embarque `Guides.fr.*` **et** `Guides.en.*` (le préfixe est passé de `Guides.` à `Guides.<langue>.`). `ManuelPdfGenerator.Generer(string? langue)` + `ChargerGuides(langue)`. Endpoint `GET /api/v1/aide/manuel.pdf?langue=`.
+- Guide FR `06-atelier-5-traitement.md` complété (mention du panneau de suggestions de mesures, pour parité avec l'EN).
+- **Tests** : `ManuelPdfTests` étendu (`?langue=en` → 200, `%PDF`). 269 backend, 25 frontend. Playwright : bascule FR→EN → `/aide` affiche les guides EN + bouton « Download the full manual (PDF) », `document.documentElement.lang="en"`. Manuel EN vérifié (16 pages, sommaire « Contents », tables/listes/italique OK).
+
+**Reste de la demande #4 (traduction EN du contenu applicatif)** : non fait. Volume : ~toutes les chaînes de `AtelierPage.tsx`, les maps `LIBELLE_*`, les autres pages, les 6 générateurs `Rapport*PdfGenerator`. À traiter comme un chantier dédié.
+
 *Fin du contexte.*
 

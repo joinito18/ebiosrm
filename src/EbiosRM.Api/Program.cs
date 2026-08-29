@@ -1254,8 +1254,9 @@ app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/signaler", async (
 
 // Manuel d'utilisation complet en PDF, assemble a partir des guides Markdown
 // embarques (frontend/src/guides/*.md). Meme contenu que l'aide en ligne.
-app.MapGet("/api/v1/aide/manuel.pdf", (ManuelPdfGenerator generateur) =>
-    Results.File(generateur.Generer(), "application/pdf", "manuel-ebiosrm.pdf"));
+app.MapGet("/api/v1/aide/manuel.pdf", (string? langue, ManuelPdfGenerator generateur) =>
+    Results.File(generateur.Generer(langue), "application/pdf",
+        string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase) ? "ebiosrm-manual.pdf" : "manuel-ebiosrm.pdf"));
 
 // Suggestions de mesures de la bibliotheque pertinentes pour l'etude (croise
 // les mots-cles du contenu de l'etude avec les mesures candidates). Route avec

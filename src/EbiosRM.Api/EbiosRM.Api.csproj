@@ -33,7 +33,10 @@
     <!-- Guides d'utilisation : source unique partagee avec le frontend
          (frontend/src/guides/*.md). Embarques pour le manuel PDF (/aide/manuel.pdf). -->
     <EmbeddedResource Include="..\..\frontend\src\guides\*.md">
-      <LogicalName>Guides.%(Filename)%(Extension)</LogicalName>
+      <LogicalName>Guides.fr.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\frontend\src\guides\en\*.md">
+      <LogicalName>Guides.en.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 </Project>

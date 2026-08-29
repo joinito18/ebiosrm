@@ -4,9 +4,9 @@ export type Langue = 'fr' | 'en'
 
 /**
  * i18n minimaliste, sans dépendance. La coquille de l'application (navigation,
- * en-têtes de page, paramètres, vues transverses) est traduite ; le contenu
- * méthodologique détaillé des ateliers reste en français pour l'instant et
- * sera traduit progressivement.
+ * en-têtes de page, paramètres, vues transverses) et les guides d'aide
+ * (`src/guides/en/`) sont traduits ; le contenu méthodologique détaillé des
+ * ateliers et les rapports PDF restent en français pour l'instant.
  */
 var DICTIONNAIRE: { [key in Langue]: { [cle: string]: string } } = {
   fr: {

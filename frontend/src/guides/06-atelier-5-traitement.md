@@ -40,7 +40,10 @@ une mesure de traitement** :
 
 **Depuis la bibliothèque** propose des mesures (ISO 27002, hygiène ANSSI, vos
 mesures). Le bouton **→ biblio.** capitalise une mesure de l'étude dans votre
-bibliothèque.
+bibliothèque. Un panneau **Suggestions de mesures de la bibliothèque** propose
+en plus les mesures dont les mots-clés recoupent le contenu de l'étude
+(événements redoutés, biens support, couples SR/OV, chemins d'attaque) ;
+**Utiliser** ouvre le formulaire pré-rempli.
 
 ### Risque résiduel
 

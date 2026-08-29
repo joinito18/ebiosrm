@@ -16,9 +16,13 @@ namespace EbiosRM.Api.Modules.Reporting;
 /// </summary>
 public sealed class ManuelPdfGenerator
 {
-    public byte[] Generer()
+    public byte[] Generer(string? langue = null)
     {
-        var guides = ChargerGuides();
+        var en = string.Equals(langue, "en", StringComparison.OrdinalIgnoreCase);
+        var guides = ChargerGuides(en ? "en" : "fr");
+        var titre = en ? "User manual" : "Manuel d'utilisation";
+        var sommaire = en ? "Contents" : "Sommaire";
+        var pied = en ? "EBIOS Risk Manager -- User manual" : "EBIOS Risk Manager -- Manuel d'utilisation";
 
         var document = Document.Create(container =>
         {
@@ -31,13 +35,13 @@ public sealed class ManuelPdfGenerator
                 page.Header().ShowOnce().Column(col =>
                 {
                     col.Item().Text("EBIOS RISK MANAGER").FontFamily(MonoMedium).FontSize(8).FontColor(BleuFrance).LetterSpacing(0.05f);
-                    col.Item().PaddingTop(2).Text("Manuel d'utilisation").FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(Encre);
+                    col.Item().PaddingTop(2).Text(titre).FontFamily(SerifTitreSemiBold).FontSize(22).FontColor(Encre);
                     col.Item().PaddingTop(10).LineHorizontal(1.4f).LineColor(BleuFrance);
                 });
 
                 page.Content().PaddingTop(14).Column(col =>
                 {
-                    col.Item().PaddingBottom(6).Text("Sommaire").FontFamily(SansSemiBold).FontSize(12).FontColor(Encre);
+                    col.Item().PaddingBottom(6).Text(sommaire).FontFamily(SansSemiBold).FontSize(12).FontColor(Encre);
                     foreach (var g in guides)
                         col.Item().PaddingBottom(1.5f).Text("•  " + g.Titre).FontSize(9).FontColor(GrisTexte);
 
@@ -53,7 +57,7 @@ public sealed class ManuelPdfGenerator
                     col.Item().PaddingBottom(4).LineHorizontal(0.6f).LineColor(GrisLigne);
                     col.Item().Row(row =>
                     {
-                        row.RelativeItem().Text("EBIOS Risk Manager -- Manuel d'utilisation").FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
+                        row.RelativeItem().Text(pied).FontFamily(Mono).FontSize(7).FontColor(GrisTexte);
                         row.RelativeItem().AlignRight().Text(t =>
                         {
                             t.CurrentPageNumber().FontFamily(MonoMedium).FontSize(7).FontColor(GrisTexte);
@@ -72,11 +76,12 @@ public sealed class ManuelPdfGenerator
 
     private sealed record Guide(string Titre, string Contenu);
 
-    private static List<Guide> ChargerGuides()
+    private static List<Guide> ChargerGuides(string langue)
     {
         var asm = Assembly.GetExecutingAssembly();
+        var prefixe = $"Guides.{langue}.";
         var noms = asm.GetManifestResourceNames()
-            .Where(n => n.StartsWith("Guides.", StringComparison.Ordinal) && n.EndsWith(".md", StringComparison.Ordinal))
+            .Where(n => n.StartsWith(prefixe, StringComparison.Ordinal) && n.EndsWith(".md", StringComparison.Ordinal))
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToList();
 

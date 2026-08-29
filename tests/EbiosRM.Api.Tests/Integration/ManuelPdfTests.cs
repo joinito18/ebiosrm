@@ -30,5 +30,12 @@ public class ManuelPdfTests : IClassFixture<EbiosApiFactory>
         // En-tete PDF + taille plausible pour ~10 guides.
         Assert.Equal("%PDF", Encoding.ASCII.GetString(octets, 0, 4));
         Assert.True(octets.Length > 20_000, $"PDF trop court ({octets.Length} octets)");
+
+        // Version anglaise.
+        var reponseEn = await c.GetAsync("/api/v1/aide/manuel.pdf?langue=en");
+        Assert.Equal(HttpStatusCode.OK, reponseEn.StatusCode);
+        var octetsEn = await reponseEn.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(octetsEn, 0, 4));
+        Assert.True(octetsEn.Length > 20_000);
     }
 }
