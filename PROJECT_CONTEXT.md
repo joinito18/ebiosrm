@@ -2354,5 +2354,32 @@ Deux schémas, **générés côté serveur en SVG** pour une seule géométrie p
 - **Vérifié** : 255 tests backend (+3 : catalogue ISO+NIS2, tableau croisant socle + plan taggé, annexe PDF), 25 frontend, seed régénéré, + Playwright (page conformité ISO/NIS2 : Atlas = 6 conforme / 4 partielle / 82 non couverte ISO ; NIS2 dérivé = 21.2.h Conforme via A.8.24 ; sélecteur de conformité dans le formulaire de mesure A5).
 - **Reste possible** : DORA, unification du catalogue ISO côté frontend (`iso27001.ts` -> endpoint), taux de conformité par thème dans la synthèse globale, statut Conforme dérivé de « toutes les mesures liées sont Terminées ».
 
+## Mise à jour — Cadre de suivi vivant : portefeuille + N/N-1 + KRI (feuille de route point 7, 1ʳᵉ passe)
+
+Nouveau module **`Modules/Suivi/`**. Périmètre : les 3 sous-fonctionnalités d'un coup.
+
+### Métriques transverses
+- **`ServiceMetriquesEtude`** : source unique des chiffres d'une étude (répartition des risques initiaux/résiduels, avancement du plan, mesures en retard, couverture NIS2). `EstEcheanceDepassee` : l'échéance d'une mesure est du texte libre -> parse best-effort de quelques formats datés (`dd/MM/yyyy`, `MM/yyyy`, `yyyy-MM-dd`...), une échéance non datable n'est jamais « en retard ».
+
+### A. Vue portefeuille
+- **`ServicePortefeuille`** + `GET /api/v1/portefeuille` (route sans etudeId, tri par exposition décroissante). Page `pages/Portefeuille.tsx` (`/portefeuille`, lien sidebar icône `LineChart`) : compteurs consolidés + tableau par étude.
+
+### B. Ré-évaluation N / N-1
+- **`SnapshotAtelier.Libelle`** (`string?`, ex. « Revue annuelle 2026 ») saisi à la validation A5 (`ValiderAtelier5Request`, `window.prompt` côté front). Migration `AjoutSuiviIndicateursEtLibelleSnapshot`.
+- **`ISnapshotAtelierRepository.ListerParEtudeIdAsync`** (toutes versions, desc). **`ServiceEvolutionEtude`** diffe les 2 derniers snapshots A5 : par scénario de risque (match par `Id`), tendance résiduelle (Amelioration/Stable/Degradation/Nouveau) ; delta des mesures (total, terminées, ajoutées, retirées). `GET /api/v1/etudes/{id}/evolution`.
+
+### C. Indicateurs de suivi (KRI)
+- **`IndicateurSuivi`** (Id, EtudeId, Nom, Categorie?, Unite?, Cible?, SeuilAlerte?, `Sens {Baisse, Hausse}`) + owned `PointMesureIndicateur` (`DateOnly Date`, `double Valeur`, Commentaire?). Une seule mesure par date (remplace). Tables `indicateurs_suivi` / `points_mesure_indicateur`. `ServiceSuppressionEtude` purge la table.
+- **`ServiceIndicateursAuto`** : 5 indicateurs calculés à la volée (avancement plan, mesures en retard, risques élevés non acceptés, % scénarios au risque réduit, couverture NIS2).
+- Endpoints : `GET /etudes/{id}/indicateurs` (`{ automatiques, manuels }`), `POST`/`PUT`/`DELETE` indicateur, `POST`/`DELETE` point.
+- **Frontend** : `pages/SuiviEtude.tsx` (`/etudes/:id/suivi`, lien Dashboard « SUIVI ») — sections évolution N/N-1, indicateurs auto (cartes), indicateurs manuels (CRUD + points datés + `components/shared/Sparkline.tsx` + coloration d'alerte quand le dernier point franchit le seuil).
+
+### Vérifié
+- 258 tests backend (+3 : portefeuille avec métriques, KRI auto + création manuelle + points + remplacement par date, évolution N/N-1 avec libellé de campagne). 25 frontend, seed régénéré.
+- Playwright : page portefeuille (compteurs + tableau trié), page suivi (indicateurs auto, création d'un KRI manuel + 2 points + sparkline SVG).
+
+### Reste possible
+Export Excel du portefeuille, notifications sur dérive d'un KRI, historisation automatique des indicateurs auto (aujourd'hui recalculés, pas de série), gating lecture seule du formulaire d'indicateur.
+
 *Fin du contexte.*
 

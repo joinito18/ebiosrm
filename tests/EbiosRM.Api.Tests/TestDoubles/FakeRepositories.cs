@@ -129,6 +129,8 @@ public sealed class FakeSnapshotAtelierRepository : ISnapshotAtelierRepository
         Task.FromResult(Items.Where(s => s.EtudeId == etudeId && s.NumeroAtelier == numeroAtelier).OrderByDescending(s => s.Version).FirstOrDefault());
     public Task<int> CompterParEtudeIdAsync(Guid etudeId, int numeroAtelier, CancellationToken ct) =>
         Task.FromResult(Items.Count(s => s.EtudeId == etudeId && s.NumeroAtelier == numeroAtelier));
+    public Task<List<SnapshotAtelier>> ListerParEtudeIdAsync(Guid etudeId, int numeroAtelier, CancellationToken ct) =>
+        Task.FromResult(Items.Where(s => s.EtudeId == etudeId && s.NumeroAtelier == numeroAtelier).OrderByDescending(s => s.Version).ToList());
 }
 
 public sealed class FakeScenarioDeRisqueRepository : IScenarioDeRisqueRepository

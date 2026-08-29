@@ -5,6 +5,9 @@ using EbiosRM.Api.Modules.Audit.Infrastructure;
 using EbiosRM.Api.Modules.Bibliotheque.Domain;
 using EbiosRM.Api.Modules.Bibliotheque.Infrastructure;
 using EbiosRM.Api.Modules.Conformite;
+using EbiosRM.Api.Modules.Suivi;
+using EbiosRM.Api.Modules.Suivi.Domain;
+using EbiosRM.Api.Modules.Suivi.Infrastructure;
 using EbiosRM.Api.Modules.Collaboration.Domain;
 using EbiosRM.Api.Modules.Collaboration.Infrastructure;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
@@ -171,6 +174,11 @@ builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<IBibliothequeRepository, BibliothequeRepository>();
 builder.Services.AddScoped<EbiosRM.Api.Modules.Conformite.ServiceConformite>();
 builder.Services.AddScoped<RapportConformitePdfGenerator>();
+builder.Services.AddScoped<IIndicateurSuiviRepository, IndicateurSuiviRepository>();
+builder.Services.AddScoped<ServiceMetriquesEtude>();
+builder.Services.AddScoped<ServicePortefeuille>();
+builder.Services.AddScoped<ServiceIndicateursAuto>();
+builder.Services.AddScoped<ServiceEvolutionEtude>();
 builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
@@ -910,6 +918,116 @@ app.MapGet("/api/v1/etudes/{etudeId:guid}/rapports/conformite", async (
     return Results.File(pdf.Generer(etude.Nom, rapports), "application/pdf", $"conformite-{etudeId}.pdf");
 });
 
+// --- Suivi : vue portefeuille, evolution N/N-1, indicateurs (KRI) ---
+
+app.MapGet("/api/v1/portefeuille", async (
+    ServicePortefeuille service, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    return Results.Ok(await service.ConstruireAsync(moiId.Value, ct));
+});
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/evolution", async (
+    Guid etudeId, ServiceEvolutionEtude service, CancellationToken ct) =>
+{
+    var evolution = await service.ConstruireAsync(etudeId, ct);
+    return evolution is null ? Results.NotFound() : Results.Ok(evolution);
+});
+
+static object VueIndicateur(IndicateurSuivi i) => new
+{
+    i.Id, i.Nom, i.Categorie, i.Unite, i.Cible, i.SeuilAlerte,
+    sens = i.Sens.ToString(),
+    points = i.Points.OrderBy(p => p.Date).Select(p => new { p.Id, date = p.Date.ToString("yyyy-MM-dd"), p.Valeur, p.Commentaire }),
+};
+
+app.MapGet("/api/v1/etudes/{etudeId:guid}/indicateurs", async (
+    Guid etudeId, IIndicateurSuiviRepository repo, ServiceIndicateursAuto auto, CancellationToken ct) =>
+{
+    var manuels = await repo.ListerParEtudeAsync(etudeId, ct);
+    return Results.Ok(new
+    {
+        automatiques = await auto.ConstruireAsync(etudeId, ct),
+        manuels = manuels.Select(VueIndicateur),
+    });
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/indicateurs", async (
+    Guid etudeId, IndicateurRequest request, IIndicateurSuiviRepository repo, CancellationToken ct) =>
+{
+    if (!Enum.TryParse<SensAmelioration>(request.Sens, ignoreCase: true, out var sens))
+        return Results.BadRequest(new { error = "Sens invalide (Baisse ou Hausse)." });
+    try
+    {
+        var indicateur = IndicateurSuivi.Creer(etudeId, request.Nom, request.Categorie, request.Unite, request.Cible, request.SeuilAlerte, sens);
+        await repo.AjouterAsync(indicateur, ct);
+        return Results.Created($"/api/v1/etudes/{etudeId}/indicateurs/{indicateur.Id}", VueIndicateur(indicateur));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapPut("/api/v1/etudes/{etudeId:guid}/indicateurs/{indicId:guid}", async (
+    Guid etudeId, Guid indicId, IndicateurRequest request, IIndicateurSuiviRepository repo, CancellationToken ct) =>
+{
+    var indicateur = await repo.ObtenirAsync(indicId, ct);
+    if (indicateur is null || indicateur.EtudeId != etudeId) return Results.NotFound();
+    if (!Enum.TryParse<SensAmelioration>(request.Sens, ignoreCase: true, out var sens))
+        return Results.BadRequest(new { error = "Sens invalide (Baisse ou Hausse)." });
+    try
+    {
+        indicateur.Modifier(request.Nom, request.Categorie, request.Unite, request.Cible, request.SeuilAlerte, sens);
+        await repo.MettreAJourAsync(indicateur, ct);
+        return Results.Ok(VueIndicateur(indicateur));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/indicateurs/{indicId:guid}", async (
+    Guid etudeId, Guid indicId, IIndicateurSuiviRepository repo, CancellationToken ct) =>
+{
+    var indicateur = await repo.ObtenirAsync(indicId, ct);
+    if (indicateur is null || indicateur.EtudeId != etudeId) return Results.NotFound();
+    await repo.SupprimerAsync(indicateur, ct);
+    return Results.NoContent();
+});
+
+app.MapPost("/api/v1/etudes/{etudeId:guid}/indicateurs/{indicId:guid}/points", async (
+    Guid etudeId, Guid indicId, PointMesureRequest request, IIndicateurSuiviRepository repo, CancellationToken ct) =>
+{
+    var indicateur = await repo.ObtenirAsync(indicId, ct);
+    if (indicateur is null || indicateur.EtudeId != etudeId) return Results.NotFound();
+    if (!DateOnly.TryParse(request.Date, out var date))
+        return Results.BadRequest(new { error = "Date invalide (format attendu : AAAA-MM-JJ)." });
+
+    indicateur.AjouterPoint(date, request.Valeur, request.Commentaire);
+    await repo.MettreAJourAsync(indicateur, ct);
+    return Results.Ok(VueIndicateur(indicateur));
+});
+
+app.MapDelete("/api/v1/etudes/{etudeId:guid}/indicateurs/{indicId:guid}/points/{pointId:guid}", async (
+    Guid etudeId, Guid indicId, Guid pointId, IIndicateurSuiviRepository repo, CancellationToken ct) =>
+{
+    var indicateur = await repo.ObtenirAsync(indicId, ct);
+    if (indicateur is null || indicateur.EtudeId != etudeId) return Results.NotFound();
+    try
+    {
+        indicateur.SupprimerPoint(pointId);
+        await repo.MettreAJourAsync(indicateur, ct);
+        return Results.NoContent();
+    }
+    catch (ArgumentException)
+    {
+        return Results.NotFound();
+    }
+});
+
 app.MapGet("/api/v1/etudes", async (
     IEtudeRepository repo, IEtudeMembreRepository membreRepo,
     System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
@@ -1278,6 +1396,7 @@ app.MapPost("/api/v1/etudes/{id:guid}/demarrer-atelier5", async (
 
 app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier5", async (
     Guid id,
+    ValiderAtelier5Request? request,
     IEtudeRepository repo,
     ServiceValidationCompletudeAtelier5 serviceValidation,
     ServiceCreationSnapshotAtelier5 serviceSnapshot,
@@ -1304,7 +1423,7 @@ app.MapPost("/api/v1/etudes/{id:guid}/valider-atelier5", async (
         etude.ValiderAtelier5();
         await repo.MettreAJourAsync(etude, ct);
 
-        var snapshot = await serviceSnapshot.CreerAsync(id, ct);
+        var snapshot = await serviceSnapshot.CreerAsync(id, ct, request?.Libelle);
 
         await transaction.CommitAsync(ct);
 
@@ -2927,6 +3046,9 @@ record InscriptionRequest(string Email, string MotDePasse, string NomAffiche);
 record ConnexionRequest(string Email, string MotDePasse);
 record CreerEtudeRequest(string Nom, string Perimetre, string Mission);
 record DupliquerEtudeRequest(string? Nom);
+record ValiderAtelier5Request(string? Libelle);
+record IndicateurRequest(string Nom, string? Categorie, string? Unite, double? Cible, double? SeuilAlerte, string Sens);
+record PointMesureRequest(string Date, double Valeur, string? Commentaire);
 record AjouterMesureBiblioRequest(string? Referentiel, string? Code, string Titre, string? Description, string? Categorie);
 record AjouterSourceRisqueBiblioRequest(
     string SourceRisque, string DescriptionSourceRisque, string ObjectifVise, string DescriptionObjectifVise,

@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import PageHeader from '../components/shared/PageHeader'
+import EmptyState from '../components/shared/EmptyState'
+import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
+import { chargerPortefeuille } from '../lib/api'
+import type { LignePortefeuille } from '../lib/api'
+
+export default function Portefeuille() {
+  var navigate = useNavigate()
+  var [lignes, setLignes] = useState<LignePortefeuille[]>([])
+  var [chargement, setChargement] = useState(true)
+  var [erreur, setErreur] = useState('')
+
+  useEffect(function () {
+    chargerPortefeuille()
+      .then(function (d) { setLignes(d || []); setErreur('') })
+      .catch(function () { setErreur('Impossible de charger le portefeuille.') })
+      .finally(function () { setChargement(false) })
+  }, [])
+
+  function somme(cle: keyof LignePortefeuille) {
+    return lignes.reduce(function (t, l) { return t + (Number(l[cle]) || 0) }, 0)
+  }
+  var totalEleve = lignes.reduce(function (t, l) { return t + (l.risquesResiduels.Eleve || 0) }, 0)
+
+  return (
+    <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
+      <PageHeader
+        eyebrow="PILOTAGE MULTI-ETUDES"
+        titre="Portefeuille"
+        description="Vue consolidée de toutes les études : exposition résiduelle, avancement du traitement, conformité NIS2."
+      />
+
+      {chargement && <p className="text-sm text-steel">Chargement...</p>}
+      {!chargement && erreur && <div className="border border-risk-critical/30 bg-risk-critical/5 px-5 py-4 text-sm text-risk-critical">{erreur}</div>}
+
+      {!chargement && !erreur && (lignes.length === 0 ? (
+        <EmptyState message="Aucune étude visible." />
+      ) : (
+        <>
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ['Études', lignes.length, 'text-ink'],
+              ['Risques résiduels élevés', totalEleve, totalEleve > 0 ? 'text-risk-critical' : 'text-risk-low'],
+              ['Mesures en retard', somme('mesuresEnRetard'), somme('mesuresEnRetard') > 0 ? 'text-risk-high' : 'text-risk-low'],
+              ['Mesures terminées', somme('mesuresTerminees') + ' / ' + somme('mesures'), 'text-ink'],
+            ].map(function (c) {
+              return (
+                <div key={c[0] as string} className="border border-paper-line p-3">
+                  <div className={'font-display text-2xl ' + (c[2] as string)}>{c[1]}</div>
+                  <div className="font-mono text-[10px] text-steel-light">{(c[0] as string).toUpperCase()}</div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-paper-line text-left">
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">ÉTUDE</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">A5</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">RISQUES RÉSIDUELS (F / M / É)</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">TRAITEMENT</th>
+                  <th className="pb-2 font-mono text-[9px] font-normal tracking-wide text-steel-light">RETARD</th>
+                  <th className="pb-2 text-right font-mono text-[9px] font-normal tracking-wide text-steel-light">NIS2</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lignes.map(function (l) {
+                  var r = l.risquesResiduels
+                  return (
+                    <tr
+                      key={l.etudeId}
+                      onClick={function () { navigate('/etudes/' + l.etudeId) }}
+                      className="cursor-pointer border-b border-paper-line transition hover:bg-paper-dim/50"
+                    >
+                      <td className="py-3 text-sm font-medium text-ink">
+                        {l.nom}
+                        {l.risquesEleveResiduelNonAcceptes > 0 && (
+                          <span className="ml-2 font-mono text-[10px] text-risk-critical">{l.risquesEleveResiduelNonAcceptes} élevé(s) non accepté(s)</span>
+                        )}
+                      </td>
+                      <td className="py-3"><BadgeStatutAtelier statut={l.statutAtelier5} /></td>
+                      <td className="py-3 font-mono text-[11px] text-steel">
+                        <span className="text-risk-low">{r.Faible || 0}</span> / <span className="text-risk-high">{r.Moyen || 0}</span> / <span className={(r.Eleve || 0) > 0 ? 'text-risk-critical' : 'text-steel'}>{r.Eleve || 0}</span>
+                        {(r.NonEvalue || 0) > 0 && <span className="text-steel-light"> ({r.NonEvalue} non évalué)</span>}
+                      </td>
+                      <td className="py-3 font-mono text-[11px] text-steel">{l.mesuresTerminees} / {l.mesures}</td>
+                      <td className={'py-3 font-mono text-[11px] ' + (l.mesuresEnRetard > 0 ? 'text-risk-high' : 'text-steel-light')}>{l.mesuresEnRetard || '—'}</td>
+                      <td className="py-3 text-right font-mono text-[11px] text-steel">{l.tauxCouvertureNis2 == null ? '—' : l.tauxCouvertureNis2 + ' %'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-[11px] text-steel-light">« En retard » : mesure non terminée dont l'échéance datée est dépassée (les échéances en texte libre ne sont pas comptées).</p>
+        </>
+      ))}
+    </div>
+  )
+}

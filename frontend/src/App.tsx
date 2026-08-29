@@ -17,6 +17,8 @@ const Rapports = lazy(function () { return import('./pages/Rapports') })
 const Parametres = lazy(function () { return import('./pages/Parametres') })
 const Bibliotheque = lazy(function () { return import('./pages/Bibliotheque') })
 const ConformiteEtude = lazy(function () { return import('./pages/ConformiteEtude') })
+const Portefeuille = lazy(function () { return import('./pages/Portefeuille') })
+const SuiviEtude = lazy(function () { return import('./pages/SuiviEtude') })
 
 function Chargement() {
   return (
@@ -43,6 +45,8 @@ export default function App() {
                 <Route path="/etudes/:etudeId/journal" element={<JournalEtude />} />
                 <Route path="/etudes/:etudeId/membres" element={<MembresEtude />} />
                 <Route path="/etudes/:etudeId/conformite" element={<ConformiteEtude />} />
+                <Route path="/etudes/:etudeId/suivi" element={<SuiviEtude />} />
+                <Route path="/portefeuille" element={<Portefeuille />} />
                 <Route path="/etudes/:etudeId/ateliers/:numero" element={<AtelierPage />} />
                 <Route path="/bibliotheque" element={<Bibliotheque />} />
                 <Route path="/rapports" element={<Rapports />} />

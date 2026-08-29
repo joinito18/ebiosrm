@@ -284,9 +284,12 @@ export default function AtelierPage() {
   }
 
   function handleValiderAtelier5() {
+    var saisie = window.prompt('Nom de ce point de suivi (optionnel, ex. "Revue annuelle 2026") :', '')
+    if (saisie === null) return
+    var libelle = saisie.trim() || undefined
     setAction('validation')
     setMessageErreur('')
-    validerAtelier5(etudeId).then(function () { charger() }).catch(function (err) {
+    validerAtelier5(etudeId, libelle).then(function () { charger() }).catch(function (err) {
       setMessageErreur(err instanceof ApiError ? err.message : 'Erreur.')
     }).finally(function () { setAction('') })
   }

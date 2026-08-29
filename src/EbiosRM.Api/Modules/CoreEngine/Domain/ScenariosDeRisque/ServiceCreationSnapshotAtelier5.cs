@@ -27,7 +27,7 @@ public sealed class ServiceCreationSnapshotAtelier5
         _snapshotRepository = snapshotRepository;
     }
 
-    public async Task<SnapshotAtelier> CreerAsync(Guid etudeId, CancellationToken cancellationToken)
+    public async Task<SnapshotAtelier> CreerAsync(Guid etudeId, CancellationToken cancellationToken, string? libelle = null)
     {
         var etude = await _etudeRepository.ObtenirParIdAsync(etudeId, cancellationToken);
         if (etude is null)
@@ -58,7 +58,7 @@ public sealed class ServiceCreationSnapshotAtelier5
         var contenu = new SnapshotAtelier5Content(etude.Id, nouvelleVersion, etude.Nom, DateTime.UtcNow, scenariosSnapshot, mesuresSnapshot);
         var contenuJson = JsonSerializer.Serialize(contenu);
 
-        var snapshot = SnapshotAtelier.Creer(etudeId, numeroAtelier: 5, nouvelleVersion, contenuJson);
+        var snapshot = SnapshotAtelier.Creer(etudeId, numeroAtelier: 5, nouvelleVersion, contenuJson, libelle);
         await _snapshotRepository.AjouterAsync(snapshot, cancellationToken);
 
         return snapshot;

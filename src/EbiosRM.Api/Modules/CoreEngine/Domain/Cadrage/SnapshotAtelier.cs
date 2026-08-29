@@ -19,9 +19,16 @@ public class SnapshotAtelier
     public DateTime DateCreationUtc { get; private set; }
     public string ContenuJson { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Libellé optionnel de la campagne (ex. « Revue annuelle 2026 »), saisi
+    /// à la (re)validation. Sert à nommer les points de comparaison N / N-1
+    /// dans le suivi de l'étude.
+    /// </summary>
+    public string? Libelle { get; private set; }
+
     private SnapshotAtelier() { }
 
-    public static SnapshotAtelier Creer(Guid etudeId, int numeroAtelier, int version, string contenuJson)
+    public static SnapshotAtelier Creer(Guid etudeId, int numeroAtelier, int version, string contenuJson, string? libelle = null)
     {
         if (etudeId == Guid.Empty)
             throw new ArgumentException("EtudeId invalide.", nameof(etudeId));
@@ -38,7 +45,8 @@ public class SnapshotAtelier
             NumeroAtelier = numeroAtelier,
             Version = version,
             DateCreationUtc = DateTime.UtcNow,
-            ContenuJson = contenuJson
+            ContenuJson = contenuJson,
+            Libelle = string.IsNullOrWhiteSpace(libelle) ? null : libelle.Trim(),
         };
     }
 }

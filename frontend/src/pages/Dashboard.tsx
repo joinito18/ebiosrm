@@ -86,6 +86,7 @@ export default function Dashboard() {
             <Link to={'/etudes/' + etudeId + '/membres'} className="hover:text-signature">MEMBRES</Link>
             <Link to={'/etudes/' + etudeId + '/journal'} className="hover:text-signature">JOURNAL</Link>
             <Link to={'/etudes/' + etudeId + '/conformite'} className="hover:text-signature">CONFORMITE</Link>
+            <Link to={'/etudes/' + etudeId + '/suivi'} className="hover:text-signature">SUIVI</Link>
           </div>
         </div>
         <h1 className="font-display text-[34px] leading-tight text-ink">

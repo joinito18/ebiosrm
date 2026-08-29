@@ -385,8 +385,11 @@ export function demarrerAtelier5(etudeId: string): Promise<Etude> {
   return apiFetch('/etudes/' + etudeId + '/demarrer-atelier5', { method: 'POST' })
 }
 
-export function validerAtelier5(etudeId: string): Promise<{ etude: Etude; snapshotVersion: number }> {
-  return apiFetch('/etudes/' + etudeId + '/valider-atelier5', { method: 'POST' })
+export function validerAtelier5(etudeId: string, libelle?: string): Promise<{ etude: Etude; snapshotVersion: number }> {
+  return apiFetch('/etudes/' + etudeId + '/valider-atelier5', {
+    method: 'POST',
+    body: JSON.stringify({ libelle: libelle || null }),
+  })
 }
 
 export function rouvrirAtelier5(etudeId: string): Promise<Etude> {
@@ -1043,6 +1046,93 @@ export function listerExigencesConformite(referentiel?: string): Promise<Exigenc
 
 export function chargerConformiteEtude(etudeId: string, referentiel: string): Promise<RapportConformite | null> {
   return apiFetch('/etudes/' + etudeId + '/conformite?referentiel=' + referentiel)
+}
+
+// --- Suivi : portefeuille, evolution N/N-1, indicateurs (KRI) ---
+
+export interface LignePortefeuille {
+  etudeId: string
+  nom: string
+  statut: string
+  statutAtelier5: string
+  monRole?: string | null
+  scenariosDeRisque: number
+  risquesResiduels: { [niveau: string]: number }
+  risquesEleveResiduelNonAcceptes: number
+  mesures: number
+  mesuresTerminees: number
+  mesuresEnRetard: number
+  tauxCouvertureNis2?: number | null
+}
+
+export function chargerPortefeuille(): Promise<LignePortefeuille[]> {
+  return apiFetch('/portefeuille')
+}
+
+export type TendanceEvolution = 'Amelioration' | 'Stable' | 'Degradation' | 'Nouveau'
+
+export interface EvolutionEtude {
+  courante: { version: number; dateUtc: string; libelle?: string | null }
+  precedente?: { version: number; dateUtc: string; libelle?: string | null } | null
+  scenarios: { libelle: string; niveauResiduelPrecedent?: string | null; niveauResiduelCourant?: string | null; tendance: TendanceEvolution }[]
+  mesures: { total: number; totalPrecedent: number; terminees: number; termineesPrecedent: number; ajoutees: number; retirees: number }
+}
+
+export function chargerEvolutionEtude(etudeId: string): Promise<EvolutionEtude | null> {
+  return apiFetch('/etudes/' + etudeId + '/evolution')
+}
+
+export type SensAmelioration = 'Baisse' | 'Hausse'
+
+export interface PointIndicateur {
+  id: string
+  date: string
+  valeur: number
+  commentaire?: string | null
+}
+
+export interface IndicateurSuivi {
+  id: string
+  nom: string
+  categorie?: string | null
+  unite?: string | null
+  cible?: number | null
+  seuilAlerte?: number | null
+  sens: SensAmelioration
+  points: PointIndicateur[]
+}
+
+export interface IndicateurAuto {
+  nom: string
+  categorie: string
+  valeur: number
+  unite: string
+  cible?: number | null
+  sens: SensAmelioration
+}
+
+export function chargerIndicateurs(etudeId: string): Promise<{ automatiques: IndicateurAuto[]; manuels: IndicateurSuivi[] }> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs')
+}
+
+export function creerIndicateur(etudeId: string, i: { nom: string; categorie?: string; unite?: string; cible?: number | null; seuilAlerte?: number | null; sens: SensAmelioration }): Promise<IndicateurSuivi> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs', { method: 'POST', body: JSON.stringify(i) })
+}
+
+export function modifierIndicateur(etudeId: string, indicId: string, i: { nom: string; categorie?: string; unite?: string; cible?: number | null; seuilAlerte?: number | null; sens: SensAmelioration }): Promise<IndicateurSuivi> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs/' + indicId, { method: 'PUT', body: JSON.stringify(i) })
+}
+
+export function supprimerIndicateur(etudeId: string, indicId: string): Promise<void> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs/' + indicId, { method: 'DELETE' })
+}
+
+export function ajouterPointIndicateur(etudeId: string, indicId: string, point: { date: string; valeur: number; commentaire?: string }): Promise<IndicateurSuivi> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs/' + indicId + '/points', { method: 'POST', body: JSON.stringify(point) })
+}
+
+export function supprimerPointIndicateur(etudeId: string, indicId: string, pointId: string): Promise<void> {
+  return apiFetch('/etudes/' + etudeId + '/indicateurs/' + indicId + '/points/' + pointId, { method: 'DELETE' })
 }
 
 export function getPlanTraitementRisque(etudeId: string): Promise<PlanTraitementRisque | null> {

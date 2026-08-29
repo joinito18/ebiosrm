@@ -5,6 +5,7 @@ using EbiosRM.Api.Modules.CoreEngine.Domain.Cadrage;
 using EbiosRM.Api.Modules.CoreEngine.Domain.SourcesRisque;
 using EbiosRM.Api.Modules.CoreEngine.Domain.ScenariosDeRisque;
 using EbiosRM.Api.Modules.Identity.Domain;
+using EbiosRM.Api.Modules.Suivi.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace EbiosRM.Api.Infrastructure.Persistence;
@@ -34,6 +35,7 @@ public class EbiosDbContext : DbContext
     public DbSet<EtudeMembre> EtudeMembres => Set<EtudeMembre>();
     public DbSet<MesureBibliotheque> MesuresBibliotheque => Set<MesureBibliotheque>();
     public DbSet<SourceRisqueBibliotheque> SourcesRisqueBibliotheque => Set<SourceRisqueBibliotheque>();
+    public DbSet<IndicateurSuivi> IndicateursSuivi => Set<IndicateurSuivi>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -136,6 +138,7 @@ public class EbiosDbContext : DbContext
             var contenuJson = entity.Property(s => s.ContenuJson).IsRequired();
             if (Database.IsNpgsql())
                 contenuJson.HasColumnType("jsonb");
+            entity.Property(s => s.Libelle).HasMaxLength(200);
             entity.HasIndex(s => new { s.EtudeId, s.NumeroAtelier, s.Version }).IsUnique();
         });
 
@@ -378,6 +381,31 @@ public class EbiosDbContext : DbContext
             entity.Property(m => m.CreeLeUtc).IsRequired();
             entity.Ignore(m => m.EstSysteme);
             entity.HasIndex(m => m.ProprietaireId);
+        });
+
+        modelBuilder.Entity<IndicateurSuivi>(entity =>
+        {
+            entity.ToTable("indicateurs_suivi");
+            entity.HasKey(i => i.Id);
+            entity.Property(i => i.EtudeId).IsRequired();
+            entity.Property(i => i.Nom).IsRequired().HasMaxLength(300);
+            entity.Property(i => i.Categorie).HasMaxLength(100);
+            entity.Property(i => i.Unite).HasMaxLength(30);
+            entity.Property(i => i.Sens).IsRequired().HasConversion<string>().HasMaxLength(10);
+            entity.Property(i => i.CreeLeUtc).IsRequired();
+            entity.HasIndex(i => i.EtudeId);
+
+            entity.OwnsMany(i => i.Points, point =>
+            {
+                point.ToTable("points_mesure_indicateur");
+                point.WithOwner().HasForeignKey("IndicateurSuiviId");
+                point.HasKey(p => p.Id);
+                point.Property(p => p.Id).ValueGeneratedOnAdd();
+                point.Property(p => p.Date).IsRequired();
+                point.Property(p => p.Valeur).IsRequired();
+                point.Property(p => p.Commentaire).HasMaxLength(1000);
+                point.HasIndex("IndicateurSuiviId");
+            });
         });
 
         modelBuilder.Entity<SourceRisqueBibliotheque>(entity =>

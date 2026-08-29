@@ -33,4 +33,12 @@ public class SnapshotAtelierRepository : ISnapshotAtelierRepository
             .Where(s => s.EtudeId == etudeId && s.NumeroAtelier == numeroAtelier)
             .CountAsync(cancellationToken);
     }
+
+    public async Task<List<SnapshotAtelier>> ListerParEtudeIdAsync(Guid etudeId, int numeroAtelier, CancellationToken cancellationToken)
+    {
+        return await _context.SnapshotsAtelier
+            .Where(s => s.EtudeId == etudeId && s.NumeroAtelier == numeroAtelier)
+            .OrderByDescending(s => s.Version)
+            .ToListAsync(cancellationToken);
+    }
 }
