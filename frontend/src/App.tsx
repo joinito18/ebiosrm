@@ -21,6 +21,7 @@ const ConformiteEtude = lazy(function () { return import('./pages/ConformiteEtud
 const Portefeuille = lazy(function () { return import('./pages/Portefeuille') })
 const SuiviEtude = lazy(function () { return import('./pages/SuiviEtude') })
 const Aide = lazy(function () { return import('./pages/Aide') })
+const Conditions = lazy(function () { return import('./pages/Conditions') })
 
 function Chargement() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
           <Routes>
             <Route path="/connexion" element={<Connexion />} />
             <Route path="/inscription" element={<Inscription />} />
+            <Route path="/conditions" element={<Conditions />} />
             <Route element={<RouteProtegee />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Navigate to="/etudes" replace />} />

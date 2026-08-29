@@ -132,16 +132,21 @@ export default function Sidebar(props: { ouvert: boolean; onFermer: () => void }
           </nav>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-ink-line px-5 py-4">
-          <span className="truncate text-xs text-steel-light">{utilisateur ? utilisateur.nomAffiche : ''}</span>
-          <button
-            onClick={seDeconnecter}
-            aria-label="Se deconnecter"
-            className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-steel-light hover:text-white"
-          >
-            <LogOut size={14} strokeWidth={1.75} />
-            {t('nav.deconnexion')}
-          </button>
+        <div className="border-t border-ink-line px-5 py-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-xs text-steel-light">{utilisateur ? utilisateur.nomAffiche : ''}</span>
+            <button
+              onClick={seDeconnecter}
+              aria-label={t('nav.deconnexion')}
+              className="flex shrink-0 items-center gap-1.5 text-[11px] font-medium text-steel-light hover:text-white"
+            >
+              <LogOut size={14} strokeWidth={1.75} />
+              {t('nav.deconnexion')}
+            </button>
+          </div>
+          <NavLink to="/conditions" onClick={props.onFermer} className="mt-2 block font-mono text-[9px] tracking-wide text-steel-faint hover:text-steel-light">
+            {t('legal.conditions')}
+          </NavLink>
         </div>
       </aside>
     </>

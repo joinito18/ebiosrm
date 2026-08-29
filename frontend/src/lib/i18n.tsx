@@ -214,6 +214,9 @@ var FR: { [cle: string]: string } = {
   'membres.emailCompte': 'E-mail du compte',
   'membres.compteRequis': 'La personne doit deja avoir un compte sur la plateforme.',
   'membres.col.membre': 'Membre',
+  'auth.baseline': 'Pilotez vos etudes de risque EBIOS RM de bout en bout.',
+  'auth.baselineSub': 'Cadrage, sources de risque, scenarios strategiques et operationnels, traitement du risque -- les 5 ateliers de la methode ANSSI, dans un seul outil.',
+  'legal.conditions': 'Conditions d\'utilisation',
 
   'atelier.1.nom': 'Cadrage', 'atelier.1.objectif': 'Perimetre, valeurs metier, socle de securite',
   'atelier.2.nom': 'Sources de risque', 'atelier.2.objectif': 'Couples source de risque / objectif vise',
@@ -465,6 +468,9 @@ var EN: { [cle: string]: string } = {
   'membres.emailCompte': 'Account e-mail',
   'membres.compteRequis': 'The person must already have an account on the platform.',
   'membres.col.membre': 'Member',
+  'auth.baseline': 'Run your EBIOS RM risk assessments end to end.',
+  'auth.baselineSub': 'Scoping, risk origins, strategic and operational scenarios, risk treatment -- the 5 workshops of the ANSSI method, in a single tool.',
+  'legal.conditions': 'Terms of Use',
 
   'atelier.1.nom': 'Scoping', 'atelier.1.objectif': 'Scope, business values, security baseline',
   'atelier.2.nom': 'Risk origins', 'atelier.2.objectif': 'Risk origin / target objective pairs',
