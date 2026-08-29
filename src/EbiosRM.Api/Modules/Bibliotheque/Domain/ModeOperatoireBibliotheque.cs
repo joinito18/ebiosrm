@@ -126,4 +126,10 @@ public sealed class ModeOperatoireBibliotheque : IEntreeBibliotheque
             mode._actions.Add(ActionElementaireBibliotheque.Creer(ordre++, a.Description, a.Phase, a.CibleBienSupport, a.TechniqueMitre));
         return mode;
     }
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Nom, Description, ProbabiliteSuccesTypique, DifficulteTechniqueTypique,
+            _actions.OrderBy(a => a.Ordre)
+                .Select(a => new ActionElementaireBiblioEntree(a.Description, a.Phase, a.CibleBienSupport, a.TechniqueMitre))
+                .ToList());
 }

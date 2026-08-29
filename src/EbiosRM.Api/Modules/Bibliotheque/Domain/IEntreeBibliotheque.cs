@@ -23,4 +23,12 @@ public interface IEntreeBibliotheque
     DateTime CreeLeUtc { get; }
 
     bool EstSysteme { get; }
+
+    /// <summary>
+    /// Renvoie une copie privée de cette entrée pour le compte
+    /// <paramref name="proprietaireId"/> (nouvel Id, non publiée). Sert à
+    /// « importer » une entrée de la bibliothèque communautaire dans sa
+    /// propre bibliothèque.
+    /// </summary>
+    IEntreeBibliotheque CopiePrivee(Guid proprietaireId);
 }

@@ -82,4 +82,8 @@ public sealed class PartiePrenanteBibliotheque : IEntreeBibliotheque
             ConfianceTypique = confiance,
             CreeLeUtc = default,
         };
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Nom, Categorie, DescriptionCategorie, RolesEtAttentes, Representant,
+            DependanceTypique, PenetrationTypique, MaturiteCyberTypique, ConfianceTypique);
 }

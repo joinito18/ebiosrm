@@ -447,6 +447,42 @@ export function supprimerModeOperatoireBiblio(id: string): Promise<void> {
   return apiFetch('/bibliotheque/modes-operatoires/' + id, { method: 'DELETE' })
 }
 
+// --- Bibliotheque communautaire ---
+
+export interface EntreeCommunaute {
+  id: string
+  type: string
+  proprietaire: string
+  publieLeUtc: string
+  signalements: number
+  publieParMoi: boolean
+  entree: Record<string, unknown>
+}
+
+export function listerCommunaute(type: string, q?: string): Promise<EntreeCommunaute[]> {
+  return apiFetch('/bibliotheque/communaute/' + type + (q ? '?q=' + encodeURIComponent(q) : ''))
+}
+
+export function mesPublicationsBiblio(): Promise<string[]> {
+  return apiFetch('/bibliotheque/mes-publications')
+}
+
+export function publierBiblio(type: string, id: string): Promise<void> {
+  return apiFetch('/bibliotheque/communaute/' + type + '/' + id + '/publier', { method: 'POST' })
+}
+
+export function retirerPublicationBiblio(type: string, id: string): Promise<void> {
+  return apiFetch('/bibliotheque/communaute/' + type + '/' + id + '/publier', { method: 'DELETE' })
+}
+
+export function importerCommunaute(type: string, id: string): Promise<{ id: string }> {
+  return apiFetch('/bibliotheque/communaute/' + type + '/' + id + '/importer', { method: 'POST' })
+}
+
+export function signalerCommunaute(type: string, id: string, motif: string): Promise<void> {
+  return apiFetch('/bibliotheque/communaute/' + type + '/' + id + '/signaler', { method: 'POST', body: JSON.stringify({ motif: motif }) })
+}
+
 // --- Cartographie graphique de l'Atelier 3 (SVG genere cote serveur) ---
 
 export type CartographieType = 'ecosysteme' | 'chemins-attaque'

@@ -13,6 +13,7 @@ namespace EbiosRM.Api.Modules.Bibliotheque.Domain;
 public interface IBibliothequeRepository
 {
     Task<List<T>> ListerAsync<T>(Guid proprietaireId, CancellationToken cancellationToken) where T : class, IEntreeBibliotheque;
+    Task<List<T>> ListerParIdsAsync<T>(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken) where T : class, IEntreeBibliotheque;
     Task<T?> ObtenirAsync<T>(Guid id, CancellationToken cancellationToken) where T : class, IEntreeBibliotheque;
     Task AjouterAsync<T>(T entree, CancellationToken cancellationToken) where T : class, IEntreeBibliotheque;
     Task SupprimerAsync<T>(T entree, CancellationToken cancellationToken) where T : class, IEntreeBibliotheque;

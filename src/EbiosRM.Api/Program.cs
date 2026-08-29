@@ -172,6 +172,7 @@ builder.Services.AddScoped<IUtilisateurRepository, UtilisateurRepository>();
 builder.Services.AddScoped<IEntreeJournalRepository, EntreeJournalRepository>();
 builder.Services.AddScoped<IEtudeMembreRepository, EtudeMembreRepository>();
 builder.Services.AddScoped<IBibliothequeRepository, BibliothequeRepository>();
+builder.Services.AddScoped<EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire>();
 builder.Services.AddScoped<EbiosRM.Api.Modules.Conformite.ServiceConformite>();
 builder.Services.AddScoped<RapportConformitePdfGenerator>();
 builder.Services.AddScoped<IIndicateurSuiviRepository, IndicateurSuiviRepository>();
@@ -1168,6 +1169,85 @@ app.MapDelete("/api/v1/bibliotheque/modes-operatoires/{id:guid}", async (
 
     await repo.SupprimerAsync(mode, ct);
     return Results.NoContent();
+});
+
+// --- Bibliotheque communautaire : publier / importer / signaler -----------
+static object VueEntreeBiblio(object e) => e switch
+{
+    MesureBibliotheque m => VueMesureBiblio(m),
+    SourceRisqueBibliotheque s => VueSourceRisqueBiblio(s),
+    PartiePrenanteBibliotheque p => VuePartiePrenanteBiblio(p),
+    ValeurMetierBibliotheque v => VueValeurMetierBiblio(v),
+    BienSupportBibliotheque b => VueBienSupportBiblio(b),
+    EvenementRedouteBibliotheque er => VueEvenementRedouteBiblio(er),
+    ModeOperatoireBibliotheque mo => VueModeOperatoireBiblio(mo),
+    _ => e,
+};
+
+app.MapGet("/api/v1/bibliotheque/communaute/{type}", async (
+    string type, string? q, EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+
+    var entrees = await service.ListerAsync(type, moiId.Value, q, ct);
+    return Results.Ok(entrees.Select(e => new
+    {
+        e.Id, type = e.TypeEntite, proprietaire = e.ProprietaireNom, e.PublieLeUtc,
+        signalements = e.Signalements, publieParMoi = e.PublieParMoi,
+        entree = VueEntreeBiblio(e.Entree),
+    }));
+});
+
+app.MapGet("/api/v1/bibliotheque/mes-publications", async (
+    EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    return Results.Ok(await service.IdsPubliesAsync(moiId.Value, ct));
+});
+
+app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/publier", async (
+    string type, Guid id, EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    var r = await service.PublierAsync(type, id, moiId.Value, ct);
+    return r.Ok ? Results.Ok(new { publie = true }) : Results.BadRequest(new { error = r.Erreur });
+});
+
+app.MapDelete("/api/v1/bibliotheque/communaute/{type}/{id:guid}/publier", async (
+    string type, Guid id, EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    var r = await service.RetirerAsync(type, id, moiId.Value, ct);
+    return r.Ok ? Results.NoContent() : Results.BadRequest(new { error = r.Erreur });
+});
+
+app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/importer", async (
+    string type, Guid id, EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    var r = await service.ImporterAsync(type, id, moiId.Value, ct);
+    return r.Ok ? Results.Ok(new { importe = true, id = r.EntiteId }) : Results.BadRequest(new { error = r.Erreur });
+});
+
+app.MapPost("/api/v1/bibliotheque/communaute/{type}/{id:guid}/signaler", async (
+    string type, Guid id, SignalerBiblioRequest? request,
+    EbiosRM.Api.Modules.Bibliotheque.ServiceBibliothequeCommunautaire service,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var moiId = ObtenirUtilisateurId(principal);
+    if (moiId is null) return Results.Unauthorized();
+    var r = await service.SignalerAsync(type, id, moiId.Value, request?.Motif, ct);
+    return r.Ok ? Results.Ok(new { signale = true }) : Results.BadRequest(new { error = r.Erreur });
 });
 
 // Catalogue MITRE ATT&CK Enterprise (techniques de 1er niveau), embarque dans
@@ -3414,6 +3494,7 @@ record AjouterModeOperatoireBiblioRequest(
     string Nom, string? Description, int? ProbabiliteSuccesTypique, int? DifficulteTechniqueTypique,
     List<ActionElementaireBiblioRequest>? Actions);
 record ActionElementaireBiblioRequest(string Description, string Phase, string? CibleBienSupport, string? TechniqueMitre);
+record SignalerBiblioRequest(string? Motif);
 record AjouterMembreRequest(string Email, string Role);
 record ChangerRoleMembreRequest(string Role);
 record CreerValeurMetierRequest(string Description, string EntiteProprietaire);

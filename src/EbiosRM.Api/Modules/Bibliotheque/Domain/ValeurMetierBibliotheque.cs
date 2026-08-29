@@ -49,4 +49,7 @@ public sealed class ValeurMetierBibliotheque : IEntreeBibliotheque
             EntiteProprietaireTypique = entiteProprietaireTypique,
             CreeLeUtc = default,
         };
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Intitule, NatureOuFinalite, EntiteProprietaireTypique);
 }

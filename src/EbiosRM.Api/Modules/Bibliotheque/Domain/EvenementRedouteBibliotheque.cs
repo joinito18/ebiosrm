@@ -57,4 +57,7 @@ public sealed class EvenementRedouteBibliotheque : IEntreeBibliotheque
             ImpactsTypes = impactsTypes,
             CreeLeUtc = default,
         };
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Intitule, GraviteIndicative, ImpactsTypes);
 }

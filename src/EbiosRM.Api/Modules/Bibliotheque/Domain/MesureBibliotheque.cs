@@ -83,4 +83,7 @@ public sealed class MesureBibliotheque : IEntreeBibliotheque
     }
 
     internal static Guid IdDeterministe(string cle) => new(MD5.HashData(Encoding.UTF8.GetBytes(cle)));
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Referentiel, Code, Titre, Description, Categorie);
 }

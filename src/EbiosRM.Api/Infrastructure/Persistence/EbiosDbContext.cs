@@ -40,6 +40,7 @@ public class EbiosDbContext : DbContext
     public DbSet<BienSupportBibliotheque> BiensSupportBibliotheque => Set<BienSupportBibliotheque>();
     public DbSet<EvenementRedouteBibliotheque> EvenementsRedoutesBibliotheque => Set<EvenementRedouteBibliotheque>();
     public DbSet<ModeOperatoireBibliotheque> ModesOperatoiresBibliotheque => Set<ModeOperatoireBibliotheque>();
+    public DbSet<PublicationBibliotheque> PublicationsBibliotheque => Set<PublicationBibliotheque>();
     public DbSet<IndicateurSuivi> IndicateursSuivi => Set<IndicateurSuivi>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -505,6 +506,31 @@ public class EbiosDbContext : DbContext
                 action.Property(a => a.CibleBienSupport).HasMaxLength(300);
                 action.Property(a => a.TechniqueMitre).HasMaxLength(20);
                 action.HasIndex("ModeOperatoireBibliothequeId");
+            });
+        });
+
+        modelBuilder.Entity<PublicationBibliotheque>(entity =>
+        {
+            entity.ToTable("bibliotheque_publications");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.TypeEntite).IsRequired().HasMaxLength(40);
+            entity.Property(p => p.EntiteId).IsRequired();
+            entity.Property(p => p.ProprietaireId).IsRequired();
+            entity.Property(p => p.PublieLeUtc).IsRequired();
+            entity.Property(p => p.Masquee).IsRequired();
+            entity.HasIndex(p => new { p.TypeEntite, p.EntiteId }).IsUnique();
+            entity.HasIndex(p => p.ProprietaireId);
+
+            entity.OwnsMany(p => p.Signalements, s =>
+            {
+                s.ToTable("bibliotheque_signalements");
+                s.WithOwner().HasForeignKey("PublicationBibliothequeId");
+                s.HasKey(x => x.Id);
+                s.Property(x => x.Id).ValueGeneratedOnAdd();
+                s.Property(x => x.SignalePar).IsRequired();
+                s.Property(x => x.Motif).HasMaxLength(1000);
+                s.Property(x => x.CreeLeUtc).IsRequired();
+                s.HasIndex("PublicationBibliothequeId", "SignalePar").IsUnique();
             });
         });
 

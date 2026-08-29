@@ -53,4 +53,7 @@ public sealed class BienSupportBibliotheque : IEntreeBibliotheque
             Description = description,
             CreeLeUtc = default,
         };
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, Intitule, Type, EntiteProprietaireTypique, Description);
 }

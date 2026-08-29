@@ -13,11 +13,13 @@ import {
   listerBiensSupportBiblio, ajouterBienSupportBiblio, supprimerBienSupportBiblio,
   listerEvenementsRedoutesBiblio, ajouterEvenementRedouteBiblio, supprimerEvenementRedouteBiblio,
   listerModesOperatoiresBiblio, ajouterModeOperatoireBiblio, supprimerModeOperatoireBiblio,
+  listerCommunaute, importerCommunaute, signalerCommunaute,
+  mesPublicationsBiblio, publierBiblio, retirerPublicationBiblio,
   ApiError,
 } from '../lib/api'
 import type {
   MesureBiblio, SourceRisqueBiblio, PartiePrenanteBiblio, ValeurMetierBiblio,
-  BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio,
+  BienSupportBiblio, EvenementRedouteBiblio, ModeOperatoireBiblio, EntreeCommunaute,
 } from '../lib/api'
 import { PHASES_ACTION_ELEMENTAIRE } from '../lib/api'
 
@@ -44,17 +46,38 @@ var ONGLETS: [Onglet, string][] = [
   ['modes-operatoires', 'Modes operatoires'],
 ]
 
+/** Onglet -> slug de type utilise par les routes /bibliotheque/communaute/{type}. */
+var SLUG_COMMUNAUTE: { [key in Onglet]: string } = {
+  'mesures': 'mesure',
+  'sources': 'source-risque',
+  'parties-prenantes': 'partie-prenante',
+  'valeurs-metier': 'valeur-metier',
+  'biens-support': 'bien-support',
+  'evenements-redoutes': 'evenement-redoute',
+  'modes-operatoires': 'mode-operatoire',
+}
+
 export default function Bibliotheque() {
   var _t = useT()
   var [onglet, setOnglet] = useState<Onglet>('mesures')
+  var [portee, setPortee] = useState<'perso' | 'communaute'>('perso')
 
   return (
     <div className="mx-auto max-w-[1180px] px-6 py-10 lg:px-10 lg:py-14">
       <PageHeader
         eyebrow={_t('biblio.eyebrow')}
         titre={_t('biblio.titre')}
-        description="Catalogues fournis (ISO 27002, hygiene ANSSI, exemples EBIOS RM) et vos propres elements, a reutiliser d'une etude a l'autre."
+        description="Catalogues fournis (ISO 27002, hygiene ANSSI, exemples EBIOS RM), vos propres elements et ceux partages par la communaute."
       />
+
+      <div className="mb-4 inline-flex rounded-sm border border-paper-line p-0.5">
+        {([['perso', 'Ma bibliotheque'], ['communaute', 'Communaute']] as [typeof portee, string][]).map(function (o) {
+          var actif = portee === o[0]
+          return (
+            <button key={o[0]} onClick={function () { setPortee(o[0]) }} className={'px-3 py-1 text-xs font-medium transition ' + (actif ? 'bg-signature text-white' : 'text-steel hover:text-ink')}>{o[1]}</button>
+          )
+        })}
+      </div>
 
       <div className="mb-8 flex flex-wrap gap-2 border-b border-paper-line">
         {ONGLETS.map(function (o) {
@@ -71,13 +94,100 @@ export default function Bibliotheque() {
         })}
       </div>
 
-      {onglet === 'mesures' && <OngletMesures />}
-      {onglet === 'sources' && <OngletSources />}
-      {onglet === 'parties-prenantes' && <OngletPartiesPrenantes />}
-      {onglet === 'valeurs-metier' && <OngletValeursMetier />}
-      {onglet === 'biens-support' && <OngletBiensSupport />}
-      {onglet === 'evenements-redoutes' && <OngletEvenementsRedoutes />}
-      {onglet === 'modes-operatoires' && <OngletModesOperatoires />}
+      {portee === 'communaute' ? (
+        <VueCommunaute key={onglet} slug={SLUG_COMMUNAUTE[onglet]} onglet={onglet} />
+      ) : (
+        <>
+          {onglet === 'mesures' && <OngletMesures />}
+          {onglet === 'sources' && <OngletSources />}
+          {onglet === 'parties-prenantes' && <OngletPartiesPrenantes />}
+          {onglet === 'valeurs-metier' && <OngletValeursMetier />}
+          {onglet === 'biens-support' && <OngletBiensSupport />}
+          {onglet === 'evenements-redoutes' && <OngletEvenementsRedoutes />}
+          {onglet === 'modes-operatoires' && <OngletModesOperatoires />}
+        </>
+      )}
+    </div>
+  )
+}
+
+function texteEntree(onglet: Onglet, e: Record<string, unknown>): { titre: string; sous: string } {
+  var s = function (k: string) { return (e[k] as string) || '' }
+  if (onglet === 'mesures') return { titre: (s('code') ? s('code') + ' -- ' : '') + s('titre'), sous: [s('referentiel'), s('categorie')].filter(Boolean).join(' -- ') }
+  if (onglet === 'sources') return { titre: s('descriptionSourceRisque') + ' -> ' + s('descriptionObjectifVise'), sous: s('theme') }
+  if (onglet === 'parties-prenantes') return { titre: s('nom'), sous: [s('descriptionCategorie') || s('categorie'), s('rolesEtAttentes')].filter(Boolean).join(' -- ') }
+  if (onglet === 'valeurs-metier') return { titre: s('intitule'), sous: [s('natureOuFinalite'), s('entiteProprietaireTypique')].filter(Boolean).join(' -- ') }
+  if (onglet === 'biens-support') return { titre: s('intitule'), sous: [LIBELLE_TYPE_BS[s('type')] || s('type'), s('entiteProprietaireTypique')].filter(Boolean).join(' -- ') }
+  if (onglet === 'evenements-redoutes') return { titre: s('intitule'), sous: [(e['graviteIndicative'] ? 'G' + e['graviteIndicative'] : ''), s('impactsTypes')].filter(Boolean).join(' -- ') }
+  var actions = (e['actions'] as unknown[]) || []
+  return { titre: s('nom'), sous: [actions.length + ' actions', s('description')].filter(Boolean).join(' -- ') }
+}
+
+function VueCommunaute(props: { slug: string; onglet: Onglet }) {
+  var [items, setItems] = useState<EntreeCommunaute[]>([])
+  var [q, setQ] = useState('')
+  var [chargement, setChargement] = useState(true)
+
+  function charger() {
+    setChargement(true)
+    listerCommunaute(props.slug, q)
+      .then(setItems)
+      .catch(function () { toastErreur('Bibliotheque communautaire indisponible.') })
+      .finally(function () { setChargement(false) })
+  }
+
+  useEffect(function () {
+    var minuteur = setTimeout(charger, 200)
+    return function () { clearTimeout(minuteur) }
+  }, [q, props.slug])
+
+  function importer(e: EntreeCommunaute) {
+    importerCommunaute(props.slug, e.id)
+      .then(function () { toastSucces('Importe dans votre bibliotheque.') })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  function signaler(e: EntreeCommunaute) {
+    var motif = window.prompt('Motif du signalement (optionnel) :') || ''
+    if (motif === null) return
+    signalerCommunaute(props.slug, e.id, motif)
+      .then(function () { toastSucces('Signalement enregistre.'); charger() })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
+  return (
+    <div>
+      <p className="mb-3 border border-paper-line bg-paper-dim px-3 py-2 text-[11px] text-steel">
+        Elements publies par d'autres comptes. « Importer » en cree une copie privee dans votre bibliotheque. Une entree signalee par 3 comptes distincts est masquee automatiquement.
+      </p>
+      <Champ valeur={q} onChange={setQ} placeholder="Rechercher..." className="mb-3" />
+      {chargement ? (
+        <p className="text-sm text-steel">Chargement...</p>
+      ) : items.length === 0 ? (
+        <EmptyState message="Aucun element partage pour l'instant." />
+      ) : (
+        <ul className="divide-y divide-paper-line border-y border-paper-line">
+          {items.map(function (e) {
+            var t = texteEntree(props.onglet, e.entree)
+            return (
+              <li key={e.id} className="flex items-start justify-between gap-4 py-2.5">
+                <div className="min-w-0">
+                  <div className="text-sm text-ink">{t.titre}</div>
+                  <div className="mt-0.5 font-mono text-[10px] text-steel-light">
+                    {['par ' + (e.publieParMoi ? 'vous' : e.proprietaire), t.sous, e.signalements > 0 ? e.signalements + ' signalement' + (e.signalements > 1 ? 's' : '') : ''].filter(Boolean).join(' -- ')}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button onClick={function () { importer(e) }} className="border border-paper-line px-2 py-0.5 font-mono text-[10px] text-steel transition hover:border-signature hover:text-signature">Importer</button>
+                  {!e.publieParMoi && (
+                    <button onClick={function () { signaler(e) }} className="font-mono text-[10px] text-steel-light hover:text-risk-critical">Signaler</button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
@@ -95,14 +205,44 @@ function Champ(props: { valeur: string; onChange: (v: string) => void; placehold
   )
 }
 
-/** Enveloppe commune : recherche + liste + etat vide + chargement. */
+/**
+ * Enveloppe commune : recherche + liste + etat vide + chargement.
+ * `slug` (type communautaire) active un bouton Publier / Retirer du partage
+ * sur les entrees personnelles.
+ */
 function Liste<T extends { id: string; systeme: boolean }>(props: {
   q: string; onQ: (v: string) => void
   chargement: boolean; items: T[]; vide: string
   rendre: (item: T) => React.ReactNode
   onSupprimer: (item: T) => void
+  slug?: string
 }) {
   var items = props.items || []
+  var [publiees, setPubliees] = useState<{ [id: string]: boolean }>({})
+
+  useEffect(function () {
+    if (!props.slug) return
+    mesPublicationsBiblio()
+      .then(function (ids) {
+        var m: { [id: string]: boolean } = {}
+        ids.forEach(function (i) { m[i] = true })
+        setPubliees(m)
+      })
+      .catch(function () {})
+  }, [props.slug, props.chargement])
+
+  function basculerPartage(item: T) {
+    if (!props.slug) return
+    var estPublie = !!publiees[item.id]
+    var action = estPublie ? retirerPublicationBiblio(props.slug, item.id) : publierBiblio(props.slug, item.id)
+    action
+      .then(function () {
+        setPubliees(function (p) { var c = { ...p }; if (estPublie) delete c[item.id]; else c[item.id] = true; return c })
+        toastSucces(estPublie ? 'Retire du partage.' : 'Publie dans la communaute.')
+      })
+      .catch(function (err) { toastErreur(err instanceof ApiError ? err.message : 'Erreur.') })
+  }
+
   return (
     <div>
       <Champ valeur={props.q} onChange={props.onQ} placeholder="Rechercher..." className="mb-3" />
@@ -117,9 +257,16 @@ function Liste<T extends { id: string; systeme: boolean }>(props: {
               <li key={item.id} className="flex items-start justify-between gap-4 py-2.5">
                 <div className="min-w-0">{props.rendre(item)}</div>
                 {!item.systeme && (
-                  <button onClick={function () { props.onSupprimer(item) }} aria-label="Retirer" className="shrink-0 text-steel-light transition hover:text-risk-critical">
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {props.slug && (
+                      <button onClick={function () { basculerPartage(item) }} className={'font-mono text-[10px] transition ' + (publiees[item.id] ? 'text-signature hover:text-steel' : 'text-steel-light hover:text-signature')}>
+                        {publiees[item.id] ? 'Publie ✓' : 'Publier'}
+                      </button>
+                    )}
+                    <button onClick={function () { props.onSupprimer(item) }} aria-label="Retirer" className="text-steel-light transition hover:text-risk-critical">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 )}
               </li>
             )
@@ -198,6 +345,7 @@ function OngletMesures() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={mesures} vide="Aucune mesure."
         onSupprimer={supprimer}
+        slug="mesure"
         rendre={function (m) {
           return (
             <>
@@ -274,6 +422,7 @@ function OngletSources() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={sources} vide="Aucune source de risque."
         onSupprimer={supprimer}
+        slug="source-risque"
         rendre={function (s) {
           return (
             <>
@@ -345,6 +494,7 @@ function OngletPartiesPrenantes() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune partie prenante."
         onSupprimer={supprimer}
+        slug="partie-prenante"
         rendre={function (p) {
           var niveaux = [p.dependanceTypique, p.penetrationTypique, p.maturiteCyberTypique, p.confianceTypique]
           var aNiveaux = niveaux.some(function (n) { return n != null })
@@ -417,6 +567,7 @@ function OngletValeursMetier() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucune valeur metier."
         onSupprimer={supprimer}
+        slug="valeur-metier"
         rendre={function (v) {
           return (
             <>
@@ -500,6 +651,7 @@ function OngletBiensSupport() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun bien support."
         onSupprimer={supprimer}
+        slug="bien-support"
         rendre={function (b) {
           return (
             <>
@@ -574,6 +726,7 @@ function OngletEvenementsRedoutes() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun evenement redoute."
         onSupprimer={supprimer}
+        slug="evenement-redoute"
         rendre={function (e) {
           return (
             <>
@@ -682,6 +835,7 @@ function OngletModesOperatoires() {
       <Liste
         q={q} onQ={setQ} chargement={chargement} items={items} vide="Aucun mode operatoire."
         onSupprimer={supprimer}
+        slug="mode-operatoire"
         rendre={function (m) {
           var ouvert = deplie === m.id
           return (

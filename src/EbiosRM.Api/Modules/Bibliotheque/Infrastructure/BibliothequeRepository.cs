@@ -20,6 +20,12 @@ public sealed class BibliothequeRepository : IBibliothequeRepository
             .OrderByDescending(e => EF.Property<DateTime>(e, "CreeLeUtc"))
             .ToListAsync(cancellationToken);
 
+    public async Task<List<T>> ListerParIdsAsync<T>(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken)
+        where T : class, IEntreeBibliotheque =>
+        await _db.Set<T>()
+            .Where(e => ids.Contains(EF.Property<Guid>(e, "Id")))
+            .ToListAsync(cancellationToken);
+
     public Task<T?> ObtenirAsync<T>(Guid id, CancellationToken cancellationToken)
         where T : class, IEntreeBibliotheque =>
         _db.Set<T>().FirstOrDefaultAsync(e => EF.Property<Guid>(e, "Id") == id, cancellationToken);

@@ -78,4 +78,7 @@ public sealed class SourceRisqueBibliotheque : IEntreeBibliotheque
             CreeLeUtc = default,
         };
     }
+
+    public IEntreeBibliotheque CopiePrivee(Guid proprietaireId)
+        => Creer(proprietaireId, SourceRisque, DescriptionSourceRisque, ObjectifVise, DescriptionObjectifVise, Theme, MotivationTypique, RessourcesTypiques);
 }
