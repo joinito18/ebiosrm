@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, Download, Copy } from 'lucide-react'
+import { Plus, Trash2, Download, Copy, Upload } from 'lucide-react'
 import PageHeader from '../components/shared/PageHeader'
 import Button from '../components/shared/Button'
 import Card from '../components/shared/Card'
 import EmptyState from '../components/shared/EmptyState'
 import BadgeStatutAtelier from '../components/shared/BadgeStatutAtelier'
 import BoutonTelechargerRapport from '../components/shared/BoutonTelechargerRapport'
-import { listEtudes, createEtude, supprimerEtude, dupliquerEtude, ApiError } from '../lib/api'
+import { listEtudes, createEtude, supprimerEtude, dupliquerEtude, importerEtude, ApiError } from '../lib/api'
 import { toastSucces, toastErreur } from '../lib/toast'
 import type { Etude } from '../lib/api'
 
@@ -62,6 +62,25 @@ export default function Etudes() {
   }
 
   var [duplicationEnCours, setDuplicationEnCours] = useState('')
+  var [importEnCours, setImportEnCours] = useState(false)
+  var champFichier = useRef<HTMLInputElement>(null)
+
+  function handleFichierChoisi(e: React.ChangeEvent<HTMLInputElement>) {
+    var fichier = e.target.files && e.target.files[0]
+    e.target.value = '' // permet de re-choisir le meme fichier
+    if (!fichier) return
+    setImportEnCours(true)
+    fichier.text()
+      .then(function (contenu) { return importerEtude(contenu) })
+      .then(function (res) {
+        toastSucces('Etude importee.')
+        navigate('/etudes/' + res.id)
+      })
+      .catch(function (err) {
+        toastErreur(err instanceof ApiError ? err.message : 'Impossible d importer ce fichier.')
+      })
+      .finally(function () { setImportEnCours(false) })
+  }
 
   function handleDupliquer(e: React.MouseEvent, etude: Etude) {
     e.stopPropagation()
@@ -103,10 +122,28 @@ export default function Etudes() {
 
       <div className="mb-6 flex items-center justify-between gap-4">
         <div />
-        <Button variante="primary" taille="md" onClick={function () { setCreationOuverte(!creationOuverte) }}>
-          <Plus size={14} />
-          Nouvelle etude
-        </Button>
+        <div className="flex items-center gap-3">
+          <input
+            ref={champFichier}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleFichierChoisi}
+            className="hidden"
+          />
+          <Button
+            variante="secondary"
+            taille="md"
+            disabled={importEnCours}
+            onClick={function () { if (champFichier.current) champFichier.current.click() }}
+          >
+            <Upload size={14} />
+            {importEnCours ? 'Import...' : 'Importer un fichier'}
+          </Button>
+          <Button variante="primary" taille="md" onClick={function () { setCreationOuverte(!creationOuverte) }}>
+            <Plus size={14} />
+            Nouvelle etude
+          </Button>
+        </div>
       </div>
 
       {creationOuverte && (

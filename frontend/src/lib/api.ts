@@ -245,6 +245,11 @@ export function dupliquerEtude(id: string, nom?: string): Promise<{ id: string }
   })
 }
 
+// contenu = le texte brut d'un fichier .json produit par l'export d'une etude.
+export function importerEtude(contenu: string): Promise<{ id: string }> {
+  return apiFetch('/etudes/importer', { method: 'POST', body: contenu })
+}
+
 export function demarrerAtelier1(etudeId: string): Promise<Etude> {
   return apiFetch('/etudes/' + etudeId + '/demarrer-atelier1', { method: 'POST' })
 }

@@ -169,6 +169,7 @@ builder.Services.AddScoped<ServiceAuthentification>();
 builder.Services.AddScoped<IEtudeRepository, EtudeRepository>();
 builder.Services.AddScoped<ServiceSuppressionEtude>();
 builder.Services.AddScoped<ServiceDuplicationEtude>();
+builder.Services.AddScoped<ServiceImportEtude>();
 builder.Services.AddScoped<IValeurMetierRepository, ValeurMetierRepository>();
 builder.Services.AddScoped<IBienSupportRepository, BienSupportRepository>();
 builder.Services.AddScoped<IEvenementRedouteRepository, EvenementRedouteRepository>();
@@ -659,6 +660,35 @@ app.MapPost("/api/v1/etudes/{etudeId:guid}/dupliquer", async (
         EtudeMembre.Creer(nouvelleId.Value, proprietaireId.Value, RoleEtude.Proprietaire, proprietaireId), ct);
 
     return Results.Created($"/api/v1/etudes/{nouvelleId}", new { id = nouvelleId });
+});
+
+// Import d'une etude depuis un fichier JSON produit par .../export (autre
+// installation, sauvegarde, transfert entre comptes non partages). Le corps
+// de la requete EST le fichier. L'appelant devient proprietaire de l'etude
+// creee. Route sans etudeId -> le middleware d'isolation ne s'applique pas ;
+// seule l'authentification est requise.
+app.MapPost("/api/v1/etudes/importer", async (
+    HttpRequest request, ServiceImportEtude service, IEtudeMembreRepository membreRepo,
+    System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var proprietaireId = ObtenirUtilisateurId(principal);
+    if (proprietaireId is null)
+        return Results.Unauthorized();
+
+    // Un export d'etude complete fait ~300-400 Ko. Kestrel plafonne deja le
+    // corps a 30 Mo ; on refuse plus tot et proprement au-dela de 15 Mo.
+    const long tailleMax = 15L * 1024 * 1024;
+    if (request.ContentLength > tailleMax)
+        return Results.BadRequest(new { error = "Fichier trop volumineux (max 15 Mo pour un export d'etude)." });
+
+    var resultat = await service.ImporterAsync(request.Body, proprietaireId.Value, ct);
+    if (resultat.Erreur is not null)
+        return Results.BadRequest(new { error = resultat.Erreur });
+
+    await membreRepo.AjouterAsync(
+        EtudeMembre.Creer(resultat.EtudeId!.Value, proprietaireId.Value, RoleEtude.Proprietaire, proprietaireId), ct);
+
+    return Results.Created($"/api/v1/etudes/{resultat.EtudeId}", new { id = resultat.EtudeId });
 });
 
 app.MapGet("/api/v1/etudes", async (
