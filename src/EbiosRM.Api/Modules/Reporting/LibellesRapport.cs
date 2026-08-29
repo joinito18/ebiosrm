@@ -86,6 +86,14 @@ public static class LibellesRapport
         _ => type ?? "--",
     };
 
+    public static string StatutEtude(string? statut, bool anglais = false) => statut switch
+    {
+        "Validee" => Choisir(anglais, "Validee", "Validated"),
+        "EnCours" => Choisir(anglais, "En cours", "In progress"),
+        "Brouillon" => Choisir(anglais, "Brouillon", "Draft"),
+        _ => statut ?? "--",
+    };
+
     public static string Theme(string? theme, bool anglais = false) => theme switch
     {
         "Organisationnel" => Choisir(anglais, "Organisationnel", "Organisational"),

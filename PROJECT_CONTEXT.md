@@ -2515,6 +2515,16 @@ Suite de la demande #4. **Toute l'interface interactive** est désormais bilingu
 - **Composants partagés** (`cmp.*`) : `RowActions`, `OverrideJugementExpert`, `SelecteurBibliotheque`, `SelecteurConformite`, `CartographieAtelier3`, `ChampTechniqueMitre`, `BoutonTelechargerRapport`, `Toaster`, `RiskMatrix`, `ErrorBoundary`, `Sidebar` (aria-label), `MembresEtude` (placeholder). `InlineForm`/`EmptyState` reçoivent déjà un `label`/`message` traduit par l'appelant. `Aide.tsx` avait déjà sa table `T` fr/en.
 - **Vérif** : `tsc -b` OK, `npm run build` OK, 25 tests frontend OK. Scan regex : plus aucune chaîne FR dans les nœuds de texte JSX ni les attributs `placeholder/title/aria-label/label`.
 
-**Reste** : les **8 générateurs PDF** (`Rapport*PdfGenerator.cs` + `ManuelPdfGenerator` déjà fait) restent en français. Chantier dédié : ~2100 l., threading `?langue=` endpoint → (Service/Data pour A2/A3/A4 à cause de `LibellesSourceRisqueObjectifVise` et des libellés conformité) → générateur, + variantes EN des helpers d'enum côté serveur.
+### Générateurs PDF (fait — même branche)
+
+- **`LibellesRapport.cs`** (nouveau) : libellés d'enum bilingues côté serveur (pertinence, zone, niveau de risque, classe d'acceptation, statut mesure, couverture conformité, axe, phase, type de bien support, état conformité, thème) — miroir de `libelles.ts`.
+- **`LibellesSourceRisqueObjectifVise`**, **`NiveauCoutComplexite.LibelleAvecMot`**, **`RapportPdfStyle`** (`LibelleClasse` / `LibelleStatutMesure` / `PastilleStatutMesure` / `BandeAxe` / `CartographieCompleteAvecLegende`) : paramètre `bool anglais`.
+- **8 générateurs** `Rapport{Atelier1-5,CadreDeSuivi,Conformite,SyntheseGlobale}PdfGenerator` : `Generer(data, bool anglais = false)` + `string T(fr, en)` local, toutes les chaînes figées passées par `T` (titres de section, en-têtes de tableau, prose méthodologique, messages « aucune donnée », pieds de page). Grilles d'échelle (motivation/ressources A2, dangerosité A3, vraisemblance A4) : tuples enrichis FR+EN.
+- **Services** Atelier2-5 + CadreDeSuivi : `ConstruireAsync(..., bool anglais = false)` — threade `anglais` vers les libellés SR/OV (`LibellesSourceRisqueObjectifVise`) et coût/complexité. Les champs `Axe`/`Statut` des records `MesureTraitementRisqueData` **restent en valeur brute** (utilisés comme clés de `GroupBy`/`Where` dans les générateurs) — la traduction se fait à l'affichage (`BandeAxe`, `PastilleStatutMesure`).
+- **Endpoints** `/rapports/{atelier1-5,synthese,cadre-de-suivi,conformite}` : `?langue=en` → rapport anglais + nom de fichier anglais (`report-workshopN`, `report-summary`, `monitoring-framework`, `compliance`).
+- **`BoutonTelechargerRapport`** : ajoute `?langue=en` automatiquement quand l'IHM est en anglais (sauf si l'appelant l'a déjà mis).
+- **Test** : `CycleDeVieCompletTests` génère les 8 rapports en `?langue=en` et vérifie `200` + en-tête `%PDF`.
+
+**Limite connue** : le libellé composé d'un scénario de risque (`LibelleCouple -- LibelleChemin`, Atelier 5 + synthèse) est figé dans la langue de validation du snapshot ; idem pour les libellés internes des cartographies SVG rendues dans l'app (`/cartographie/*.svg`). Le reste (catégories SR/OV, dont la reconstruction se fait depuis l'enum brut du snapshot en A2/A3/A4) est bien bilingue.
 
 *Fin du contexte.*

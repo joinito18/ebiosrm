@@ -66,7 +66,7 @@ public sealed class RapportAtelier1PdfGenerator
                             Champ(inner, T("Étude", "Study"), data.NomEtude);
                             Champ(inner, T("Mission", "Mission"), data.Mission);
                             Champ(inner, T("Périmètre", "Scope"), data.Perimetre);
-                            Champ(inner, T("Statut au moment de la validation", "Status at validation time"), data.Statut);
+                            Champ(inner, T("Statut au moment de la validation", "Status at validation time"), LibellesRapport.StatutEtude(data.Statut, anglais));
                         });
                     });
 
