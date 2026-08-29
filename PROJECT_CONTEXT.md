@@ -2441,5 +2441,12 @@ Demande utilisateur : « ajoutons les bibliothèques pour tous » + guides d'uti
 - **Limite connue** : supprimer une entrée perso publiée laisse une ligne `bibliotheque_publications` orpheline — filtrée au listing (`TryGetValue … continue`), sans effet visible. Nettoyage à ajouter si besoin.
 - **Tests** : `BibliothequeCommunautaireTests` (publier idempotent + non-auteur refusé ; voir/importer depuis un autre compte, copie à Id différent ; retrait → disparaît ; 3 signaleurs distincts → masquée pour tous, re-signalement sans effet, republication refusée, entrée conservée en biblio perso). 267 backend, 25 frontend. Playwright : bascule Communauté OK, import crée bien une copie perso.
 
+### Étape 4 — Aide intégrée `/aide` (commit 4)
+- **Source unique** : `frontend/src/guides/*.md` (10 guides ultra-détaillés : prise en main + 5 ateliers + bibliothèque + conformité + suivi/portefeuille + exports/partage), chacun = rappel méthodo EBIOS RM + mode d'emploi de l'outil. `frontend/src/guides/index.ts` importe via `?raw` et expose `GUIDES` (slug, titre, resume, contenu).
+- **`components/shared/Markdown.tsx`** : rendu Markdown maison, sans dépendance (titres `#`..`####`, paragraphes, listes `-`/`1.` + sous-niveau par indentation, `**gras**`, `` `code` ``, `[lien](url)`, blocs ```` ``` ````, citations `>`, `---`, tableaux pipe). `types: ["vite/client"]` (tsconfig.app.json) fournit déjà la déclaration `*?raw`.
+- **`pages/Aide.tsx`** : routes `/aide` + `/aide/:slug`, sommaire à gauche (select en mobile), article Markdown à droite. Lien sidebar « Aide » (icône `BookOpen`), i18n `nav.aide` (FR/EN).
+- Les mêmes `.md` seront embarqués côté backend au commit 5 pour le manuel PDF (`<EmbeddedResource>` dans `EbiosRM.Api.csproj`).
+- **Vérifié** : `tsc`/`npm run test` (25) verts, bundle `Aide` ~35 kB. Playwright : sommaire des 10 guides, rendu titres/tableau/gras/listes, deep-link `/aide/atelier-3`.
+
 *Fin du contexte.*
 

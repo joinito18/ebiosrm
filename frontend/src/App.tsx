@@ -20,6 +20,7 @@ const Bibliotheque = lazy(function () { return import('./pages/Bibliotheque') })
 const ConformiteEtude = lazy(function () { return import('./pages/ConformiteEtude') })
 const Portefeuille = lazy(function () { return import('./pages/Portefeuille') })
 const SuiviEtude = lazy(function () { return import('./pages/SuiviEtude') })
+const Aide = lazy(function () { return import('./pages/Aide') })
 
 function Chargement() {
   return (
@@ -51,6 +52,8 @@ export default function App() {
                 <Route path="/portefeuille" element={<Portefeuille />} />
                 <Route path="/etudes/:etudeId/ateliers/:numero" element={<AtelierPage />} />
                 <Route path="/bibliotheque" element={<Bibliotheque />} />
+                <Route path="/aide" element={<Aide />} />
+                <Route path="/aide/:slug" element={<Aide />} />
                 <Route path="/rapports" element={<Rapports />} />
                 <Route path="/parametres" element={<Parametres />} />
               </Route>
